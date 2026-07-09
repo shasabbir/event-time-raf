@@ -1,0 +1,21 @@
+\section{Introduction}
+
+Air pollution is a major urban risk factor, and fine particulate matter (PM2.5) is especially important because of its association with respiratory and cardiovascular health impacts \cite{who2021airquality}. Forecasting PM2.5 can support public-health alerts, exposure reduction, transport planning, and environmental policy. In dense cities such as Dhaka, air quality can vary rapidly because of meteorological conditions, traffic patterns, seasonal effects, construction dust, industrial activity, and abnormal events. These characteristics make air-quality forecasting a challenging time-series forecasting problem.
+
+Classical forecasting models and machine-learning models such as ARIMA, tree-based regressors, recurrent neural networks, and Transformer-based models can capture historical patterns when training and testing conditions are similar. However, urban air quality is highly context-dependent. A model trained only on historical numerical trends may underperform during unusual weather, public holidays, traffic disruptions, fire incidents, dust events, or other external shocks. This limitation is closely related to concept drift, where the data-generating process changes over time.
+
+Time-series foundation models (TSFMs) have recently been proposed to improve generalization across forecasting tasks. Models such as TimesFM, Moirai, MOMENT, Chronos, and Tiny Time Mixers (TTM) aim to transfer forecasting knowledge learned from large time-series corpora to new downstream domains \cite{das2024timesfm,woo2024moirai,goswami2024moment,ansari2024chronos,ekambaram2024ttm}. TimeRAF extends this direction by introducing retrieval augmentation for zero-shot time-series forecasting \cite{zhang2025timeraf}. It builds a time-series knowledge base, retrieves relevant candidate sequences, and integrates retrieved knowledge using Channel Prompting while keeping the TSFM backbone frozen.
+
+Although TimeRAF is a strong base method, its retrieval knowledge is primarily numerical time-series data. For air-quality forecasting, external context is not optional: rainfall can wash out particulates, low wind speed can increase stagnation, holidays can change traffic patterns, and fire or construction events can introduce abrupt emission changes. Therefore, a natural extension is to retrieve not only similar time-series patterns but also event, weather, and calendar context relevant to the forecast horizon.
+
+This draft proposes Event-TimeRAF, an event-aware retrieval-augmented framework for explainable Dhaka PM2.5 forecasting under concept drift. The planned contributions are:
+\begin{itemize}
+    \item an event-aware retrieval-augmented forecasting framework for urban PM2.5 prediction;
+    \item a hybrid knowledge-base design combining air-quality windows, weather summaries, calendar context, and event/news records;
+    \item a TimeRAF-inspired retrieval baseline using random and similarity-based retrieval over historical windows;
+    \item simple concept-drift indicators based on distribution shift, retrieval similarity, weather changes, and event bursts;
+    \item evidence-based explanation generation using retrieved historical cases, event context, weather drivers, drift indicators, and feature importance;
+    \item a planned ablation study comparing no retrieval, random retrieval, time-series retrieval, event retrieval, drift-aware retrieval, and the full Event-TimeRAF framework.
+\end{itemize}
+
+This manuscript is intentionally written as a draft before implementation. Sections on results and discussion contain only the reporting plan and placeholders. No experimental performance values are fabricated.

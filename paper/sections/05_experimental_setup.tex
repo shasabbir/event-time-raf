@@ -1,0 +1,68 @@
+\section{Experimental Setup}
+
+This section describes the planned experimental setup. The experiments have not yet been executed.
+
+\subsection{Planned Data}
+Table~\ref{tab:planned_data} lists the planned data sources and feature groups. The final dataset coverage will depend on actual availability of Dhaka PM2.5 measurements and event records.
+
+\begin{table}[!t]
+\centering
+\caption{Planned Data Sources and Feature Groups}
+\label{tab:planned_data}
+\begin{tabular}{p{0.24\linewidth}p{0.29\linewidth}p{0.32\linewidth}}
+\toprule
+Group & Planned Source & Example Features \\
+\midrule
+Air quality & OpenAQ or accessible PM2.5 source & PM2.5, station, timestamp \\
+Weather & Open-Meteo & temperature, humidity, rain, wind, pressure \\
+Calendar & Generated features & hour, weekday, weekend, season, holidays \\
+Events & GDELT or cached event records & event counts, categories, tone, text \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Forecasting Task}
+The initial task is 24-hour-ahead PM2.5 forecasting with a 168-hour lookback window. The planned split is earliest 70\% for training, next 15\% for validation, and latest 15\% for testing. Random splitting will not be used.
+
+\subsection{Baselines}
+The planned baselines are:
+\begin{itemize}
+    \item persistence baseline;
+    \item seasonal naive baseline;
+    \item XGBoost or LightGBM using PM2.5 lag/rolling features;
+    \item XGBoost or LightGBM using PM2.5, weather, and calendar features;
+    \item random-retrieval baseline;
+    \item cosine TimeRAF-inspired retrieval baseline;
+    \item Event-TimeRAF without drift indicators;
+    \item full Event-TimeRAF with event features and drift indicators.
+\end{itemize}
+
+Optional models such as ARIMA/SARIMA, Prophet, LSTM/GRU, PatchTST, or a TTM wrapper may be added if time and runtime allow.
+
+\subsection{Metrics}
+The planned metrics are mean squared error (MSE), mean absolute error (MAE), root mean squared error (RMSE), mean absolute percentage error (MAPE), symmetric MAPE (sMAPE), and $R^2$. MSE is included for comparability with the TimeRAF base paper, while MAE and RMSE are important for interpretability in air-quality forecasting. Separate event-period, drift-period, and normal-period errors will be reported after drift and event labels are constructed.
+
+\subsection{Ablation Plan}
+Table~\ref{tab:ablation_plan} gives the planned ablation matrix. The entries describe planned model variants only; no result is reported.
+
+\begin{table*}[!t]
+\centering
+\caption{Planned Ablation Study}
+\label{tab:ablation_plan}
+\begin{tabular}{lccccccc}
+\toprule
+Model & PM2.5 & Weather & Calendar & TS Retrieval & Event Retrieval & Drift & Explanation \\
+\midrule
+Persistence & Yes & No & No & No & No & No & No \\
+Seasonal naive & Yes & No & Yes & No & No & No & No \\
+XGBoost-basic & Yes & No & No & No & No & No & No \\
+XGBoost-weather-calendar & Yes & Yes & Yes & No & No & No & No \\
+Random-retrieval baseline & Yes & Yes & Yes & Random & No & No & Limited \\
+Cosine TimeRAF-inspired & Yes & Yes & Yes & Cosine & No & No & Limited \\
+Event-TimeRAF-no-drift & Yes & Yes & Yes & Yes & Yes & No & Yes \\
+Event-TimeRAF-full & Yes & Yes & Yes & Yes & Yes & Yes & Yes \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Additional planned analyses include candidate-count sensitivity for $k \in \{1,4,8,16\}$, optional $k=32$, uniform versus similarity-weighted retrieval aggregation, and knowledge-base size sensitivity if runtime allows.

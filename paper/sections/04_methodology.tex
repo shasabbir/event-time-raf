@@ -1,0 +1,123 @@
+\section{Methodology}
+
+\subsection{Overview}
+Fig.~\ref{fig:architecture} shows the planned Event-TimeRAF pipeline. The system first aligns air-quality observations with weather and calendar features. It then constructs sliding windows and a time-series knowledge base. A time-series retriever returns similar historical windows, while an event retriever returns relevant event/news records around the forecast timestamp. Retrieved evidence is fused with structured features to generate a forecast, confidence proxy, drift score, and explanation.
+
+\begin{figure}[!t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=4.5mm,
+    block/.style={rectangle, rounded corners, draw=black, align=center, minimum width=35mm, minimum height=6mm, font=\scriptsize},
+    smallblock/.style={rectangle, rounded corners, draw=black, align=center, minimum width=28mm, minimum height=6mm, font=\scriptsize},
+    arrow/.style={-Latex, thick}
+]
+\node[block] (air) {Historical PM2.5\\Data};
+\node[block, below=of air] (align) {Weather + Calendar\\Alignment};
+\node[block, below=of align] (windows) {Sliding Window\\Construction};
+\node[smallblock, below left=7mm and 8mm of windows] (tskb) {Time-Series\\Knowledge Base};
+\node[smallblock, below right=7mm and 8mm of windows] (evkb) {Event/News\\Knowledge Base};
+\node[smallblock, below=of tskb] (tsret) {Time-Series\\Retriever};
+\node[smallblock, below=of evkb] (evret) {Event\\Retriever};
+\node[block, below right=8mm and -15mm of tsret] (fusion) {Hybrid Fusion\\Module};
+\node[block, below=of fusion] (model) {Forecasting\\Backbone};
+\node[block, below=of model] (out) {Forecast + Confidence\\+ Drift + Explanation};
+
+\draw[arrow] (air) -- (align);
+\draw[arrow] (align) -- (windows);
+\draw[arrow] (windows) -- (tskb);
+\draw[arrow] (windows) -- (evkb);
+\draw[arrow] (tskb) -- (tsret);
+\draw[arrow] (evkb) -- (evret);
+\draw[arrow] (windows) -- (fusion);
+\draw[arrow] (tsret) -- (fusion);
+\draw[arrow] (evret) -- (fusion);
+\draw[arrow] (fusion) -- (model);
+\draw[arrow] (model) -- (out);
+\end{tikzpicture}
+}
+\caption{Planned Event-TimeRAF architecture. The figure is conceptual and does not report experimental results.}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Relationship to TimeRAF}
+TimeRAF retrieves top-$k$ candidate time-series windows from a curated knowledge base and integrates retrieved candidates using Channel Prompting \cite{zhang2025timeraf}. It uses a learnable dual-encoder retriever, dot-product similarity, a frozen TSFM backbone, and candidate augmentation during retriever training. Event-TimeRAF preserves the retrieval-augmentation principle but adapts it to Dhaka PM2.5 forecasting and expands the knowledge sources beyond numerical sequences.
+
+The first implementation will not reproduce full TimeRAF. Instead, it will implement a TimeRAF-inspired retrieval baseline using random retrieval and cosine similarity. A dual-encoder MLP retriever, candidate augmentation, and TSFM-based Channel Prompting are reserved for later extensions after the Kaggle-compatible MVP is reproducible.
+
+\subsection{Dataset Construction}
+The planned air-quality data source is OpenAQ or another accessible source containing Dhaka PM2.5 observations. Timestamps will be converted to Asia/Dhaka time, resampled to hourly frequency if data quality permits, cleaned for impossible values, and interpolated only over short gaps. Weather covariates will be retrieved from Open-Meteo first, with ERA5 considered as a later alternative. Calendar features will include hour, weekday, weekend flag, month, season, public-holiday indicators, Ramadan indicators, and Eid-period indicators where reliable calendar data are available.
+
+All normalization statistics will be fitted on the training split only. The same normalization procedure will be applied to query windows and retrieved candidate windows, following the TimeRAF requirement that input and retrieved sequences use consistent preprocessing.
+
+\subsection{Time-Series Knowledge Base}
+The time-series knowledge base will contain historical PM2.5 windows. Each record will store a window identifier, start time, end time, input window values, future window values, weather summary, calendar summary, embedding vector or normalized window vector, data split, and normalization identifier. For validation and test evaluation, retrieval will be restricted to training-history windows to prevent leakage.
+
+Given a query window $X_t$, the time-series retriever returns
+\begin{equation}
+    R^{ts}_t = \{r^{ts}_{t,1}, r^{ts}_{t,2}, \ldots, r^{ts}_{t,k}\},
+\end{equation}
+where $k$ is the number of retrieved candidates. The default planned setting is $k=8$, with sensitivity analysis for $k \in \{1,4,8,16\}$ and optionally $k=32$.
+
+\subsection{Event Knowledge Base}
+The event knowledge base will contain event or news records related to Dhaka or Bangladesh. Planned fields include event identifier, timestamp, location, event category, source, title, summary, tone, and keywords. Event categories include fire, traffic, rainstorm, construction, industrial activity, public gathering, holiday movement, dust, flood, and policy restriction.
+
+For the first implementation, events will be represented as structured aggregate features such as 24-hour event count, 72-hour event count, fire-event count, traffic-event count, industrial-event count, negative-tone average, and top event text. If live event collection is unstable, a cached event dataset will be used and the limitation will be documented.
+
+\subsection{Hybrid Retrieval Score}
+The planned hybrid retrieval score combines time-series, weather, calendar, and event relevance:
+\begin{equation}
+    s(q, i) =
+    \alpha s_{ts}(q,i) +
+    \beta s_{w}(q,i) +
+    \gamma s_{c}(q,i) +
+    \delta s_{e}(q,i),
+    \label{eq:hybrid_score}
+\end{equation}
+where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is calendar similarity, and $s_e$ is event relevance. Initial weights are planned as $\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$. These weights will be tuned only using validation data after implementation.
+
+\subsection{Fusion and Forecasting Backbone}
+The MVP fusion method will concatenate PM2.5 lag/rolling features, weather features, calendar features, retrieved time-series summary features, event features, and drift indicators. The first forecasting backbone will be XGBoost or LightGBM because these models are efficient on Kaggle and provide strong tabular baselines. A later extension may use an MLP residual fusion module inspired by Channel Prompting:
+\begin{equation}
+    z_i = \mathrm{Concat}(h_t, r_{t,i}),
+\end{equation}
+\begin{equation}
+    h_t^{*} = h_t + \frac{1}{k}\sum_{i=1}^{k} \mathrm{MLP}(z_i),
+    \label{eq:fusion}
+\end{equation}
+where $h_t$ is the input representation and $r_{t,i}$ is the representation of the $i$-th retrieved candidate. This mirrors the TimeRAF idea of preserving the original input representation while adding uniformly averaged information extracted from retrieved candidates.
+
+\subsection{Concept Drift Detection}
+Concept drift will be represented using transparent indicators rather than complex online algorithms in the first implementation. Planned indicators include recent mean shift, recent variance shift, retrieval similarity drop, weather-pattern shift, and event-burst indicator. A simple drift score can be defined as
+\begin{equation}
+    D_t =
+    \lambda_1 z_{\mu,t} +
+    \lambda_2 z_{\sigma,t} +
+    \lambda_3 (1-\bar{s}_{ts,t}) +
+    \lambda_4 b_{event,t},
+\end{equation}
+where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts, $\bar{s}_{ts,t}$ is average retrieval similarity, and $b_{event,t}$ is an event-burst score. The exact thresholds will be selected on validation data.
+
+\subsection{Explanation Generation}
+The explanation module will generate evidence-based explanations. It will use feature importance or SHAP values, weather flags, retrieved historical windows, retrieved event records, calendar context, forecast direction, and drift score. It will not generate explanations from an unconstrained language model. Each explanation must be traceable to stored evidence.
+
+Table~\ref{tab:timeraf_comparison} summarizes the methodological relation between TimeRAF and Event-TimeRAF.
+
+\begin{table}[!t]
+\centering
+\caption{Methodological Comparison Between TimeRAF and Event-TimeRAF}
+\label{tab:timeraf_comparison}
+\begin{tabular}{p{0.27\linewidth}p{0.29\linewidth}p{0.29\linewidth}}
+\toprule
+Aspect & TimeRAF & Event-TimeRAF Draft \\
+\midrule
+Target domain & General zero-shot TSF & Dhaka PM2.5 forecasting \\
+Knowledge base & Time-series windows & PM2.5 windows, weather, calendar, events \\
+Retriever & Learnable dual encoder & Random/cosine first; learnable later \\
+Integration & Channel Prompting & Feature fusion first; Channel-Prompting-inspired later \\
+Backbone & Frozen TSFM & XGBoost/LightGBM MVP; TSFM later \\
+Explanations & Retrieved-case visualization & Evidence-based forecast explanation \\
+Drift handling & Not central & Explicit drift indicators \\
+\bottomrule
+\end{tabular}
+\end{table}

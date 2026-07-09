@@ -1,0 +1,43 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
+
+\title{Event-TimeRAF: Event-Aware Retrieval-Augmented Foundation Models for Explainable Air Quality Forecasting Under Concept Drift}
+
+\author{Author Name,~\IEEEmembership{Student Member,~IEEE}%
+\thanks{This is a pre-implementation draft prepared for academic supervision. Experimental results are intentionally left as placeholders until the implementation and evaluation are completed.}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Urban air-quality forecasting is important for public-health warning, environmental management, and city-scale decision support. Recent time-series foundation models have shown promising zero-shot forecasting ability, and TimeRAF improves such models by retrieving relevant time-series sequences from a knowledge base and integrating them with a frozen time-series foundation model. However, air-pollution variation is often influenced by external context, including meteorology, holidays, traffic activity, fire incidents, construction, and other event-driven factors. This draft proposes Event-TimeRAF, an event-aware retrieval-augmented forecasting framework for Dhaka PM2.5 prediction. The proposed methodology combines historical air-quality windows, weather features, calendar context, retrieved similar time-series patterns, retrieved event/news context, concept-drift indicators, and evidence-based explanation generation. Since the implementation has not yet been executed, this manuscript reports the motivation, related work, problem formulation, methodology, and planned experimental setup only. No empirical performance results are claimed in this draft.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Air quality forecasting, PM2.5, retrieval-augmented forecasting, time-series foundation models, TimeRAF, concept drift, explainable forecasting.
+\end{IEEEkeywords}
+
+\input{sections/01_introduction}
+\input{sections/02_related_work}
+\input{sections/03_problem_formulation}
+\input{sections/04_methodology}
+\input{sections/05_experimental_setup}
+\input{sections/06_results_discussion}
+\input{sections/07_conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
