@@ -1,0 +1,478 @@
+Abstract—Urban air-quality forecasting is important for
+public-health warning, environmental management, and city-management.
+scale decision support. Recent timeseries foundation models have
+has demonstrated good zero-shot forecasting capabilities, as has TimeRAF
+enriches such models by finding appropriate time-series sequences.
+corporate knowledge base and incorporating them into a frozen
+time-series foundation model. However, air-pollution variation
+Many times outside context influences is, such as meteorol-
+Holidays, traffic, fire, construction, and other events affect the intensity of the related signals.
+other event-driven factors. In this draft we propose Event-TimeRAF,
+A retrieval-augmented forecasting framework that is event-aware for
+Dhaka PM2.5 prediction. The methodology proposed is based on the fusion of:
+History of air-quality windows, weather features, calendar con-
+Captured time-series patterns, captured event/news, text
+context, concept-drift indicators and evidence-based explanation
+generation. Given the fact that the implementation has not yet been carried out,
+In this manuscript we are motivated by related work, problem statement,
+Only the formulation is created and methodology and the planned experimental setup are described.
+No empirical performance results are made in this draft.
+Index Terms—Air quality forecasting, PM2.5, retrieval-
+Time-series foundation models, including augmented forecasting, TimeRAF,
+Concept drift, explainable forecasting.
+I. INTRODUCTION
+Fine particulate is a significant urban risk factor, with air pollution being amongst them.
+The special significance of PM2.5 (aerosol) matter is evident.
+There are respiratory and cardiovascular health effects associated with the use of inhalation products [1].
+Forecasting can help in aiding public-health alerts and exposure alerts.
+In the areas of reduction, transport planning and environmental policy. In
+dense cities such as Dhaka, air quality can vary rapidly
+Due to meteorological conditions, traffic patterns, seasonal
+conditions such as construction dust, industry and unusual conditions.
+events. Because of these properties it is a challenge to forecast the AQ.
+difficult time series forecasting task.
+Classical forecasting models, and machine-learning models
+such as ARIMA, tree-based regressors, recurrent neural net-
+Transformers can model historical works is not a problem.
+Patterns when with the training and testing conditions are identical. How-
+However, the situation of air quality in the cities is very situation-dependent. A model
+Models that are trained only on past observations of the numbers might not do well.
+at times of unusual weather, public holidays and traffic disruptions,
+External shocks such as fire incidents, dust events etc. This
+limitation is intimately connected to concept drift of the data-
+The generating process varies in time.
+Time-series foundation models (TSFMs) have recently been
+was put forward to enhance the generalisation of forecasting tasks.
+This is a Draft for Academic Intervention, a pre-implementation draft.
+Experimental results, purposely left as placeholders, until imple-
+Mentoring and assessment process is finished.
+Models like Moirai, MOMENT, Chronos and TimesFM are available.
+Tiny Time Mixers (TTM) are designed to pass the knowledge of forecasting skills on to:
+edge learned from large time series corpora to new down-
+stream domains [2]–[6]. TimeRAF takes this suggestion further by
+Introducing retrieval augmentation for zero shot time-series
+forecasting [7]. It creates a time-series knowledge base and re-
+Retrieves relevant candidate sequences, and integrates retrieved
+using Channel Prompting and maintaining the TSFM knowledge
+backbone frozen.
+TimeRAF is a good fundamental approach, but retrieval of the produced data is not.
+The knowledge is mainly in the form of numerical time series. For air-
+When it comes to quality forecasting, there is no such thing as too much external context—rainfall.
+can wash out particulates, low wind speed can increase
+Holidays can alter traffic patterns, and stalling due to fire or other events can affect traffic.
+The abrupt changes in emissions can be caused by construction events.
+As such, it is logical to look for similar items but also, to retrieve similar objects from a different view.
+time-series patterns as well as event, weather and calendar.
+Relevant to the horizon of the forecast, context.
+This is a draft for an Event-TimeRAF: an event-aware
+Explainable Dhaka PM2.5 retrieval-augmented framework.
+Forecasting in concept drift situation. They plan to make contributions of:
+An event-a aware retrieval-augmented forecasting frame-
+common data for urban PM2.5 prediction;
+A hybrid knowledge-base design using both air-quality and meteorological information for forecasting purposes is being developed.
+weather forecasts, calendar information and weather
+event/news records;
+• a TimeRAF type retrieval baseline with random and
+Similarity Based Retrieval over historical windows;
+• simple concept drift indicators using distribution shift,
+retrieval similarity, changes in weather and event bursts;
+information.• evidence-based explanation generation with retrieved information.
+historical cases, event context, weather drivers, drift in-,
+dicators, feature importance;
+• a planned ablation study of no retrieval, random retrieval, and systematic retrieval of the coronary arteries.
+retrieval, time-series retrieval, event retrieval, drift-aware.
+The partial Event-TimeRAF framework and the complete framework.
+This manuscript is meant to be a draft prior to
+implementation. Results and Discussion sections include
+Only the reporting plan and placeholders! No experimental
+The performance values are made up.
+II. This section presents a literature review and related work of the study.
+A. Time-Series Forecasting
+Traditionally time-series forecasting has been considered
+CNNs to predict the likelihood of a cancer diagnosis.They use statistical models, machine-learning regressors and deep CNNs to predict the likelihood of a cancer diagnosis.
+2
+neural networks. The autoregressive and seasonal models stay the same.
+They are interpretable and efficient and thus are useful baselines.
+GBM models like XGBoost and Light-GBM are examples of such models.
+GBM are popular for tabular forecasting using lagged
+and rolling features [8], [9]. Recurrent model (e.g., LSTM)
+GRU is able to capture sequential dependence [10] [11]. More
+Transformer-based forecasting models have recently been used to
+patching and channel-independent designs to deal with long
+more efficiently lookback windows [12]. For air-quality fore-
+while these approaches are helpful, they may still be sensitive to casting.
+to changes in distribution as well as to unobserved external events.
+Time-Series Foundation Models (B.)
+TSFMs are designed to give a transferable forecasting capacity across
+datasets and domains. TimeFM is an architecture that is based on the Decoder-Only model.
+The ture method was used for time-series forecasting [2]. Moirai is proposing a universal.
+forecasting Transformer is trained on a large-scale open time-series.
+series archive [3]. MOMENT offers an entire family of open time-
+Time-series foundation models for general purpose time-series tasks.
+[4]. Chronos transforms time-series values into tokens, trains
+probabilistic forecasting language-model architectures [5].
+TTM is proposing small pre-trained models for effi-
+cient zero/few-shot forecasting [6]. These models motivate the
+Because of the use of pre-trained forecasting backbones, but practical domain
+However, it is hard to adapt if the downstream series are
+Highly responsive to the local events and environment.
+C. Retrieval-Augmented Forecasting
+Retrieval-augmented generation first became popularized in
+NLP is a nonparametric combination of parametric models.
+memory [13]. Dense Passage Retrieval (DPR) introduced
+Open domain question answer-dense dual-encoder retrieval
+ing [14]. TimeRAF is an adaptation of the retrieval-augmentation concept to
+zero-shot time-series forecasting [7]. It constructs a time-series
+Retrieves the top-k candidate windows from a knowledge base,
+It uses a learnable retriever, and combines them via Channel
+Prompting. The main base paper of TTM-Base is reported in the base paper.
+backbone, context length 512, forecast horizon 96 in most cases
+experiments with k = 8 as default number of retrieved experiments.
+candidates. Random retrieval, cosine similarity and dot product-based ablations are compared by its ablations.
+retrieval and learnable retrieval, and alternative integration mecha-
+nisms, number of candidates, choice of knowledge base and back-
+bone choices.
+Event-TimeRAF is based on the TimeRAF principle and
+Changes the Knowledge Source and the target domain. Instead of
+It is only based on the numerical time-series retrieval and suggests
+A hybrid knowledge base of historical PM2.5 win-
+dows, weather summaries, calendar context and events/news
+evidence. The first is going to be based on TimeRAF.
+As opposed to a full reproduction, random retrieval and cosine similarity.
+The retrieval will be done first and a dual-encoder MLP
+The retriever and Channel-Prompting style neural fusion stay the same.
+advanced extensions.
+Data and Air-Quality Forecasting.
+One common way to forecast PM2.5 is to rely on historical pollutant measure-
+ments along with the meteorological factors like temperature.
+precipitation, pressure, wind speed, humidity and nature. Ope-
+nAQ makes air-quality measurement data available from
+monitoring networks [15]. Open-Meteo gives historical and
+APIs for weather prediction appropriate for getting climate knowledge.
+covariates [16]. The GDELT Project proactively provides event context as part of its data.
+vides is an open database that provides information on news and events all over the world.
+signals [17]. These sources will enable the development of a
+reproducible air-quality forecasting pipeline, given data.
+availability for Dhaka.
+Explainable and Event-Aware Forecasting.
+Forecasting in the environment is important and needs to be explained
+It is because the users must know the reasons behind a model prediction of a
+The increase or decrease of pollutants. SHAP values help to interpret how a model operates.
+An agnostic framework to estimate feature contribution [18].
+But only feature importance explanations might
+miss signs or cues in time and/or place. Event-TimeRAF there-
+Fore will create explanations with structured evidence:
+recent persistence of PM2.5, retrieved similar weather flags,
+historical window, window of events retrieved, calendar context,
+and drift indicators. The explanation module will use tem-
+fantasy.plates based on evidence not on free imagination.
+language-model generation.
+III. PROBLEM FORMULATION
+Let xt be the PM2.5 measurement at time t. For a forecast
+time t, the historical air-quality lookback window is
+Xt = [xt−L+1, xt−L+2, . . . , xt], (1)
+Here L is the lookback length. Use the word weather as Wt
+covariates who are equal to the lookback window, Ct denote
+The following calendar features are retrieved from, and Et denotes, event context retrieved from.
+knowledge base about an event/news. The objective is the future PM2.5.
+sequence
+Yt+1:t+H = [xt+1, xt+2, . . . , xt+H ], (2)
+where H is the forecasting horizon.
+Forecasting goal is to learn a function
+ˆYt+1:t+H = Fθ (Xt, Wt, Ct, Rts
+t , Rev
+t , Dt), (3)
+where Rts
+t is retrieved time-series knowledge, Rev.t is retrieved time-series knowledge, rev.
+t is retrieved
+event knowledge is stored in event, and Dt has concept-drift indicators. In
+In the initial implementation the first target setting is L = 168
+H = 24 hours and hours are the number of hours in a day. Longer horizons of 48, 72, and 96
+After the 24 hours pipeline is stable, hours are planned.
+The evaluation scheduled is split in two with a time based approach:
+Ttrain < Tval < Ttest, (4)
+It is achieved by using the first 70% of observations for training,
+The latest 15% for testing, the next 15% for validation and the remaining 70% for development.
+However, future will not leak, so random splitting is not used.
+To incorporate temporal information into training.
+The essential notation is summarized in Table I.
+3
+TABLE I
+The following is a list of the main symbols used in the proposed formulation:
+Symbol Meaning
+Window length (L) for lookback
+H Forecast horizon
+Xt Historical PM2.5 sequence at time t
+Wt Weather covariates
+Ct Calendar/context features
+Rts
+t Knowledge acquired in the time-series
+Rev
+eventNews Knowledge retrieve: Retrieve the event/news knowledge.
+Dt Drift indicators
+ˆYt+1:t+H Future PM2.5 forecasted by the model
+Historical PM2.5
+Data
+Weather + Calendar
+Alignment
+Sliding Window
+Construction
+Time-Series
+Knowledge Base
+Event/News
+Knowledge Base
+Time-Series
+Retriever
+Event
+Retriever
+Hybrid Fusion
+Module
+Forecasting
+Backbone
+Forecast + Confidence
++ Drift + Explanation
+Fig. 1. Planned Event-TimeRAF architecture. The figure is schematic and
+does NOT provide experimental data.
+IV. METHODOLOGY
+A. Overview
+The Event-TimeRAF planned pipeline is shown in Fig. 1. The
+The first step in system is to correlate air-quality observations with weather and
+calendar features. It then creates sliding windows and a
+time-series knowledge base. The time-series retriever returns the following:
+Similehistoricalwindows and an event retriever returns
+relevant event/news records within a period of time close to the forecast time.
+The evidence collected is combined with structured attributes to create
+Forecast, Confidence Proxy, Drift Score, and Explanation.
+The connection between B. and TimeRAF.
+TimeRAF is a method to retrieve top-k candidate time-series windows.
+based on a knowledge base that is developed and curated, and incorporates retrieved can-
+The use of Channel Prompting [7] by didates. It has a learnable dual-
+encoder retriever, dot-product similarity, a frozen TSFM back-
+bone, and candidate augmentation during retraining of the retriever.
+Event-TimeRAF maintains the retrieval-augmentation principle:
+However, it uses it to incorporate in Dhaka PM2.5 forecasting and extends it to the
+Sources of knowledge other than numbers sequences.
+The initial implementation won't be a complete clone of TimeRAF.
+Rather it will adopt a TimeRAF style retrieval base-
+Random retrieval + Cosine similarity for line. A dual-
+The models used include encoder MLP retriever, candidate augmentation, and TSFM-
+The latter extensions are for Channel Prompting based.
+Reproducible Kaggle compatible MVP.
+C. Dataset Construction
+The intended open-source for air-quality data is OpenAQ or an-
+other easily accessible source of Dhaka PM2.5 observations.
+Timestamps will be changed to Asia/Dhaka time, resam-
+hourly data if data quality allows, cleaned
+Only interpolated over small gaps, for impossible values.
+Open-Meteo will be the first source from which the weather covariates will be retrieved,
+with ERA5 as a late substitute. Calendar features
+will include hour, weekday, weekend flag, month, season,
+public-holiday indicators, Ramadan indicators and Eid-period
+When there are reliable calendar data available, indicators are available.
+All normalisation statistics will be done on the training split.
+only. Same normalization will be used with
+the query windows, and retrieved candidate windows, following
+must be of the same length.Input and retrieved sequences must be the same length as per the TimeRAF requirement.
+use consistent preprocessing.
+Data and Knowledge: D. Time-Series Knowledge Base
+The historical knowledge base will be added to the time-series knowledge base.
+PM2.5 windows. Every record will contain a window id,
+start time and end time, window input values, window future values,
+Including ues, weather summary, calendar summary, embedding vector.
+Orthogonalized window vector, window vector data split and orthogonalization
+identifier. Validation and test evaluation will be on retrieval of
+Only train-history windows are allowed to avoid leakage.
+the time-series retriever returns, for a given query window Xt.
+Rts
+t = {rts
+t,1, rts
+t,2, . . . , rts
+t,k}, (5)
+Given the number of retrieved candidates k. The default
+The planned setting is k = 8, sensitivity analysis is done for k ∈
+{1, 4, 8, 16} and optionally k = 32.
+E. Event Knowledge base.
+Event or news will be part of the event knowledge base
+Any kind of records of Dhaka or Bangladesh. Planned fields include
+A unique identifier for the event, time, place, type of event, source of the event
+The information covers title, summary, tone and keywords. Event categories include
+Particular risks are; fire, traffic, rainstorm, construction, industrial activity, public
+collection, holiday travel, dust, flood and policy limitations,
+tion.
+Event will be represented as for the first implementation,
+structured aggregate with such features as 24-hour event count,
+72-hour event count, fire-event count, traffic-event count,
+industrial-event count, negative-tone average and top event
+text. If live event collection is unreliable, a cached set of events from the
+will be used and the limitation will be noted.
+4
+Panera Bread, Inc.'s retrieval score is F.
+The proposed hybrid retrieval score will be a combination of time-series,
+Relevance for weather, calendar, and events:
+s(q, i) = αsts(q, i) + βsw(q, i) + γsc(q, i) + δse(q, i), (6)
+where sts is time-series similarity, sw is weather similarity, sc
+is similarity of calendars and se event relevance. Initial weights
+are planned as α = 0.5, β = 0.2, γ = 0.1, and δ = 0.2.
+These weights will only be adjusted with validation data after
+implementation.
+G. Fusion and Forecasting Backbone
+The MVP fusion method will combine PM2.5 lag/rolling
+Retrieved time-, calendar-, weather-, and features are the features.
+The summary of the series includes series features, event features, and drift indicators.
+In the first forecasting backbone, it will be XGBoost or LightGBM
+These models are efficient and are associated with Kaggle because of the following reasons:
+strong tabular baselines. May use MLP in later extension
+After watching Channel Prompting, I got the idea for doing a residual fusion module.
+zi = Concat(ht, rt,i), (7)
+h∗
+t = ht + 1
+k
+kX
+i=1
+MLP(zi), (8)
+where ht is the input representation and rt,i is the repre-
+The presentation of the i-th retrieved candidate. This mirrors the
+TimeRAF idea of preserving the original input representation
+Adding uniformly averaged information gotten from
+retrieved candidates.
+Concept Drift Detection for H.Concept Drift Detection in H.
+Transparent in- will be used for representing concept drift.
+Instead of complex online algorithms, there are dicators in the first.
+implementation. Recent mean shift,
+Recent variance change, retrieval similarity decrease, weather-pattern
+shift- and event-burst indicator. A simple drift score can be used to determine the direction of drift.
+defined as
+Dt = λ1zμ,t + λ2zσ,t + λ3(1 − ¯sts,t) + λ4bevent,t, (9)
+where zμ,t and zσ,t are normalised mean and variance shifts, respectively,
+¯sts,t is the average retrieval similarity and bevent,t the similarity of the event-
+burst score. Validation will be used to determine the thresholds precisely
+data.
+I. Explanation Generation
+The explanation module will produce evidence-based explanations of the reasons for that.
+planations. It will employ feature importance or SHAP values,
+weather flags,get history windows,get history event
+Calendar context, forecast direction and drift score are all included in records. It
+will not be able to create explanations in an unrestricted language
+model. All explanations should be backed up by evidence stored.
+The methodological relation between
+TimeRAF and Event-TimeRAF.
+V. EXPERIMENTAL SETUP
+The following is a description of the experimental setup that is planned. The
+These experiments have yet to be performed.
+TABLE II
+A METHODOLOGICAL COMPARISON BETWEEN TIMERAF AND
+EVENT-TIMERAF
+The time given by the aspect is different from the time recorded in the event-timeRAF Draft.
+General zero-shot TSF Dhaka PM2.5 forecasting
+casting
+Knowledge base Time-series windows PM2.5 windows:
+weather, calendar,
+events
+Retriever Learnable dual
+encoder
+Random/cosine first;
+learnable later
+The feature of fusion of Integration Channel Prompting, first;
+Channel-Prompting-
+inspired later
+A model using XGBoost/LightGBM based on Backbone Frozen TSFM.
+MVP; TSFM later
+Explanations Retrieved-case visual-
+ization
+Evidence-based fore-
+cast explanation
+Handling Not central Explicit drift indica-
+tors
+TABLE III
+A list of data sources and feature of groups that are planned.
+Planned Source Example Features for each group.
+Access to air quality data OpenAQ or accessible
+PM2.5 source
+PM2.5, station, times-
+tamp
+Weather Open-Meteo temperature, humidity, wind speed and direction data are currently available.
+rain, wind, pressure
+Calendar Generated provides hour, weekday and weekend,
+season, holidays
+Events GDELT cached
+event records
+event counts, categories,
+tone, text
+A. Planned Data
+The planned Data sources and Feature groups are shown in Table III.
+The eventual extent of the data set coverage will depend on what is available.
+Records of PM2.5 measurements and events at of Dhaka.
+B. Forecasting Task
+The first one is 24-hour ahead PM2.5 forecast by
+A 168 hour lookback window. The proposed division is as early as possible.
+70% for training, 15% for validation and 15% for the latest.
+testing. Random splitting will not be used.
+C. Baselines
+Baselines planned are:
+• persistence baseline;
+• seasonal naive baseline;
+• XGBoost/LightGBM with PM2.5 lag/rolling features;
+PM2.5, weather, and cal-5 data, respectively, as features.XGBoost or LightGBM trained with PM2.5, weather, and cal-5 data as features, respectively.
+endar features;
+• random-retrieval baseline;
+• cosine TimeRAF inspired retrieval baseline;
+Event-TimeRAF (no drift indicators);
+• full Event-TimeRAF incl. event features and drift indi-
+tors.
+Optional models like ARIMA/SARIMA, Prophet,
+If a wrapper for a TTM is provided, using either LSTM/GRU or PatchTST is recommended.
+time and runtime allow.
+5
+D. Metrics
+The proposed metrics are mean squared error (MSE), mean
+Absolute error (MAE), root mean squared error (RMSE),
+Symmetric mean absolute percentage error (MAPE), and directional mean absolute percentage error (dMAPE)
+(sMAPE), and R2. For comparability with the MSE is also included:
+TimeRAF base paper is important as well as MAE and RMSE.
+for interpretation in air-quality forecasting. Separate event-
+The drift-period and normal-period errors will be reported in the period.
+after drift and event labels are created after the drift and event.
+E. Ablation Plan
+Table IV gives the planned ablation matrix. The entries
+Only describes planned model variants, no result is reported.
+More analyses planned include candidate-count sensi-
+tivity for k ∈ {1, 4, 8, 16}, optional k = 32, uniform versus
+retrieval aggregation, and knowledge-base.
+The size sensitivity if there is any time available during runtime.
+VI. RESULTS AND DISCUSSION
+At this rough draft stage, none of the experimental results exist.
+due to the data pipeline, retrieval modules, forecasting mod-
+Ablation experiments have yet to be implemented, and there is no manure from ewes.
+Thus, there is a conscious decision here to not report numerical figures.
+claims involving performance, plots or comparative claims.
+This part will report following the implementation:
+• primary forecasts for all baselines and Event-
+TimeRAF variants;
+• ablation for weather, calendar time series re-
+Retrieval, event retrieval and drift indicators;
+• results about retrieval sensitivity for different k-values;
+• drift period error and normal period error;
+• event-period case studies;
+• example evidence-based explanations;
+• if fea- tures can be compared, then on computational cost or inference-time.
+sible.
+Real outputs will be the basis of the discussion which shall be written only after the discussion.
+generated. Specifically, in the endpaper, it will not state that
+Event-TimeRAF enhances baselines if the saved.
+The following evaluation tables are supportive of that.
+VII. CONCLUSION
+This draft proposed an event-aware time-region (Event-TimeRAF).
+Explainable Dhaka PM2.5 retrieval-augmented framework.
+Forecasting in concept drift situation. The proposed framework
+Enhances the concept of TimeRAF, through a combination of time-series retrieval
+Drift indicators, weather, calendar and event/news context,
+Evidence-Based Explanation Generation and. The first imple-
+A MVP of the mentation is conceived to be implemented as a Kaggle compatible product.
+Using a strong tabular baselines and simplified retrieval before moving.
+from simple to advanced TSFM based fusion.
+This manuscript has been written prior to implementation and for that reason,
+it does not make any claims about performance or experimental results.
+The next step is to put in place the data pipeline, baselines,
+retrieval modules, Event-TimeRAF MVP, drift detection, ex-
+planation module, and ablation study. The conclusion will be:
+to be revised following the actual results in experimental tests.

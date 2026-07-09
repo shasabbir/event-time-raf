@@ -1,7 +1,7 @@
 \section{Methodology}
 
 \subsection{Overview}
-Fig.~\ref{fig:architecture} shows the planned Event-TimeRAF pipeline. The system first aligns air-quality observations with weather and calendar features. It then constructs sliding windows and a time-series knowledge base. A time-series retriever returns similar historical windows, while an event retriever returns relevant event/news records around the forecast timestamp. Retrieved evidence is fused with structured features to generate a forecast, confidence proxy, drift score, and explanation.
+Fig.~\ref{fig:architecture} shows the planned Event-TimeRAF pipeline. The first step is to align air-quality observations with weather and calendar features. The system then creates sliding windows and a time-series knowledge base. The time-series retriever returns similar historical windows, while the event retriever returns relevant event/news records close to the forecast timestamp. The retrieved evidence is combined with structured features to generate a forecast, confidence proxy, drift score, and explanation.
 
 \begin{figure}[!t]
 \centering
@@ -41,14 +41,14 @@ Fig.~\ref{fig:architecture} shows the planned Event-TimeRAF pipeline. The system
 \end{figure}
 
 \subsection{Relationship to TimeRAF}
-TimeRAF retrieves top-$k$ candidate time-series windows from a curated knowledge base and integrates retrieved candidates using Channel Prompting \cite{zhang2025timeraf}. It uses a learnable dual-encoder retriever, dot-product similarity, a frozen TSFM backbone, and candidate augmentation during retriever training. Event-TimeRAF preserves the retrieval-augmentation principle but adapts it to Dhaka PM2.5 forecasting and expands the knowledge sources beyond numerical sequences.
+TimeRAF retrieves top-$k$ candidate time-series windows from a curated knowledge base and incorporates the retrieved candidates using Channel Prompting \cite{zhang2025timeraf}. It uses a learnable dual-encoder retriever, dot-product similarity, a frozen TSFM backbone, and candidate augmentation during retriever training. Event-TimeRAF keeps the retrieval-augmentation principle, but applies it to Dhaka PM2.5 forecasting and expands the knowledge sources beyond numerical sequences.
 
-The first implementation will not reproduce full TimeRAF. Instead, it will implement a TimeRAF-inspired retrieval baseline using random retrieval and cosine similarity. A dual-encoder MLP retriever, candidate augmentation, and TSFM-based Channel Prompting are reserved for later extensions after the Kaggle-compatible MVP is reproducible.
+The first implementation will not be a complete clone of TimeRAF. Instead, it will implement a TimeRAF-style retrieval baseline using random retrieval and cosine similarity. A dual-encoder MLP retriever, candidate augmentation, and TSFM-based Channel Prompting are reserved for later extensions after the Kaggle-compatible MVP is reproducible.
 
 \subsection{Dataset Construction}
-The planned air-quality data source is OpenAQ or another accessible source containing Dhaka PM2.5 observations. Timestamps will be converted to Asia/Dhaka time, resampled to hourly frequency if data quality permits, cleaned for impossible values, and interpolated only over short gaps. Weather covariates will be retrieved from Open-Meteo first, with ERA5 considered as a later alternative. Calendar features will include hour, weekday, weekend flag, month, season, public-holiday indicators, Ramadan indicators, and Eid-period indicators where reliable calendar data are available.
+The intended air-quality data source is OpenAQ or another accessible source containing Dhaka PM2.5 observations. Timestamps will be converted to Asia/Dhaka time, resampled to hourly frequency if data quality permits, cleaned for impossible values, and interpolated only over short gaps. Weather covariates will be retrieved from Open-Meteo first, with ERA5 considered as a later substitute. Calendar features will include hour, weekday, weekend flag, month, season, public-holiday indicators, Ramadan indicators, and Eid-period indicators where reliable calendar data are available.
 
-All normalization statistics will be fitted on the training split only. The same normalization procedure will be applied to query windows and retrieved candidate windows, following the TimeRAF requirement that input and retrieved sequences use consistent preprocessing.
+All normalization statistics will be fitted on the training split only. The same normalization procedure will be used for query windows and retrieved candidate windows, following the TimeRAF requirement that input and retrieved sequences use consistent preprocessing.
 
 \subsection{Time-Series Knowledge Base}
 The time-series knowledge base will contain historical PM2.5 windows. Each record will store a window identifier, start time, end time, input window values, future window values, weather summary, calendar summary, embedding vector or normalized window vector, data split, and normalization identifier. For validation and test evaluation, retrieval will be restricted to training-history windows to prevent leakage.
@@ -62,10 +62,10 @@ where $k$ is the number of retrieved candidates. The default planned setting is 
 \subsection{Event Knowledge Base}
 The event knowledge base will contain event or news records related to Dhaka or Bangladesh. Planned fields include event identifier, timestamp, location, event category, source, title, summary, tone, and keywords. Event categories include fire, traffic, rainstorm, construction, industrial activity, public gathering, holiday movement, dust, flood, and policy restriction.
 
-For the first implementation, events will be represented as structured aggregate features such as 24-hour event count, 72-hour event count, fire-event count, traffic-event count, industrial-event count, negative-tone average, and top event text. If live event collection is unstable, a cached event dataset will be used and the limitation will be documented.
+For the first implementation, events will be represented as structured aggregate features such as 24-hour event count, 72-hour event count, fire-event count, traffic-event count, industrial-event count, negative-tone average, and top event text. If live event collection is unreliable, a cached event dataset will be used and the limitation will be documented.
 
 \subsection{Hybrid Retrieval Score}
-The planned hybrid retrieval score combines time-series, weather, calendar, and event relevance:
+The planned hybrid retrieval score combines time-series similarity, weather relevance, calendar relevance, and event relevance:
 \begin{equation}
     s(q, i) =
     \alpha s_{ts}(q,i) +
@@ -74,10 +74,10 @@ The planned hybrid retrieval score combines time-series, weather, calendar, and 
     \delta s_{e}(q,i),
     \label{eq:hybrid_score}
 \end{equation}
-where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is calendar similarity, and $s_e$ is event relevance. Initial weights are planned as $\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$. These weights will be tuned only using validation data after implementation.
+where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is calendar similarity, and $s_e$ is event relevance. Initial weights are planned as $\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$. These weights will only be adjusted with validation data after implementation.
 
 \subsection{Fusion and Forecasting Backbone}
-The MVP fusion method will concatenate PM2.5 lag/rolling features, weather features, calendar features, retrieved time-series summary features, event features, and drift indicators. The first forecasting backbone will be XGBoost or LightGBM because these models are efficient on Kaggle and provide strong tabular baselines. A later extension may use an MLP residual fusion module inspired by Channel Prompting:
+The MVP fusion method will combine PM2.5 lag/rolling features, weather features, calendar features, retrieved time-series summary features, event features, and drift indicators. The first forecasting backbone will be XGBoost or LightGBM because these models are efficient on Kaggle and provide strong tabular baselines. A later extension may use an MLP residual fusion module inspired by Channel Prompting:
 \begin{equation}
     z_i = \mathrm{Concat}(h_t, r_{t,i}),
 \end{equation}
@@ -96,10 +96,10 @@ Concept drift will be represented using transparent indicators rather than compl
     \lambda_3 (1-\bar{s}_{ts,t}) +
     \lambda_4 b_{event,t},
 \end{equation}
-where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts, $\bar{s}_{ts,t}$ is average retrieval similarity, and $b_{event,t}$ is an event-burst score. The exact thresholds will be selected on validation data.
+where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts, $\bar{s}_{ts,t}$ is average retrieval similarity, and $b_{event,t}$ is an event-burst score. The exact thresholds will be selected using validation data.
 
 \subsection{Explanation Generation}
-The explanation module will generate evidence-based explanations. It will use feature importance or SHAP values, weather flags, retrieved historical windows, retrieved event records, calendar context, forecast direction, and drift score. It will not generate explanations from an unconstrained language model. Each explanation must be traceable to stored evidence.
+The explanation module will generate evidence-based explanations. It will use feature importance or SHAP values, weather flags, retrieved historical windows, retrieved event records, calendar context, forecast direction, and drift score. It will not generate explanations from an unrestricted language model. Each explanation must be traceable to stored evidence.
 
 Table~\ref{tab:timeraf_comparison} summarizes the methodological relation between TimeRAF and Event-TimeRAF.
 

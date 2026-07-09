@@ -1,9 +1,9 @@
 \section{Experimental Setup}
 
-This section describes the planned experimental setup. The experiments have not yet been executed.
+This section describes the planned experimental setup. The experiments have not yet been performed.
 
 \subsection{Planned Data}
-Table~\ref{tab:planned_data} lists the planned data sources and feature groups. The final dataset coverage will depend on actual availability of Dhaka PM2.5 measurements and event records.
+Table~\ref{tab:planned_data} lists the planned data sources and feature groups. The final dataset coverage will depend on the actual availability of Dhaka PM2.5 measurements and event records.
 
 \begin{table}[!t]
 \centering
@@ -22,7 +22,7 @@ Events & GDELT or cached event records & event counts, categories, tone, text \\
 \end{table}
 
 \subsection{Forecasting Task}
-The initial task is 24-hour-ahead PM2.5 forecasting with a 168-hour lookback window. The planned split is earliest 70\% for training, next 15\% for validation, and latest 15\% for testing. Random splitting will not be used.
+The initial task is 24-hour-ahead PM2.5 forecasting with a 168-hour lookback window. The planned split uses the earliest 70\% of observations for training, the next 15\% for validation, and the latest 15\% for testing. Random splitting will not be used.
 
 \subsection{Baselines}
 The planned baselines are:
@@ -40,7 +40,7 @@ The planned baselines are:
 Optional models such as ARIMA/SARIMA, Prophet, LSTM/GRU, PatchTST, or a TTM wrapper may be added if time and runtime allow.
 
 \subsection{Metrics}
-The planned metrics are mean squared error (MSE), mean absolute error (MAE), root mean squared error (RMSE), mean absolute percentage error (MAPE), symmetric MAPE (sMAPE), and $R^2$. MSE is included for comparability with the TimeRAF base paper, while MAE and RMSE are important for interpretability in air-quality forecasting. Separate event-period, drift-period, and normal-period errors will be reported after drift and event labels are constructed.
+The planned metrics are mean squared error (MSE), mean absolute error (MAE), root mean squared error (RMSE), mean absolute percentage error (MAPE), symmetric MAPE (sMAPE), and $R^2$. MSE is included for comparability with the TimeRAF base paper, while MAE and RMSE are important for interpretation in air-quality forecasting. Separate event-period, drift-period, and normal-period errors will be reported after drift and event labels are constructed.
 
 \subsection{Ablation Plan}
 Table~\ref{tab:ablation_plan} gives the planned ablation matrix. The entries describe planned model variants only; no result is reported.
