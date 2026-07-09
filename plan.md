@@ -118,7 +118,58 @@ time-series retrieval
 
 ---
 
-## 4. Expected Contributions
+## 4. Base Paper Details to Preserve
+
+The base TimeRAF paper adds several details that should shape this project.
+
+TimeRAF core mechanics:
+
+```text
+- channel-independent forecasting formulation
+- sliding-window time-series knowledge base
+- consistent Z-score normalization for input and retrieved sequences
+- dual-encoder retriever inspired by DPR
+- dot-product similarity between query and candidate embeddings
+- retriever supervision using forecaster feedback
+- frozen TSFM backbone during training
+- Channel Prompting for retrieved-knowledge integration
+- uniform averaging across retrieved candidates after MLP extraction
+- candidate augmentation during retriever training to avoid narrow retrieval behavior
+```
+
+TimeRAF experimental details to mention accurately:
+
+```text
+- TTM-Base is the main backbone.
+- Input context length is 512 and forecast horizon is 96 in most experiments.
+- The default number of retrieved candidates is k = 8.
+- MSE is the main metric in the base paper.
+- Evaluation datasets include ETTh1, ETTh2, ETTm1, ETTm2, Weather, and Electricity.
+- Baselines include TTM, Moirai, MOMENT, Timer, Chronos, and TimesFM.
+```
+
+Limitations and extension opportunities from the base paper:
+
+```text
+- knowledge bases are built from original time-series data without trend-seasonal decomposition
+- knowledge integration is still somewhat heuristic
+- channel interdependencies are not deeply modeled
+- retrieval is based on time-series data, not event/news context
+```
+
+Event-TimeRAF should use these points to position the contribution:
+
+```text
+TimeRAF retrieves time-series candidates.
+Event-TimeRAF retrieves time-series candidates plus event/weather/calendar context.
+TimeRAF uses Channel Prompting for TSFM embeddings.
+Event-TimeRAF MVP uses lightweight Channel-Prompting-inspired feature fusion.
+Full TSFM Channel Prompting remains an advanced extension, not the first Kaggle implementation.
+```
+
+---
+
+## 5. Expected Contributions
 
 The paper should claim contributions carefully and only at methodology level until experiments are completed.
 
@@ -129,13 +180,13 @@ Planned contributions:
 3. A simple TimeRAF-inspired retrieval baseline for air-quality forecasting.
 4. A concept-drift-aware extension using rolling statistics and retrieval similarity indicators.
 5. A grounded explanation module based on retrieved cases, event context, weather conditions, and feature importance.
-6. An ablation plan comparing basic forecasting, time-series retrieval, event retrieval, and the full Event-TimeRAF pipeline.
+6. An ablation plan comparing basic forecasting, random retrieval, cosine retrieval, event retrieval, drift-aware retrieval, and the full Event-TimeRAF pipeline.
 
 Do not claim state-of-the-art performance unless real experiments prove it.
 
 ---
 
-## 5. Paper Scope for First Draft
+## 6. Paper Scope for First Draft
 
 First paper deliverable:
 
@@ -179,7 +230,7 @@ paper/
 
 ---
 
-## 6. Paper Writing Requirements
+## 7. Paper Writing Requirements
 
 Use IEEE-style academic writing.
 
@@ -193,6 +244,7 @@ Rules:
 - Use citation placeholders where references are not finalized.
 - Clearly explain TimeRAF as the base method.
 - Clearly state how Event-TimeRAF differs from TimeRAF.
+- Mention TimeRAF's retriever, Channel Prompting, frozen TSFM backbone, default `k = 8`, context length 512, forecast horizon 96, and MSE evaluation.
 - Keep Results, Discussion, and Conclusion as placeholders until experiments are complete.
 ```
 
@@ -231,7 +283,7 @@ Methodology subsections:
 
 ---
 
-## 7. Kaggle-Friendly Repository Scope
+## 8. Kaggle-Friendly Repository Scope
 
 The original plan had a large repository tree. For Kaggle, keep the implementation simple.
 
@@ -289,9 +341,9 @@ Avoid creating many scripts and config files until the MVP works.
 
 ---
 
-## 8. Data Plan
+## 9. Data Plan
 
-### 8.1 Air Quality
+### 9.1 Air Quality
 
 Primary target:
 
@@ -311,10 +363,11 @@ Processing requirements:
 - resample to hourly frequency
 - interpolate only short gaps
 - preserve missingness report
+- fit normalization statistics on training data only
 - save processed data as data/processed/dhaka_pm25_hourly.csv
 ```
 
-### 8.2 Weather
+### 9.2 Weather
 
 Preferred source:
 
@@ -336,7 +389,7 @@ cloud_cover
 visibility if available
 ```
 
-### 8.3 Calendar
+### 9.3 Calendar
 
 Generate:
 
@@ -353,7 +406,7 @@ is_eid_period
 
 Bangladesh weekend days must be configurable. Do not hard-code a Western weekend assumption.
 
-### 8.4 Events
+### 9.4 Events
 
 Use GDELT or another accessible event/news source.
 
@@ -374,7 +427,17 @@ If event collection becomes unstable, the fallback is to implement the event mod
 
 ---
 
-## 9. Feature Engineering
+## 10. Feature Engineering
+
+TimeRAF-specific preprocessing lessons:
+
+```text
+- build input-output pairs using sliding windows
+- keep input window length and retrieved candidate window length aligned
+- normalize input windows and retrieved windows consistently
+- fit scalers only on the training split to avoid leakage
+- store metadata for window start/end time, station, frequency, and split
+```
 
 Lag features:
 
@@ -423,9 +486,9 @@ holiday_event_flag
 
 ---
 
-## 10. Model Plan
+## 11. Model Plan
 
-### 10.1 Baselines
+### 11.1 Baselines
 
 Implement these before Event-TimeRAF:
 
@@ -439,7 +502,7 @@ Implement these before Event-TimeRAF:
 
 For Kaggle, prioritize persistence, seasonal naive, and XGBoost/LightGBM first.
 
-### 10.2 TimeRAF-Inspired Retrieval Baseline
+### 11.2 TimeRAF-Inspired Retrieval Baseline
 
 Simplified retrieval baseline:
 
@@ -456,13 +519,24 @@ Initial settings:
 ```text
 window length = 168 hours
 forecast horizon = 24 hours
-k = 1, 4, 8, 16
+k = 1, 4, 8, 16, optionally 32
 retrieval = cosine similarity or FAISS nearest neighbor
+default TimeRAF-inspired setting = k = 8
 ```
 
 Do not attempt full TimeRAF reproduction first.
 
-### 10.3 Event-TimeRAF MVP
+Base-paper faithfulness:
+
+```text
+- use random retrieval and cosine retrieval as explicit baselines
+- aggregate retrieved candidates with uniform weighting first
+- test score-weighted aggregation only as an ablation
+- optionally add a dual-encoder MLP retriever after the MVP works
+- optionally add candidate augmentation for the learnable retriever
+```
+
+### 11.3 Event-TimeRAF MVP
 
 MVP architecture:
 
@@ -484,13 +558,24 @@ window encoder
 + weather/calendar encoder
 + event embedding
 + retrieved sequence embedding
--> gated fusion or MLP fusion
+-> Channel-Prompting-inspired fusion
 -> forecast head
+```
+
+Channel-Prompting-inspired fusion should follow the base paper conceptually:
+
+```text
+input representation
++ retrieved candidate representation
+-> concatenate/flatten or concatenate features
+-> MLP compression
+-> residual connection to preserve input information
+-> average uniformly across k retrieved candidates
 ```
 
 ---
 
-## 11. Retrieval Plan
+## 12. Retrieval Plan
 
 Time-series knowledge base:
 
@@ -510,6 +595,8 @@ weather_summary
 calendar_summary
 event_summary_id
 embedding_vector
+split
+normalization_id
 ```
 
 Retrieval methods:
@@ -518,6 +605,16 @@ Retrieval methods:
 1. Random retrieval
 2. Cosine similarity retrieval
 3. FAISS nearest-neighbor retrieval if available
+4. Optional dual-encoder MLP retriever
+```
+
+Leakage controls:
+
+```text
+- validation/test queries may retrieve only from training-history windows
+- candidate future windows must never overlap the forecast target being evaluated
+- retrieved windows should have the same lookback length as the query
+- avoid overlapping duplicate windows when building the knowledge base for a given evaluation fold
 ```
 
 Event knowledge base:
@@ -563,7 +660,7 @@ Tune only after validation results exist.
 
 ---
 
-## 12. Concept Drift Plan
+## 13. Concept Drift Plan
 
 MVP drift indicators:
 
@@ -594,7 +691,7 @@ Advanced methods such as ADWIN, Page-Hinkley, KS test, or MMD can be added later
 
 ---
 
-## 13. Explanation Plan
+## 14. Explanation Plan
 
 Explanations must be evidence-based.
 
@@ -620,17 +717,20 @@ The model predicts a PM2.5 increase over the next 24 hours. The main evidence is
 
 ---
 
-## 14. Evaluation Plan
+## 15. Evaluation Plan
 
 Metrics:
 
 ```text
+MSE
 MAE
 RMSE
 MAPE
 sMAPE
 R2
 ```
+
+MSE should be included because it is the primary metric in the TimeRAF base paper. MAE/RMSE/sMAPE remain important for interpretability in air-quality forecasting.
 
 Special analysis:
 
@@ -656,9 +756,19 @@ Backtesting:
 rolling-origin evaluation after the first stable baseline is complete
 ```
 
+TimeRAF-aligned analysis:
+
+```text
+- compare random retrieval vs cosine retrieval vs proposed retrieval
+- test candidate counts k = 1, 4, 8, 16, optionally 32
+- test knowledge-base size sensitivity if runtime allows
+- report computational cost or inference time if feasible
+- use mean/std over repeated runs for stochastic models if runtime allows
+```
+
 ---
 
-## 15. Ablation Study
+## 16. Ablation Study
 
 Core ablation table:
 
@@ -668,15 +778,25 @@ Core ablation table:
 | Seasonal naive | Yes | No | Yes | No | No | No | No |
 | XGBoost-basic | Yes | No | No | No | No | No | No |
 | XGBoost-weather-calendar | Yes | Yes | Yes | No | No | No | No |
-| TimeRAF-inspired | Yes | Yes | Yes | Yes | No | No | Limited |
+| Random-retrieval baseline | Yes | Yes | Yes | Random | No | No | Limited |
+| Cosine TimeRAF-inspired | Yes | Yes | Yes | Cosine | No | No | Limited |
 | Event-TimeRAF-no-drift | Yes | Yes | Yes | Yes | Yes | No | Yes |
 | Event-TimeRAF-full | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 
 This ablation is the main experimental proof of the project.
 
+Additional TimeRAF-derived ablations:
+
+```text
+- k sensitivity: 1, 4, 8, 16, optionally 32
+- retrieval aggregation: uniform vs similarity-weighted
+- knowledge base: train-only domain-specific vs expanded external/multi-station if available
+- fusion: simple concatenation vs MLP residual fusion
+```
+
 ---
 
-## 16. Figures and Tables
+## 17. Figures and Tables
 
 Planned figures:
 
@@ -688,6 +808,7 @@ Figure 4: Forecast visualization
 Figure 5: Error comparison across models
 Figure 6: Ablation study
 Figure 7: Explanation case study
+Figure 8: Retrieved historical case study
 ```
 
 Planned tables:
@@ -701,13 +822,15 @@ Table 5: Main forecasting results
 Table 6: Ablation study
 Table 7: Drift-period performance
 Table 8: Computational cost
+Table 9: Candidate-count sensitivity
+Table 10: Retrieval/fusion ablation
 ```
 
 Only tables 1 to 4 can be drafted before experiments. Results tables must remain placeholders until real results exist.
 
 ---
 
-## 17. Milestones
+## 18. Milestones
 
 ### Milestone 1: Paper Draft Up to Methodology
 
@@ -752,7 +875,9 @@ Deliverables:
 ```text
 time-series knowledge base
 cosine/FAISS retrieval
+random retrieval baseline
 top-k retrieval experiments
+retrieved case-study plots
 retrieval baseline results
 ```
 
@@ -803,7 +928,7 @@ presentation material if needed
 
 ---
 
-## 18. Implementation Guardrails
+## 19. Implementation Guardrails
 
 Do not over-engineer the first version.
 
@@ -836,7 +961,7 @@ The first implementation should be small, reproducible, and Kaggle-compatible.
 
 ---
 
-## 19. Final Implementation Prompt for Later
+## 20. Final Implementation Prompt for Later
 
 Use this only after planning is accepted:
 

@@ -20,10 +20,11 @@ Decisions:
 | First horizon | 24 hours |
 | First lookback | 168 hours |
 | First model family | Persistence, seasonal naive, XGBoost/LightGBM |
-| First retrieval | Cosine similarity over historical PM2.5 windows |
+| First retrieval | Random and cosine similarity over historical PM2.5 windows |
 | First event module | Aggregated event counts and keyword categories |
 | First explanation | Evidence-based templates using features, retrieval, and drift |
 | First execution environment | Kaggle notebook |
+| Default retrieved candidates | `k = 8`, matching the TimeRAF default |
 
 Out of scope for MVP:
 
@@ -78,6 +79,7 @@ Acceptance criteria:
 
 ```text
 - The paper clearly explains TimeRAF.
+- The paper mentions TimeRAF's dual-encoder retriever, Channel Prompting, frozen backbone, context length 512, forecast horizon 96, default k = 8, and MSE metric.
 - The paper clearly explains why event retrieval is needed.
 - The paper does not contain invented results.
 - The paper is ready to receive real experiment outputs later.
@@ -183,7 +185,8 @@ Air quality tasks:
 5. Resample to hourly frequency.
 6. Interpolate short gaps only.
 7. Save missingness report.
-8. Save data/processed/dhaka_pm25_hourly.csv.
+8. Store train-only normalization statistics.
+9. Save data/processed/dhaka_pm25_hourly.csv.
 ```
 
 Weather tasks:
@@ -226,6 +229,7 @@ Acceptance criteria:
 ```text
 - Timestamp alignment is verified.
 - No random future leakage is introduced.
+- Normalization is fitted on training data only.
 - Missing values are reported.
 - The modeling table has a clear target column.
 ```
@@ -253,6 +257,15 @@ Feature groups:
 | Retrieval | retrieved future mean, retrieved similarity, retrieved trend |
 | Drift | mean shift, variance shift, similarity drop |
 
+TimeRAF-derived preprocessing rules:
+
+```text
+- Use sliding windows for query and candidate construction.
+- Query and retrieved candidate windows must have the same lookback length.
+- Input and retrieved sequences must use consistent normalization.
+- Store window metadata: start time, end time, station, frequency, and split.
+```
+
 Target creation:
 
 ```text
@@ -272,6 +285,7 @@ Leakage rules:
 - Do not use future weather unless the experiment explicitly treats it as forecast weather.
 - Do not compute rolling features using future values.
 - Build retrieval candidates only from training history during validation/test.
+- Ensure retrieved candidate future windows do not overlap the evaluated target.
 ```
 
 Acceptance criteria:
@@ -300,6 +314,8 @@ Required baselines:
 | Seasonal naive | Daily/weekly periodic baseline |
 | XGBoost or LightGBM basic | Strong tabular baseline |
 | XGBoost/LightGBM weather-calendar | Tests added context |
+| Random retrieval | TimeRAF-style negative retrieval baseline |
+| Cosine retrieval | TimeRAF-style similarity retrieval baseline |
 
 Optional baselines:
 
@@ -314,6 +330,7 @@ Evaluation:
 
 ```text
 time-based 70/15/15 split
+MSE
 MAE
 RMSE
 MAPE
@@ -364,6 +381,7 @@ Retrieval methods:
 random retrieval
 cosine similarity
 FAISS nearest neighbor if available
+dual-encoder MLP retriever later
 ```
 
 Retrieved features:
@@ -380,9 +398,18 @@ retrieved_neighbor_count
 Experiments:
 
 ```text
-k = 1, 4, 8, 16
+k = 1, 4, 8, 16, optionally 32
+default k = 8
 window length = 168 hours
 horizon = 24 hours
+```
+
+Fusion/aggregation rules:
+
+```text
+- Use uniform averaging across retrieved candidates first because TimeRAF found simple uniform weighting effective.
+- Add similarity-weighted aggregation only as an ablation.
+- Add MLP residual fusion only after simple concatenation works.
 ```
 
 Acceptance criteria:
@@ -390,6 +417,7 @@ Acceptance criteria:
 ```text
 - Retrieval excludes future/test leakage.
 - Top-k examples can be inspected.
+- Random retrieval and cosine retrieval are both evaluated.
 - Retrieval features improve or at least provide analyzable ablation results.
 ```
 
@@ -486,6 +514,17 @@ MVP model:
 XGBoost or LightGBM
 ```
 
+Channel-Prompting-inspired MVP fusion:
+
+```text
+input feature representation
++ retrieved candidate representation
+-> concatenate
+-> optional MLP compression
+-> residual preservation of original input features
+-> uniform average across k retrieved candidates
+```
+
 Outputs:
 
 ```text
@@ -511,6 +550,7 @@ Acceptance criteria:
 - The full model runs end to end.
 - Predictions are saved.
 - Each prediction can be linked to retrieval and event evidence.
+- The MVP remains clearly described as TimeRAF-inspired, not a full TimeRAF reproduction.
 ```
 
 ---
@@ -623,7 +663,8 @@ Ablation matrix:
 | Seasonal naive | Yes | No | Yes | No | No | No | No |
 | XGBoost-basic | Yes | No | No | No | No | No | No |
 | XGBoost-weather-calendar | Yes | Yes | Yes | No | No | No | No |
-| TimeRAF-inspired | Yes | Yes | Yes | Yes | No | No | Limited |
+| Random-retrieval baseline | Yes | Yes | Yes | Random | No | No | Limited |
+| Cosine TimeRAF-inspired | Yes | Yes | Yes | Cosine | No | No | Limited |
 | Event-TimeRAF-no-drift | Yes | Yes | Yes | Yes | Yes | No | Yes |
 | Event-TimeRAF-full | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 
@@ -633,8 +674,11 @@ Outputs:
 outputs/tables/main_results.csv
 outputs/tables/ablation_results.csv
 outputs/tables/drift_period_results.csv
+outputs/tables/k_sensitivity_results.csv
+outputs/tables/retrieval_fusion_ablation.csv
 outputs/figures/error_comparison.png
 outputs/figures/ablation_bar_chart.png
+outputs/figures/retrieved_case_study.png
 ```
 
 Acceptance criteria:
@@ -642,6 +686,7 @@ Acceptance criteria:
 ```text
 - All models use the same split.
 - All metrics are computed consistently.
+- MSE is reported for comparability with TimeRAF.
 - Results are real and reproducible.
 ```
 
@@ -677,6 +722,7 @@ Figure 4: Forecast visualization
 Figure 5: Error comparison
 Figure 6: Ablation study
 Figure 7: Explanation case study
+Figure 8: Retrieved historical case study
 ```
 
 Paper tables:
@@ -690,6 +736,8 @@ Table 5: Main forecasting results
 Table 6: Ablation study
 Table 7: Drift-period performance
 Table 8: Computational cost
+Table 9: Candidate-count sensitivity
+Table 10: Retrieval/fusion ablation
 ```
 
 Acceptance criteria:
@@ -722,3 +770,13 @@ Use this order when implementation begins:
 ```
 
 The project should not move to advanced neural fusion or TSFM integration until steps 1 to 7 are complete and reproducible.
+
+Optional advanced TimeRAF-faithful extensions after MVP:
+
+```text
+1. Dual-encoder MLP retriever trained with validation feedback.
+2. Candidate augmentation for retriever exploration.
+3. MLP residual fusion closer to Channel Prompting.
+4. TTM or another TSFM wrapper if Kaggle runtime allows.
+5. Knowledge-base size and domain-source sensitivity experiments.
+```
