@@ -10,7 +10,9 @@ Base paper:
 
 This document is the corrected high-level plan for the project. It is scoped for a simple Kaggle-friendly implementation first, with advanced TimeRAF-style components added only after a working baseline pipeline exists.
 
-Do not implement code in the planning phase. Implementation starts only after this plan is accepted.
+Planning status: **finalized; implementation starts in the next prompt**.
+
+`structured_plan.md` is the binding implementation contract. It resolves detailed decisions about target shape, data-readiness gates, artifact schemas, leakage controls, model identifiers, the foundation-model publication gate, and phase exit criteria. If the two documents differ on an implementation detail, follow `structured_plan.md` and update this overview afterward.
 
 ---
 
@@ -70,7 +72,7 @@ Initial practical setting:
 ```text
 lookback L = 168 hours
 forecast horizon H = 24 hours
-target = PM2.5
+target = the full PM2.5 sequence from t+1 through t+24
 location = Dhaka, Bangladesh
 frequency = hourly if data quality allows
 ```
@@ -163,8 +165,9 @@ Event-TimeRAF should use these points to position the contribution:
 TimeRAF retrieves time-series candidates.
 Event-TimeRAF retrieves time-series candidates plus event/weather/calendar context.
 TimeRAF uses Channel Prompting for TSFM embeddings.
-Event-TimeRAF MVP uses lightweight Channel-Prompting-inspired feature fusion.
-Full TSFM Channel Prompting remains an advanced extension, not the first Kaggle implementation.
+Event-TimeRAF MVP uses lightweight retrieval-feature fusion.
+A frozen TSFM plus retrieval-augmentation experiment is required before the final paper retains "Foundation Models" in its title.
+Full TimeRAF-style Channel Prompting remains an advanced extension, not the first Kaggle implementation.
 ```
 
 ---
@@ -306,20 +309,28 @@ ASA/
       config.py
       data.py
       features.py
+      windows.py
       retrieval.py
       models.py
       drift.py
       explain.py
       evaluation.py
       plots.py
+  tests/
+    test_windows.py
+    test_retrieval.py
+    test_evaluation.py
   data/
     raw/
     processed/
     knowledge_base/
   outputs/
+    audit/
     tables/
     figures/
     predictions/
+    evidence/
+    models/
     logs/
   paper/
     main.tex
@@ -332,6 +343,7 @@ Why this structure:
 ```text
 - one main Kaggle notebook for end-to-end execution
 - small src package for reusable functions
+- focused tests for target alignment, retrieval eligibility, and metrics
 - one config file first
 - simple outputs folder for results
 - paper folder separated from experiments
@@ -361,10 +373,11 @@ Processing requirements:
 - convert to Asia/Dhaka timezone
 - remove impossible PM2.5 values
 - resample to hourly frequency
-- interpolate only short gaps
+- fill only short input gaps using past-available information
+- never interpolate target values; discard windows with incomplete targets
 - preserve missingness report
 - fit normalization statistics on training data only
-- save processed data as data/processed/dhaka_pm25_hourly.csv
+- save processed data as data/processed/dhaka_pm25_hourly.parquet
 ```
 
 ### 9.2 Weather
@@ -423,7 +436,7 @@ negative_tone_avg_72h
 top_event_text
 ```
 
-If event collection becomes unstable, the fallback is to implement the event module with a small manually cached event dataset and document the limitation.
+If event collection becomes unstable, the fallback is a previously downloaded, source-preserving event cache with original timestamps and source fields. Events must never be manually invented.
 
 ---
 
@@ -494,13 +507,13 @@ Implement these before Event-TimeRAF:
 
 ```text
 1. Persistence baseline
-2. Seasonal naive baseline
-3. XGBoost or LightGBM baseline
+2. Daily and weekly seasonal naive baselines
+3. Direct XGBoost baseline using one regressor per forecast horizon
 4. Optional ARIMA/SARIMA
 5. Optional LSTM/GRU if time permits
 ```
 
-For Kaggle, prioritize persistence, seasonal naive, and XGBoost/LightGBM first.
+For Kaggle, XGBoost is the locked primary learned model and LightGBM is a fallback. Every model must output the complete 24-hour sequence.
 
 ### 11.2 TimeRAF-Inspired Retrieval Baseline
 
@@ -511,7 +524,7 @@ current PM2.5 window
 -> retrieve top-k similar historical windows
 -> aggregate retrieved future trajectories
 -> add retrieved summary features
--> forecast with XGBoost/LightGBM or MLP
+-> forecast with the direct XGBoost models
 ```
 
 Initial settings:
@@ -547,7 +560,7 @@ PM2.5 lag/rolling features
 + retrieved time-series summary features
 + event count/tone/category features
 + drift indicators
--> XGBoost/LightGBM forecast model
+-> direct XGBoost forecast models
 -> explanation template
 ```
 
@@ -572,6 +585,20 @@ input representation
 -> residual connection to preserve input information
 -> average uniformly across k retrieved candidates
 ```
+
+### 11.4 Foundation-Model Publication Gate
+
+The classical MVP can be completed first, but the current paper title requires a real frozen TSFM experiment before submission. Prefer a small TTM checkpoint because the base paper uses TTM-Base, with a small Chronos-family checkpoint as a compatibility fallback. The selected checkpoint must support the same `L=168`, `H=24` task; the evaluation window must not be changed merely to fit a checkpoint.
+
+Required comparison:
+
+```text
+frozen zero-shot TSFM
+vs frozen TSFM plus a validation-weighted retrieved historical forecast
+vs frozen TSFM plus event-conditioned hybrid retrieval
+```
+
+This lightweight forecast-level fusion must be described accurately and must not be called TimeRAF Channel Prompting. If the TSFM gate cannot be completed, remove "Foundation Models" from the title and all corresponding claims as specified in `structured_plan.md`.
 
 ---
 
@@ -612,9 +639,12 @@ Leakage controls:
 
 ```text
 - validation/test queries may retrieve only from training-history windows
+- every candidate's complete future window must end before the query forecast origin
 - candidate future windows must never overlap the forecast target being evaluated
+- self-matches and overlapping query/candidate windows are excluded
 - retrieved windows should have the same lookback length as the query
 - avoid overlapping duplicate windows when building the knowledge base for a given evaluation fold
+- events are usable only when published_at is no later than the forecast origin
 ```
 
 Event knowledge base:
@@ -661,6 +691,8 @@ Tune only after validation results exist.
 ---
 
 ## 13. Concept Drift Plan
+
+The first implementation treats drift as an operational distribution-shift indicator, not as proof that true concept drift has been identified. Robustness claims require separate error analysis on transparently flagged periods.
 
 MVP drift indicators:
 
@@ -730,7 +762,7 @@ sMAPE
 R2
 ```
 
-MSE should be included because it is the primary metric in the TimeRAF base paper. MAE/RMSE/sMAPE remain important for interpretability in air-quality forecasting.
+Validation MSE is the locked model-selection metric because it matches the TimeRAF base paper. MAE/RMSE/sMAPE remain important for interpretation in air-quality forecasting, and results must also be reported separately for all 24 horizons.
 
 Special analysis:
 
@@ -782,6 +814,8 @@ Core ablation table:
 | Cosine TimeRAF-inspired | Yes | Yes | Yes | Cosine | No | No | Limited |
 | Event-TimeRAF-no-drift | Yes | Yes | Yes | Yes | Yes | No | Yes |
 | Event-TimeRAF-full | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Frozen TSFM | Yes | No | No | No | No | No | No |
+| Frozen TSFM + hybrid retrieval | Yes | Yes | Yes | Yes | Yes | No | Limited |
 
 This ablation is the main experimental proof of the project.
 
@@ -834,6 +868,8 @@ Only tables 1 to 4 can be drafted before experiments. Results tables must remain
 
 ### Milestone 1: Paper Draft Up to Methodology
 
+Status: complete as a pre-implementation draft.
+
 Deliverables:
 
 ```text
@@ -854,6 +890,7 @@ processed weather dataset
 calendar features
 merged modeling dataset
 EDA summary
+data-readiness audit and run manifest
 ```
 
 ### Milestone 3: Baselines
@@ -862,8 +899,8 @@ Deliverables:
 
 ```text
 persistence baseline
-seasonal naive baseline
-XGBoost/LightGBM baseline
+daily and weekly seasonal naive baselines
+24 direct XGBoost horizon models
 metrics table
 forecast plots
 ```
@@ -874,7 +911,7 @@ Deliverables:
 
 ```text
 time-series knowledge base
-cosine/FAISS retrieval
+cosine retrieval
 random retrieval baseline
 top-k retrieval experiments
 retrieved case-study plots
@@ -903,7 +940,18 @@ forecast output
 evidence-based explanation module
 ```
 
-### Milestone 7: Ablation and Final Results
+### Milestone 7: Frozen TSFM Publication Gate
+
+Deliverables:
+
+```text
+frozen zero-shot TSFM predictions
+retrieval-augmented frozen TSFM predictions
+compatibility and runtime record
+title-retention or title-fallback decision
+```
+
+### Milestone 8: Ablation and Final Results
 
 Deliverables:
 
@@ -914,7 +962,7 @@ drift-period analysis
 case study figures
 ```
 
-### Milestone 8: Final Paper
+### Milestone 9: Final Paper
 
 Deliverables:
 
@@ -953,8 +1001,9 @@ Step 2: time-series retrieval baseline
 Step 3: event retrieval features
 Step 4: Event-TimeRAF feature fusion
 Step 5: drift and explanation module
-Step 6: ablation
-Step 7: final paper
+Step 6: frozen TSFM publication gate
+Step 7: ablation
+Step 8: final paper
 ```
 
 The first implementation should be small, reproducible, and Kaggle-compatible.
@@ -963,7 +1012,7 @@ The first implementation should be small, reproducible, and Kaggle-compatible.
 
 ## 20. Final Implementation Prompt for Later
 
-Use this only after planning is accepted:
+Planning is accepted. Use this as the implementation handoff together with `structured_plan.md`:
 
 ```text
 Build the Kaggle-friendly research repository for:
@@ -976,22 +1025,25 @@ Base paper:
 Start with a simple, runnable MVP. Do not fully reproduce TimeRAF first.
 
 Implementation order:
-1. Create the lightweight repository structure from plan.md.
-2. Write the paper from Title to Methodology only. Keep results as placeholders.
-3. Build the Dhaka PM2.5, weather, and calendar data pipeline.
-4. Train persistence, seasonal naive, and XGBoost/LightGBM baselines.
-5. Build the TimeRAF-inspired time-series retrieval baseline.
-6. Add event retrieval and event aggregation features.
-7. Build the Event-TimeRAF MVP using hybrid features.
-8. Add drift indicators and evidence-based explanations.
-9. Run ablations and generate real result tables.
-10. Complete the paper only after real results are available.
+1. Create the repository skeleton, configuration, tests, and run manifest.
+2. Audit PM2.5, weather, calendar, and event data against the readiness gates.
+3. Build the causal hourly table and 168-hour-to-24-hour windows.
+4. Train persistence, daily/weekly seasonal naive, and direct XGBoost baselines.
+5. Build leakage-safe random and cosine time-series retrieval.
+6. Add source-preserving event features and hybrid retrieval.
+7. Add drift indicators and evidence-grounded explanations.
+8. Run the frozen-TSFM and retrieval-augmented-TSFM publication gate.
+9. Freeze validation choices, evaluate the test set, and run ablations.
+10. Complete the paper only from saved, verified result artifacts.
 
 Rules:
 - Do not invent results.
 - Use time-based train/validation/test split.
+- Predict the complete t+1 through t+24 PM2.5 sequence.
+- Enforce every leakage and causality rule in structured_plan.md.
 - Keep notebooks runnable on Kaggle.
 - Keep code modular but simple.
 - Save all intermediate processed datasets and outputs.
+- Generate all paper tables from saved predictions and metrics.
 - Document data limitations clearly.
 ```

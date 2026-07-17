@@ -1,106 +1,158 @@
-# Event-TimeRAF Structured Execution Plan
+# Event-TimeRAF Finalized Implementation Plan
 
-This file converts the master plan into a detailed execution checklist. It is for preparation only; no code implementation is included here.
+Status: **planning complete; implementation not started**
+
+This document is the binding implementation contract for the project. `plan.md`
+remains the research overview, while this file controls implementation order,
+interfaces, leakage rules, experiments, and completion criteria. Any later scope
+change should be recorded here before code and paper claims are changed.
 
 ---
 
-## Phase 0: Scope Lock
+## 1. Locked Scope
 
-Goal:
+### 1.1 Primary forecasting task
 
-```text
-Define a Kaggle-friendly MVP that can support a research paper without overbuilding.
-```
-
-Decisions:
-
-| Item | Decision |
+| Item | Final decision |
 | --- | --- |
-| Target | Dhaka PM2.5 |
-| First horizon | 24 hours |
-| First lookback | 168 hours |
-| First model family | Persistence, seasonal naive, XGBoost/LightGBM |
-| First retrieval | Random and cosine similarity over historical PM2.5 windows |
-| First event module | Aggregated event counts and keyword categories |
-| First explanation | Evidence-based templates using features, retrieval, and drift |
-| First execution environment | Kaggle notebook |
-| Default retrieved candidates | `k = 8`, matching the TimeRAF default |
+| Location | Dhaka, Bangladesh |
+| Target | Hourly PM2.5 in the source unit, expected to be `ug/m3` |
+| Forecast output | Full sequence from `t+1` through `t+24` |
+| Lookback | `L = 168` hourly observations |
+| Horizon | `H = 24` hourly values |
+| Forecast origins | Every valid hour; also report horizon-wise metrics |
+| Main split | Earliest 70% train, next 15% validation, latest 15% test |
+| Model-selection metric | Validation MSE |
+| Main reported metrics | MSE, MAE, RMSE, sMAPE, and R2 |
+| Retrieval count | `k = 8` by default; test `1, 4, 8, 16` |
+| Primary learned model | 24 direct `XGBRegressor` models, one per horizon |
+| Fallback learned model | LightGBM only if XGBoost is unavailable or fails |
+| Random seed | `42`; record all library and environment versions |
+| Execution target | A Kaggle notebook with CPU support; GPU is optional |
 
-Out of scope for MVP:
+The primary target is not a single value at `t+24`. For every forecast origin,
+the expected target and prediction shape is `[24]`. Longer horizons and
+multi-station modeling are extensions and must not delay the primary task.
 
-```text
-full TimeRAF reproduction
-training a time-series foundation model
-heavy LLM reasoning
-dashboard
-satellite AOD
-large multi-source data engineering
-```
+### 1.2 Research-critical components
+
+The final study requires all of the following:
+
+1. PM2.5-only and context-aware non-retrieval baselines.
+2. A leakage-safe historical time-series knowledge base.
+3. Random, cosine, and hybrid retrieval comparisons.
+4. Source-preserving event data aligned by information availability.
+5. Transparent drift indicators and separate drift-period evaluation.
+6. Evidence-grounded explanations linked to saved retrieval records.
+7. A frozen time-series foundation-model baseline and a retrieval-augmented
+   variant before retaining "Foundation Models" in the final paper title.
+8. A reproducible ablation table generated from saved predictions.
+
+### 1.3 Explicitly deferred work
+
+The following are not part of the first implementation pass:
+
+- training a TSFM from scratch;
+- reproducing TimeRAF's 320-million-point training setup;
+- an end-to-end dual-encoder retriever;
+- full Channel Prompting inside a TSFM backbone;
+- unrestricted LLM explanations;
+- satellite AOD, a dashboard, or real-time deployment;
+- multi-city or multi-pollutant forecasting;
+- advanced online drift algorithms unless the core pipeline is complete.
+
+### 1.4 Naming gate
+
+The XGBoost retrieval pipeline is a **TimeRAF-inspired MVP**, not a reproduction
+of TimeRAF and not by itself a foundation model. Before final submission:
+
+- if the frozen TSFM and retrieval-augmented TSFM experiments run, the current
+  title may be retained;
+- if they do not run, change the title to **Event-TimeRAF: Event-Aware
+  Retrieval-Augmented Forecasting for Explainable Air Quality Prediction Under
+  Distribution Shift** and remove foundation-model claims from the abstract,
+  methodology, results, and conclusion.
 
 ---
 
-## Phase 1: Paper Draft Up to Methodology
+## 2. Data Readiness Gate
 
-Purpose:
+Implementation begins with an audit, not model training. The audit must save
+source URLs or dataset identifiers, retrieval dates, licenses where available,
+time coverage, units, duplicate counts, missingness, station counts, and event
+coverage.
 
-```text
-Create the academic framing before experiments, without inventing results.
-```
+### 2.1 Source order
 
-Files to create later:
-
-```text
-paper/main.tex
-paper/references.bib
-paper/sections/01_title_abstract.tex
-paper/sections/02_introduction.tex
-paper/sections/03_related_work.tex
-paper/sections/04_problem_statement.tex
-paper/sections/05_methodology.tex
-paper/sections/06_experimental_setup_placeholder.tex
-paper/sections/07_results_placeholder.tex
-paper/sections/08_conclusion_placeholder.tex
-```
-
-Writing checklist:
-
-| Section | Required content | Result status |
+| Data | Preferred source | Fallback rule |
 | --- | --- | --- |
-| Title/Abstract | Explain Event-TimeRAF at methodology level | No performance claims |
-| Introduction | Problem, TimeRAF background, gap, contributions | No fake result claims |
-| Related Work | Forecasting, TSFMs, RAG, air quality, explainability | Citation placeholders allowed |
-| Problem Statement | Define `X_t`, `W_t`, `C_t`, `E_t`, `Y_hat` | Formal notation |
-| Methodology | Architecture and modules | Implementation-oriented |
-| Experimental Setup | Planned datasets, baselines, metrics | Placeholder only |
-| Results | Placeholder sentence | No numbers |
-| Conclusion | Placeholder sentence | No claims |
+| PM2.5 | OpenAQ export/API or an accessible source-preserving archive | Use another documented Dhaka dataset; do not fabricate or merge incompatible units silently |
+| Weather | Open-Meteo historical weather | Use another documented historical source with equivalent variables |
+| Calendar | Deterministic generation plus verified Bangladesh holiday dates | Omit uncertain special-day flags and document the omission |
+| Events | GDELT or another source-preserving news/event archive | Use a previously downloaded cache with original source fields |
 
-Acceptance criteria:
+Kaggle internet access cannot be assumed. Raw data should be downloaded once,
+validated, and attached as a Kaggle Dataset. The pipeline must accept local input
+paths and must not require a live API during the main experiment run.
+
+### 2.2 Minimum data criteria
+
+Proceed with the hourly primary task only if the selected period has:
+
+- at least nine usable months, with twelve or more preferred;
+- at least 70% observed hourly PM2.5 values before filling;
+- known and consistent PM2.5 units;
+- weather coverage sufficient to align at least 95% of usable PM2.5 hours;
+- no dependence on interpolating PM2.5 targets;
+- at least 180 overlapping event-data days, 30 event-active days, and two event
+  categories with at least 20 retained records each for event-effect claims.
+
+Long gaps are excluded through window validity checks. The pipeline must not
+silently switch from hourly to daily frequency. If the PM2.5 gate fails, replace
+the source or formally revise the task and paper. If only the event gate fails,
+run event-free diagnostics but revise the event-aware claims before submission.
+
+### 2.3 Canonical schemas
+
+Air-quality observations:
 
 ```text
-- The paper clearly explains TimeRAF.
-- The paper mentions TimeRAF's dual-encoder retriever, Channel Prompting, frozen backbone, context length 512, forecast horizon 96, default k = 8, and MSE metric.
-- The paper clearly explains why event retrieval is needed.
-- The paper does not contain invented results.
-- The paper is ready to receive real experiment outputs later.
+timestamp_utc, timestamp_local, station_id, latitude, longitude,
+parameter, value, unit, source
 ```
+
+Weather observations:
+
+```text
+timestamp_utc, timestamp_local, temperature_2m,
+relative_humidity_2m, precipitation, wind_speed_10m,
+wind_direction_10m, surface_pressure, cloud_cover, source
+```
+
+Event records:
+
+```text
+event_id, event_time, published_at, retrieved_at, location,
+latitude, longitude, category, source, source_url, title,
+summary, tone, keywords
+```
+
+`published_at` is the default information-availability timestamp. If it is not
+available, the record must be marked and excluded from strict causal experiments
+or handled in a clearly labeled sensitivity analysis.
 
 ---
 
-## Phase 2: Kaggle Repository Skeleton
+## 3. Repository Structure
 
-Purpose:
-
-```text
-Keep the repository small enough to run and maintain on Kaggle.
-```
-
-Planned structure:
+The implementation will use this small structure:
 
 ```text
 ASA/
   README.md
   requirements.txt
+  plan.md
+  structured_plan.md
   configs/
     default.yaml
   notebooks/
@@ -112,671 +164,534 @@ ASA/
       config.py
       data.py
       features.py
+      windows.py
       retrieval.py
       models.py
       drift.py
       explain.py
       evaluation.py
       plots.py
+  tests/
+    test_windows.py
+    test_retrieval.py
+    test_evaluation.py
   data/
     raw/
     processed/
     knowledge_base/
   outputs/
+    audit/
     tables/
     figures/
     predictions/
+    evidence/
+    models/
     logs/
   paper/
-    main.tex
-    references.bib
-    sections/
 ```
 
-Module responsibilities:
+The main notebook orchestrates the package and can run top to bottom on Kaggle.
+The second notebook reads saved artifacts only and creates final tables and
+figures. It must not retrain models.
+
+### 3.1 Module ownership
 
 | Module | Responsibility |
 | --- | --- |
-| `config.py` | Load configuration and constants |
-| `data.py` | Download/load/clean PM2.5, weather, event data |
-| `features.py` | Lag, rolling, weather, calendar, event features |
-| `retrieval.py` | Build time-series KB and retrieve top-k windows |
-| `models.py` | Baselines and Event-TimeRAF MVP model wrappers |
-| `drift.py` | Drift scores and flags |
-| `explain.py` | Template explanations grounded in evidence |
-| `evaluation.py` | Metrics, splits, backtesting |
-| `plots.py` | Forecast and result visualizations |
+| `config.py` | Validate YAML settings, paths, seeds, and run identifiers |
+| `data.py` | Load, validate, standardize, align, and audit all sources |
+| `features.py` | Create past-only PM2.5, weather, calendar, and event features |
+| `windows.py` | Build aligned `[N,168]` inputs, `[N,24]` targets, and metadata |
+| `retrieval.py` | Build candidate pools, score candidates, retrieve top-k, and save evidence |
+| `models.py` | Naive, XGBoost, retrieval-only, and frozen-TSFM model interfaces |
+| `drift.py` | Fit training references and compute past-only drift indicators |
+| `explain.py` | Produce deterministic explanations from stored evidence |
+| `evaluation.py` | Splits, metrics, bootstrap intervals, ablations, and result tables |
+| `plots.py` | EDA, forecast, retrieval, drift, ablation, and case-study figures |
 
-Acceptance criteria:
+### 3.2 Configuration contract
+
+`configs/default.yaml` will contain at least:
 
 ```text
-- One main notebook can run the full MVP.
-- Source modules stay small and reusable.
-- Outputs are saved in predictable folders.
-- The structure does not require complex local setup.
+data paths and source metadata
+timezone = Asia/Dhaka
+frequency = 1h
+lookback = 168
+horizon = 24
+split ratios = [0.70, 0.15, 0.15]
+maximum past-only fill gap
+feature lists
+event categories and keyword rules
+retrieval method, k, and hybrid weights
+drift windows and threshold quantile
+XGBoost parameters
+TSFM checkpoint and cache path
+random seed
+output root and run id
 ```
+
+No experiment-critical constant should exist only in a notebook cell.
 
 ---
 
-## Phase 3: Data Pipeline
+## 4. Artifact Contracts
 
-Purpose:
+The pipeline is complete only when it writes inspectable artifacts with stable
+schemas.
 
-```text
-Build one reliable modeling table before training models.
-```
-
-Inputs:
-
-```text
-air quality data
-weather data
-calendar features
-event/news data
-```
-
-Air quality tasks:
-
-```text
-1. Load or download Dhaka PM2.5 data.
-2. Standardize columns.
-3. Convert timestamps to Asia/Dhaka.
-4. Remove impossible values.
-5. Resample to hourly frequency.
-6. Interpolate short gaps only.
-7. Save missingness report.
-8. Store train-only normalization statistics.
-9. Save data/processed/dhaka_pm25_hourly.csv.
-```
-
-Weather tasks:
-
-```text
-1. Download/load weather for Dhaka coordinates.
-2. Align hourly timestamps.
-3. Keep key variables.
-4. Generate basic weather flags.
-5. Save data/processed/dhaka_weather_hourly.csv.
-```
-
-Calendar tasks:
-
-```text
-1. Generate hour, day_of_week, month, season.
-2. Add configurable weekend flag.
-3. Add public holiday/Ramadan/Eid flags if available.
-4. Save calendar features or merge directly.
-```
-
-Event tasks:
-
-```text
-1. Query or load event/news records.
-2. Filter to Dhaka/Bangladesh context.
-3. Assign event categories using keywords.
-4. Aggregate event counts by timestamp window.
-5. Save data/processed/dhaka_event_features.csv.
-```
-
-Merged dataset:
-
-```text
-data/processed/modeling_hourly.csv
-```
-
-Acceptance criteria:
-
-```text
-- Timestamp alignment is verified.
-- No random future leakage is introduced.
-- Normalization is fitted on training data only.
-- Missing values are reported.
-- The modeling table has a clear target column.
-```
-
----
-
-## Phase 4: Feature Engineering
-
-Purpose:
-
-```text
-Create model-ready features without leakage.
-```
-
-Feature groups:
-
-| Group | Examples |
+| Artifact | Required content |
 | --- | --- |
-| PM2.5 lags | `pm25_lag_1h`, `pm25_lag_24h`, `pm25_lag_168h` |
-| PM2.5 rolling | rolling mean/std/max/min |
-| Weather | temperature, humidity, wind, rain, pressure |
-| Weather interactions | low wind, rain flag, stagnation index |
-| Calendar | hour, weekend, season, holiday flags |
-| Events | event counts by category and time window |
-| Retrieval | retrieved future mean, retrieved similarity, retrieved trend |
-| Drift | mean shift, variance shift, similarity drop |
+| `outputs/audit/data_audit.json` | Source metadata, units, coverage, gaps, duplicates, and readiness decisions |
+| `data/processed/modeling_hourly.parquet` | One row per local hour with observed/filled flags and all causal features |
+| `data/processed/window_metadata.parquet` | Window ID, origin, target range, split, validity, station, and missingness |
+| `data/processed/window_arrays.npz` | PM2.5 lookbacks `[N,168]` and targets `[N,24]` |
+| `data/knowledge_base/ts_kb_metadata.parquet` | Eligible training candidate metadata and normalization statistics |
+| `data/knowledge_base/ts_kb_arrays.npz` | Candidate inputs, futures, and retrieval vectors |
+| `data/knowledge_base/event_kb.parquet` | Deduplicated source-preserving event records |
+| `outputs/evidence/retrieval_evidence.parquet` | Query, rank, candidate, all score components, and aligned candidate future |
+| `outputs/predictions/predictions.parquet` | Model, origin, horizon, target time, actual, prediction, seed, and subset flags |
+| `outputs/tables/metrics.csv` | Model and subset metrics overall and by horizon |
+| `outputs/tables/ablation_results.csv` | Fixed model variants and confidence intervals |
+| `outputs/logs/run_manifest.json` | Config hash, seed, dependency versions, data hashes, runtime, and artifact paths |
 
-TimeRAF-derived preprocessing rules:
-
-```text
-- Use sliding windows for query and candidate construction.
-- Query and retrieved candidate windows must have the same lookback length.
-- Input and retrieved sequences must use consistent normalization.
-- Store window metadata: start time, end time, station, frequency, and split.
-```
-
-Target creation:
-
-```text
-target_pm25_t_plus_24h
-```
-
-Optional multi-output target later:
-
-```text
-target sequence for t+1 to t+24
-```
-
-Leakage rules:
-
-```text
-- Use only past and present features for a forecast timestamp.
-- Do not use future weather unless the experiment explicitly treats it as forecast weather.
-- Do not compute rolling features using future values.
-- Build retrieval candidates only from training history during validation/test.
-- Ensure retrieved candidate future windows do not overlap the evaluated target.
-```
-
-Acceptance criteria:
-
-```text
-- Features can be generated repeatedly from raw/processed data.
-- The target horizon is explicit.
-- Leakage checks are documented.
-```
+Predictions use long format: one row per model, forecast origin, and horizon.
+All paper tables must be generated from these saved artifacts.
 
 ---
 
-## Phase 5: Baseline Models
+## 5. Leakage and Causality Rules
 
-Purpose:
+These rules are mandatory and will be tested:
+
+1. Split boundaries are chronological and based on forecast origin.
+2. Training-only statistics fit normalization, missing-value fallbacks, drift
+   references, feature selection, and model hyperparameters.
+3. PM2.5 labels are never interpolated. A window with a missing target value is
+   invalid.
+4. Input gaps may be filled only from information available at or before the
+   forecast origin and only up to the configured short-gap limit. Save a filled
+   indicator for every affected row.
+5. Rolling and lag features at origin `t` use values no later than `t`.
+6. Observed future weather is not used. The MVP uses weather through `t`; a later
+   forecast-weather experiment must be separately labeled.
+7. An event is usable only when `published_at <= t`.
+8. Validation and test queries retrieve from the training knowledge base only.
+9. For every query, a candidate is eligible only when its full future segment
+   ends before the query origin. Self-matches and overlapping input/target windows
+   are excluded.
+10. Random, cosine, and hybrid retrieval use the same eligible candidate pool.
+11. Validation selects hyperparameters and thresholds. Test data is evaluated
+    once after choices are frozen.
+
+The tests must include deliberately invalid timestamps and fail when any rule is
+violated.
+
+---
+
+## 6. Feature and Window Design
+
+### 6.1 Causal input features
+
+PM2.5 features:
 
 ```text
-Create a defensible comparison before adding retrieval.
+lags: 1, 3, 6, 12, 24, 48, 168 hours
+rolling mean: 3, 6, 12, 24, 72, 168 hours
+rolling std/min/max: 24 and 168 hours
+first differences: 1 and 24 hours
+missing/filled indicators
 ```
 
-Required baselines:
+Weather features:
 
-| Model | Purpose |
+```text
+current and past summaries for temperature, humidity, precipitation,
+wind speed/direction, pressure, and cloud cover
+rain flag, low-wind flag, high-humidity flag, stagnation proxy
+```
+
+Calendar features:
+
+```text
+origin and known target-hour cyclical encodings, day of week, month, season,
+configurable Bangladesh weekend, verified public holiday,
+Ramadan and Eid flags only when dates are reliable
+```
+
+Future calendar values are allowed because they are deterministic and known at
+the forecast origin. Future observed weather and future event records are not.
+
+Event features:
+
+```text
+counts by category over past 24, 72, and 168 hours
+total counts, event-burst ratio, mean tone, source count,
+and identifiers of the highest-ranked evidence records
+```
+
+Keyword categories begin with fire, traffic, rainstorm, construction,
+industrial activity, public gathering, holiday movement, dust, flood, and
+policy. Rules must be deterministic, versioned, and auditable.
+
+### 6.2 Window construction
+
+For each valid forecast origin `t`:
+
+```text
+X[t] = PM2.5 from t-167 through t            shape [168]
+Y[t] = PM2.5 from t+1 through t+24           shape [24]
+F[t] = causal structured features at t       shape [num_features]
+C[t] = known calendar features for t+1:t+24  shape [24, num_calendar]
+```
+
+Split labels are assigned after target alignment. Boundary windows are retained
+only if their complete target lies in the same split as the forecast origin.
+
+---
+
+## 7. Retrieval Design
+
+### 7.1 Time-series candidate representation
+
+Each candidate stores its 168-hour input, 24-hour observed future, original
+input mean and standard deviation, structured context summaries, and temporal
+metadata. Similarity uses per-window z-normalized inputs:
+
+```text
+x_norm = (x - mean(x)) / max(std(x), epsilon)
+```
+
+To transfer a candidate trajectory to the query scale:
+
+```text
+y_candidate_norm = (y_candidate - candidate_input_mean) / candidate_input_std
+y_aligned = query_input_mean + query_input_std * y_candidate_norm
+```
+
+This prevents a candidate's absolute historical pollution level from being
+copied blindly while retaining its future pattern.
+
+### 7.2 Retrieval variants
+
+| Variant | Definition |
 | --- | --- |
-| Persistence | Minimum sanity baseline |
-| Seasonal naive | Daily/weekly periodic baseline |
-| XGBoost or LightGBM basic | Strong tabular baseline |
-| XGBoost/LightGBM weather-calendar | Tests added context |
-| Random retrieval | TimeRAF-style negative retrieval baseline |
-| Cosine retrieval | TimeRAF-style similarity retrieval baseline |
+| Random | Uniform sample of `k` eligible candidates using the recorded seed |
+| Cosine | Top-k cosine similarity on normalized PM2.5 windows |
+| Hybrid | Weighted score using time-series, weather, calendar, and event-context similarities |
 
-Optional baselines:
+The default hybrid score is:
 
 ```text
-ARIMA/SARIMA
-Prophet
-LSTM/GRU
-PatchTST or other transformer model
+0.5 * time_series_similarity
++ 0.2 * weather_similarity
++ 0.1 * calendar_similarity
++ 0.2 * event_similarity
 ```
 
-Evaluation:
+All components must be transformed to comparable `[0,1]` ranges using
+training/validation rules. The stated weights remain the default. A small
+validation-only weight search is an ablation, not part of the primary result.
+
+Brute-force or scikit-learn nearest-neighbor search is the default. FAISS is
+introduced only if measured retrieval time is a bottleneck.
+
+### 7.3 Retrieval outputs
+
+For every query, save:
 
 ```text
-time-based 70/15/15 split
-MSE
-MAE
-RMSE
-MAPE
-sMAPE
-R2
+candidate IDs and timestamps
+rank and total score
+each component score
+aligned 24-hour candidate future
+uniform retrieved forecast
+similarity-weighted retrieved forecast
+mean/max similarity and candidate spread
 ```
 
-Acceptance criteria:
+Uniform averaging is primary because it follows the relevant TimeRAF ablation.
+Similarity weighting is reported separately.
+
+### 7.4 Event retrieval semantics
+
+Event information has two roles:
+
+1. Past event-count vectors influence hybrid ranking of historical windows.
+2. Recent source records known at the forecast origin provide explanation
+   evidence, ranked by location, category match, recency, and source metadata.
+
+The MVP does not require text embeddings. No event may be manually invented,
+and every quoted or paraphrased event must retain its source record.
+
+---
+
+## 8. Model Matrix
+
+Each model consumes the same split and writes the same prediction schema.
+
+| ID | Model | Required |
+| --- | --- | --- |
+| `M00` | Persistence: repeat `x_t` for all 24 horizons | Yes |
+| `M01` | Daily seasonal naive: use values from the preceding 24-hour cycle | Yes |
+| `M02` | Weekly seasonal naive: use values from the preceding 168-hour cycle | Yes |
+| `M03` | Direct XGBoost with PM2.5 features | Yes |
+| `M04` | Direct XGBoost with PM2.5, weather, and calendar | Yes |
+| `M05` | Random-retrieval uniform trajectory | Yes |
+| `M06` | Cosine-retrieval uniform trajectory | Yes |
+| `M07` | XGBoost plus cosine-retrieval features | Yes |
+| `M08` | XGBoost plus hybrid retrieval and event features, no drift | Yes |
+| `M09` | Full Event-TimeRAF MVP including drift features | Yes |
+| `M10` | Frozen TSFM zero-shot baseline | Publication gate |
+| `M11` | Frozen TSFM plus retrieval augmentation | Publication gate |
+
+For direct XGBoost, train one regressor for each horizon `h = 1..24`. Each model
+uses origin-time causal features plus deterministic calendar features for its
+target hour. Use one fixed, modest parameter set first. Only a small validation
+search is allowed; do not launch a large optimization study before the full
+pipeline works.
+
+### 8.1 Frozen TSFM publication gate
+
+Prefer a small TTM checkpoint because TimeRAF uses TTM-Base. During
+implementation, first run a compatibility spike that verifies checkpoint access,
+input length, forecast length, licenses, memory, and offline Kaggle caching. A
+small Chronos-family checkpoint is the fallback if TTM cannot support the task.
+The selected checkpoint must evaluate the same `L=168`, `H=24` task. Use
+padding or masking only when officially supported and document it; do not change
+the primary test windows merely to fit a checkpoint.
+
+The TSFM experiment must include:
 
 ```text
-- At least persistence, seasonal naive, and one tree model run successfully.
-- Metrics are saved to outputs/tables.
-- Forecast plots are saved to outputs/figures.
+frozen zero-shot TSFM forecast
+uniform retrieved historical forecast
+validation-selected convex fusion of those two forecasts
+event-conditioned hybrid retrieval variant
+```
+
+Choose the convex weight from `{0, 0.25, 0.5, 0.75, 1}` on validation data. This
+is a lightweight retrieval-augmented TSFM experiment, not TimeRAF's learned
+Channel Prompting. Use that exact distinction in the paper.
+
+---
+
+## 9. Drift Design
+
+The MVP uses an operational distribution-shift score, not a claim of perfect
+concept-drift detection. Every component is computed from data available at the
+forecast origin:
+
+```text
+recent mean shift against the training reference
+recent variance shift against the training reference
+retrieval-similarity drop
+weather-vector shift
+event-burst ratio
+```
+
+Fit component scaling on training data. Combine the components with fixed equal
+weights first, then flag origins above the validation 90th percentile. Save the
+component values and the reason with each flag. Evaluate normal and flagged
+periods separately; do not claim drift robustness merely because the score was
+computed.
+
+Add ADWIN, Page-Hinkley, KS, or MMD only as an optional sensitivity analysis.
+
+---
+
+## 10. Explanation Design
+
+Explanations are deterministic records generated from:
+
+- forecast direction and magnitude;
+- top local feature effects or SHAP values;
+- weather and calendar flags;
+- top retrieved historical cases;
+- top recent event records;
+- drift components and threshold status;
+- uncertainty proxy from retrieved-trajectory spread and validation residuals.
+
+Every explanation output must include machine-readable evidence IDs. A sentence
+is omitted when its evidence is absent. The module must not infer causation,
+invent an event, or use an unrestricted LLM to fill missing evidence.
+
+---
+
+## 11. Evaluation Protocol
+
+### 11.1 Metric reporting
+
+Report metrics in three views:
+
+1. overall across all origin-horizon pairs;
+2. separately for each horizon from 1 to 24;
+3. macro average of the 24 horizon-level metrics.
+
+MAPE may be shown as a diagnostic with an explicit epsilon but is not used for
+model selection because it is unstable near zero. Report event-period,
+drift-flagged, and normal-period metrics only when each subset has at least 50
+forecast origins; otherwise present those cases descriptively.
+
+### 11.2 Uncertainty and comparisons
+
+Use paired moving-block bootstrap intervals over forecast origins for the main
+test-set MSE and MAE differences. The block length and number of resamples must
+be fixed in configuration. Save point estimates and intervals; avoid significance
+claims when intervals are inconclusive.
+
+### 11.3 Required ablations
+
+```text
+PM2.5 only vs weather/calendar
+no retrieval vs random vs cosine retrieval
+cosine vs hybrid event-conditioned retrieval
+uniform vs similarity-weighted candidate aggregation
+k in {1, 4, 8, 16}
+full model without events
+full model without drift features
+full model with all components
+frozen TSFM vs retrieval-augmented frozen TSFM
+```
+
+Knowledge-base size and learned fusion experiments are optional after these are
+complete.
+
+---
+
+## 12. Execution Phases and Exit Gates
+
+### Phase 0: Environment and skeleton
+
+Create the repository structure, config loader, dependency file, logging, and a
+Kaggle-compatible smoke notebook.
+
+Exit gate: imports work in a clean session, config validation passes, output
+directories are created, and the seed/version manifest is saved.
+
+### Phase 1: Data acquisition and audit
+
+Load or acquire source-preserving PM2.5, weather, calendar, and event data. Run
+the readiness checks before feature generation.
+
+Exit gate: `data_audit.json` records a pass/fail decision for every source and
+the selected study interval is frozen.
+
+### Phase 2: Preprocessing and windows
+
+Build the hourly modeling table, causal features, aligned windows, chronological
+splits, and leakage tests.
+
+Exit gate: all array shapes and timestamps pass tests; missing targets are absent;
+split and feature causality checks pass.
+
+### Phase 3: Non-retrieval baselines
+
+Run `M00` through `M04`, save predictions, metrics, and forecast plots.
+
+Exit gate: all baselines use identical test rows; naive formulas pass unit tests;
+XGBoost beats or is diagnostically compared with naive baselines without hiding
+negative results.
+
+### Phase 4: Time-series retrieval
+
+Build the training KB and run random and cosine retrieval, aligned future
+aggregation, `k` sensitivity, and retrieval evidence plots.
+
+Exit gate: candidate eligibility tests pass, manual inspection of sampled queries
+shows no future overlap, and `M05` through `M07` artifacts exist.
+
+### Phase 5: Event and hybrid retrieval
+
+Deduplicate/classify events, build past-window event vectors, attach event context
+to historical candidates, and implement hybrid ranking.
+
+Exit gate: all used records satisfy `published_at <= origin`, event coverage is
+reported, and `M08` predictions and evidence exist.
+
+### Phase 6: Drift and full MVP
+
+Fit training drift references, choose the validation threshold, create flags,
+and run `M09`.
+
+Exit gate: component-level drift evidence is saved and normal/drift subset counts
+are reported before their metrics are interpreted.
+
+### Phase 7: Grounded explanations
+
+Generate explanations for test predictions and select case studies using fixed
+criteria such as highest event score, highest drift score, and representative
+median-error cases.
+
+Exit gate: every explanation sentence maps to stored evidence and no event or
+causal claim is unsupported.
+
+### Phase 8: Frozen TSFM gate
+
+Run the compatibility spike, cache the selected checkpoint for Kaggle, then run
+`M10` and `M11` or activate the naming fallback in Section 1.4.
+
+Exit gate: TSFM predictions share the primary evaluation schema, or all
+foundation-model wording is formally scheduled for removal.
+
+### Phase 9: Final evaluation and ablations
+
+Freeze all choices, run the test set once, compute intervals and ablations, and
+generate final figures from saved outputs.
+
+Exit gate: one run manifest reproduces every final table and figure; no table is
+manually populated.
+
+### Phase 10: Paper synchronization and packaging
+
+Replace placeholders only with verified outputs, update method details to match
+the code, discuss failed or negative results, state limitations, compile LaTeX,
+and create the Overleaf zip.
+
+Exit gate: every numerical claim traces to an artifact, references resolve, the
+PDF compiles without warnings that affect content, and title claims satisfy the
+foundation-model gate.
+
+---
+
+## 13. Verification Checklist
+
+Before declaring implementation complete:
+
+```text
+[ ] Fresh-session imports and config validation pass.
+[ ] Data audit and source metadata are saved.
+[ ] Target arrays have shape [N, 24].
+[ ] Chronological split and target boundaries are correct.
+[ ] No target interpolation or future feature access occurs.
+[ ] Retrieval candidates end before each query origin.
+[ ] Event records were published by each query origin.
+[ ] Baseline, retrieval, full-MVP, and TSFM-gate predictions exist.
+[ ] Metrics are available overall and by horizon.
+[ ] Required ablations and bootstrap intervals are saved.
+[ ] Explanations link to machine-readable evidence.
+[ ] A run manifest records config, data hashes, versions, and seed.
+[ ] Paper claims and title match the experiments actually completed.
 ```
 
 ---
 
-## Phase 6: Time-Series Retrieval Baseline
+## 14. Implementation Start Order
 
-Purpose:
-
-```text
-Implement a simplified TimeRAF-inspired baseline without reproducing full TimeRAF.
-```
-
-Knowledge base:
+The next implementation prompt should execute only through the first stable
+checkpoint before adding complexity:
 
 ```text
-data/knowledge_base/ts_windows.parquet
+1. Create the skeleton, configuration, tests, and run manifest.
+2. Implement and run the data audit.
+3. Build the causal hourly table and 168-to-24 windows.
+4. Run naive and direct-XGBoost baselines.
+5. Build leakage-safe random and cosine retrieval.
+6. Add event-conditioned hybrid retrieval.
+7. Add drift indicators and grounded explanations.
+8. Run the frozen-TSFM publication gate.
+9. Freeze choices, run ablations, and update the paper from artifacts.
 ```
 
-Each record:
-
-```text
-window_id
-start_time
-end_time
-input_window_values
-future_window_values
-weather_summary
-calendar_summary
-embedding_vector
-```
-
-Retrieval methods:
-
-```text
-random retrieval
-cosine similarity
-FAISS nearest neighbor if available
-dual-encoder MLP retriever later
-```
-
-Retrieved features:
-
-```text
-retrieved_future_mean
-retrieved_future_std
-retrieved_future_trend
-retrieval_similarity_mean
-retrieval_similarity_max
-retrieved_neighbor_count
-```
-
-Experiments:
-
-```text
-k = 1, 4, 8, 16, optionally 32
-default k = 8
-window length = 168 hours
-horizon = 24 hours
-```
-
-Fusion/aggregation rules:
-
-```text
-- Use uniform averaging across retrieved candidates first because TimeRAF found simple uniform weighting effective.
-- Add similarity-weighted aggregation only as an ablation.
-- Add MLP residual fusion only after simple concatenation works.
-```
-
-Acceptance criteria:
-
-```text
-- Retrieval excludes future/test leakage.
-- Top-k examples can be inspected.
-- Random retrieval and cosine retrieval are both evaluated.
-- Retrieval features improve or at least provide analyzable ablation results.
-```
-
----
-
-## Phase 7: Event Retrieval
-
-Purpose:
-
-```text
-Add external context without making the system dependent on hallucinated reasoning.
-```
-
-Event categories:
-
-```text
-fire
-traffic
-rainstorm
-construction
-industrial
-public_gathering
-holiday_movement
-dust
-flood
-policy
-```
-
-Event knowledge base:
-
-```text
-data/knowledge_base/event_kb.parquet
-```
-
-Each record:
-
-```text
-event_id
-event_datetime
-location
-event_type
-source
-title
-summary
-tone
-keywords
-```
-
-Aggregated event features:
-
-```text
-event_count_24h
-event_count_72h
-fire_event_count_72h
-traffic_event_count_72h
-rain_event_count_72h
-industrial_event_count_7d
-negative_tone_avg_72h
-top_event_text
-```
-
-Acceptance criteria:
-
-```text
-- Event features align with forecast timestamps.
-- Event text is stored for explanation evidence.
-- Event module has a fallback if live event collection fails.
-```
-
----
-
-## Phase 8: Event-TimeRAF MVP
-
-Purpose:
-
-```text
-Combine baseline features, retrieval features, event features, and drift indicators into one model.
-```
-
-MVP input:
-
-```text
-PM2.5 lag/rolling features
-weather features
-calendar features
-time-series retrieval summary features
-event aggregation features
-drift indicators
-```
-
-MVP model:
-
-```text
-XGBoost or LightGBM
-```
-
-Channel-Prompting-inspired MVP fusion:
-
-```text
-input feature representation
-+ retrieved candidate representation
--> concatenate
--> optional MLP compression
--> residual preservation of original input features
--> uniform average across k retrieved candidates
-```
-
-Outputs:
-
-```text
-forecast
-confidence proxy
-drift_flag
-drift_score
-explanation text
-retrieved evidence
-```
-
-Confidence proxy options:
-
-```text
-variation among retrieved future trajectories
-model residual quantiles on validation set
-tree ensemble prediction interval if available
-```
-
-Acceptance criteria:
-
-```text
-- The full model runs end to end.
-- Predictions are saved.
-- Each prediction can be linked to retrieval and event evidence.
-- The MVP remains clearly described as TimeRAF-inspired, not a full TimeRAF reproduction.
-```
-
----
-
-## Phase 9: Drift Detection
-
-Purpose:
-
-```text
-Support the "under concept drift" claim with measurable indicators.
-```
-
-MVP drift indicators:
-
-```text
-rolling mean shift
-rolling variance shift
-retrieval similarity drop
-event burst indicator
-weather pattern shift
-```
-
-Outputs:
-
-```text
-drift_score
-drift_flag
-drift_reason
-```
-
-Evaluation:
-
-```text
-compare normal-period error and drift-period error
-```
-
-Acceptance criteria:
-
-```text
-- Drift periods are identified by transparent rules.
-- Drift-period metrics are reported separately.
-- The explanation module can mention drift only when drift evidence exists.
-```
-
----
-
-## Phase 10: Explanation Module
-
-Purpose:
-
-```text
-Generate explanations grounded in model and retrieval evidence.
-```
-
-Evidence inputs:
-
-```text
-top feature importance or SHAP values
-retrieved historical cases
-retrieved event records
-weather flags
-calendar flags
-drift score
-forecast direction
-```
-
-Template structure:
-
-```text
-1. Forecast direction.
-2. Main numerical drivers.
-3. Weather/calendar context.
-4. Retrieved similar historical behavior.
-5. Retrieved event context.
-6. Drift warning if applicable.
-```
-
-Rules:
-
-```text
-- Do not invent events.
-- Do not mention a driver unless it exists in evidence.
-- Do not use a pure LLM explanation.
-- Save explanation evidence with each output.
-```
-
-Acceptance criteria:
-
-```text
-- Explanations are reproducible.
-- Explanations cite retrieved evidence fields.
-- Case-study examples can be inserted into the paper.
-```
-
----
-
-## Phase 11: Ablation Study
-
-Purpose:
-
-```text
-Prove which components help.
-```
-
-Ablation matrix:
-
-| Model | PM2.5 | Weather | Calendar | TS Retrieval | Event Retrieval | Drift | Explanation |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Persistence | Yes | No | No | No | No | No | No |
-| Seasonal naive | Yes | No | Yes | No | No | No | No |
-| XGBoost-basic | Yes | No | No | No | No | No | No |
-| XGBoost-weather-calendar | Yes | Yes | Yes | No | No | No | No |
-| Random-retrieval baseline | Yes | Yes | Yes | Random | No | No | Limited |
-| Cosine TimeRAF-inspired | Yes | Yes | Yes | Cosine | No | No | Limited |
-| Event-TimeRAF-no-drift | Yes | Yes | Yes | Yes | Yes | No | Yes |
-| Event-TimeRAF-full | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-
-Outputs:
-
-```text
-outputs/tables/main_results.csv
-outputs/tables/ablation_results.csv
-outputs/tables/drift_period_results.csv
-outputs/tables/k_sensitivity_results.csv
-outputs/tables/retrieval_fusion_ablation.csv
-outputs/figures/error_comparison.png
-outputs/figures/ablation_bar_chart.png
-outputs/figures/retrieved_case_study.png
-```
-
-Acceptance criteria:
-
-```text
-- All models use the same split.
-- All metrics are computed consistently.
-- MSE is reported for comparability with TimeRAF.
-- Results are real and reproducible.
-```
-
----
-
-## Phase 12: Final Paper Completion
-
-Purpose:
-
-```text
-Convert real experiment outputs into the final paper.
-```
-
-Add after experiments:
-
-```text
-main forecasting results
-ablation results
-drift-period analysis
-event case study
-explanation examples
-limitations
-conclusion
-```
-
-Paper figures:
-
-```text
-Figure 1: Event-TimeRAF architecture
-Figure 2: Knowledge-base construction
-Figure 3: Hybrid retrieval process
-Figure 4: Forecast visualization
-Figure 5: Error comparison
-Figure 6: Ablation study
-Figure 7: Explanation case study
-Figure 8: Retrieved historical case study
-```
-
-Paper tables:
-
-```text
-Table 1: Comparison with TimeRAF
-Table 2: Dataset description
-Table 3: Feature groups
-Table 4: Baseline models
-Table 5: Main forecasting results
-Table 6: Ablation study
-Table 7: Drift-period performance
-Table 8: Computational cost
-Table 9: Candidate-count sensitivity
-Table 10: Retrieval/fusion ablation
-```
-
-Acceptance criteria:
-
-```text
-- No placeholder result remains in the final results section.
-- Every performance claim is backed by a saved result table.
-- Limitations are clearly stated.
-- The final paper is internally consistent with the implementation.
-```
-
----
-
-## Execution Order Summary
-
-Use this order when implementation begins:
-
-```text
-1. Paper draft up to methodology.
-2. Lightweight Kaggle repository skeleton.
-3. PM2.5 + weather + calendar data pipeline.
-4. Baseline models.
-5. Time-series retrieval baseline.
-6. Event features and event retrieval.
-7. Event-TimeRAF MVP.
-8. Drift detection.
-9. Explanation module.
-10. Ablation experiments.
-11. Final paper update with real results.
-```
-
-The project should not move to advanced neural fusion or TSFM integration until steps 1 to 7 are complete and reproducible.
-
-Optional advanced TimeRAF-faithful extensions after MVP:
-
-```text
-1. Dual-encoder MLP retriever trained with validation feedback.
-2. Candidate augmentation for retriever exploration.
-3. MLP residual fusion closer to Channel Prompting.
-4. TTM or another TSFM wrapper if Kaggle runtime allows.
-5. Knowledge-base size and domain-source sensitivity experiments.
-```
+Do not begin Phase 5 until the Phase 4 retrieval evidence has been manually
+inspected, and do not update the paper with results until Phase 9 is frozen.
