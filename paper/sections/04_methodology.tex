@@ -41,12 +41,12 @@ Fig.~\ref{fig:architecture} shows the planned Event-TimeRAF pipeline. The first 
 \end{figure}
 
 \subsection{Relationship to TimeRAF}
-TimeRAF retrieves top-$k$ candidate time-series windows from a curated knowledge base and incorporates the retrieved candidates using Channel Prompting \cite{zhang2025timeraf}. It uses a learnable dual-encoder retriever, dot-product similarity, a frozen TSFM backbone, and candidate augmentation during retriever training. Event-TimeRAF keeps the retrieval-augmentation principle, but applies it to Dhaka PM2.5 forecasting and expands the knowledge sources beyond numerical sequences.
+TimeRAF retrieves top-$k$ candidate time-series windows from a curated knowledge base and incorporates the retrieved candidates using Channel Prompting \cite{zhang2025timeraf}. It uses a learnable dual-encoder retriever, dot-product similarity, a frozen TSFM backbone, and candidate augmentation during retriever training. Event-TimeRAF keeps the retrieval-augmentation principle, but applies it to Los Angeles County PM2.5 forecasting and expands the knowledge sources beyond numerical sequences.
 
 The first implementation will not be a complete clone of TimeRAF. Instead, it will implement a TimeRAF-style retrieval baseline using random retrieval and cosine similarity. A dual-encoder MLP retriever, candidate augmentation, and TSFM-based Channel Prompting are reserved for later extensions after the Kaggle-compatible MVP is reproducible.
 
 \subsection{Dataset Construction}
-The intended air-quality data source is OpenAQ or another accessible source containing Dhaka PM2.5 observations. Timestamps will be converted to Asia/Dhaka time, resampled to hourly frequency if data quality permits, cleaned for impossible values, and interpolated only over short gaps. Weather covariates will be retrieved from Open-Meteo first, with ERA5 considered as a later substitute. Calendar features will include hour, weekday, weekend flag, month, season, public-holiday indicators, Ramadan indicators, and Eid-period indicators where reliable calendar data are available.
+Hourly PM2.5 observations will be taken from US EPA AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. The data audit will select one monitoring site using coverage and continuity criteria. Timestamps will be converted to \texttt{America/Los\_Angeles} with explicit daylight-saving handling. Short input gaps may be filled only from past-available observations; targets will never be interpolated. Weather covariates will come from the nearest suitable NOAA Integrated Surface Database station \cite{noaaisd2026}. Calendar features will include hour, weekday, weekend, month, season, US federal holidays, and California holidays.
 
 All normalization statistics will be fitted on the training split only. The same normalization procedure will be used for query windows and retrieved candidate windows, following the TimeRAF requirement that input and retrieved sequences use consistent preprocessing.
 
@@ -60,9 +60,9 @@ Given a query window $X_t$, the time-series retriever returns
 where $k$ is the number of retrieved candidates. The default planned setting is $k=8$, with sensitivity analysis for $k \in \{1,4,8,16\}$ and optionally $k=32$.
 
 \subsection{Event Knowledge Base}
-The event knowledge base will contain event or news records related to Dhaka or Bangladesh. Planned fields include event identifier, timestamp, location, event category, source, title, summary, tone, and keywords. Event categories include fire, traffic, rainstorm, construction, industrial activity, public gathering, holiday movement, dust, flood, and policy restriction.
+The event knowledge base will contain source-preserving records relevant to Los Angeles County. NOAA Storm Events is the required structured source, while NOAA Hazard Mapping System fire and smoke records are an optional enrichment \cite{noaastormevents2026,noaahms2026}. Planned fields include event identifier, event start and end, information-availability timestamp, location, category, source, source URL, title, and summary. Event categories include wildfire, smoke, excessive heat, high wind, heavy rain, flood, dust, traffic, industrial activity, and policy restrictions.
 
-For the first implementation, events will be represented as structured aggregate features such as 24-hour event count, 72-hour event count, fire-event count, traffic-event count, industrial-event count, negative-tone average, and top event text. If live event collection is unreliable, a cached event dataset will be used and the limitation will be documented.
+For the first implementation, events will be represented as structured aggregate features such as 24-hour and 72-hour event counts, wildfire count, smoke count, high-wind count, heat count, source count, and top event identifier. Every event must be available by the forecast origin under a recorded availability rule. NOAA Storm Events does not provide a machine-readable publication timestamp; consequently, the implementation records event start as a retrospective availability assumption. Results that use this assumption will be labeled sensitivity experiments rather than strict operational forecasts. Strict experiments require source records with genuine publication or issuance timestamps.
 
 \subsection{Hybrid Retrieval Score}
 The planned hybrid retrieval score combines time-series similarity, weather relevance, calendar relevance, and event relevance:
@@ -77,7 +77,7 @@ The planned hybrid retrieval score combines time-series similarity, weather rele
 where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is calendar similarity, and $s_e$ is event relevance. Initial weights are planned as $\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$. These weights will only be adjusted with validation data after implementation.
 
 \subsection{Fusion and Forecasting Backbone}
-The MVP fusion method will combine PM2.5 lag/rolling features, weather features, calendar features, retrieved time-series summary features, event features, and drift indicators. The first forecasting backbone will be XGBoost or LightGBM because these models are efficient on Kaggle and provide strong tabular baselines. A later extension may use an MLP residual fusion module inspired by Channel Prompting:
+The MVP fusion method combines PM2.5 lag/rolling features, weather features, calendar features, retrieved time-series summary features, event features, and drift indicators. The forecasting backbone uses 24 direct XGBoost regressors, one for each forecast horizon, because this design is efficient on Kaggle and provides a strong tabular baseline. A later extension may use an MLP residual fusion module inspired by Channel Prompting:
 \begin{equation}
     z_i = \mathrm{Concat}(h_t, r_{t,i}),
 \end{equation}
@@ -88,7 +88,7 @@ The MVP fusion method will combine PM2.5 lag/rolling features, weather features,
 where $h_t$ is the input representation and $r_{t,i}$ is the representation of the $i$-th retrieved candidate. This mirrors the TimeRAF idea of preserving the original input representation while adding uniformly averaged information extracted from retrieved candidates.
 
 \subsection{Concept Drift Detection}
-Concept drift will be represented using transparent indicators rather than complex online algorithms in the first implementation. Planned indicators include recent mean shift, recent variance shift, retrieval similarity drop, weather-pattern shift, and event-burst indicator. A simple drift score can be defined as
+The implementation represents operational distribution shift using transparent indicators rather than claiming perfect concept-drift identification. The indicators are recent mean shift, recent variance shift, retrieval similarity drop, weather-pattern shift, and event-burst ratio. A simple drift score can be defined as
 \begin{equation}
     D_t =
     \lambda_1 z_{\mu,t} +
@@ -111,11 +111,11 @@ Table~\ref{tab:timeraf_comparison} summarizes the methodological relation betwee
 \toprule
 Aspect & TimeRAF & Event-TimeRAF Draft \\
 \midrule
-Target domain & General zero-shot TSF & Dhaka PM2.5 forecasting \\
+Target domain & General zero-shot TSF & Los Angeles County PM2.5 forecasting \\
 Knowledge base & Time-series windows & PM2.5 windows, weather, calendar, events \\
 Retriever & Learnable dual encoder & Random/cosine first; learnable later \\
 Integration & Channel Prompting & Feature fusion first; Channel-Prompting-inspired later \\
-Backbone & Frozen TSFM & XGBoost/LightGBM MVP; TSFM later \\
+Backbone & Frozen TSFM & Direct XGBoost MVP; frozen TSFM gate \\
 Explanations & Retrieved-case visualization & Evidence-based forecast explanation \\
 Drift handling & Not central & Explicit drift indicators \\
 \bottomrule

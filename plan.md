@@ -10,7 +10,8 @@ Base paper:
 
 This document is the corrected high-level plan for the project. It is scoped for a simple Kaggle-friendly implementation first, with advanced TimeRAF-style components added only after a working baseline pipeline exists.
 
-Planning status: **finalized; implementation starts in the next prompt**.
+Project status: **implementation scaffold complete; full 2019--2024 Kaggle run and
+final result generation pending**.
 
 `structured_plan.md` is the binding implementation contract. It resolves detailed decisions about target shape, data-readiness gates, artifact schemas, leakage controls, model identifiers, the foundation-model publication gate, and phase exit criteria. If the two documents differ on an implementation detail, follow `structured_plan.md` and update this overview afterward.
 
@@ -25,7 +26,7 @@ TimeRAF retrieves useful historical time-series candidates from a knowledge base
 The target application is:
 
 ```text
-Forecast future PM2.5 / AQI for Dhaka using:
+Forecast future PM2.5 for Los Angeles County using:
 - historical PM2.5 time series
 - weather variables
 - calendar features
@@ -73,7 +74,8 @@ Initial practical setting:
 lookback L = 168 hours
 forecast horizon H = 24 hours
 target = the full PM2.5 sequence from t+1 through t+24
-location = Dhaka, Bangladesh
+location = Los Angeles County, California, USA
+study period = 2019-2024, subject to the data audit
 frequency = hourly if data quality allows
 ```
 
@@ -92,7 +94,7 @@ advanced neural fusion
 
 TimeRAF focuses mainly on retrieving numerical time-series patterns. That is useful, but air quality is not driven by time-series history alone.
 
-For Dhaka PM2.5 forecasting, abnormal changes may be caused by:
+For Los Angeles County PM2.5 forecasting, abnormal changes may be caused by:
 
 ```text
 rainfall
@@ -178,7 +180,7 @@ The paper should claim contributions carefully and only at methodology level unt
 
 Planned contributions:
 
-1. An event-aware retrieval-augmented forecasting framework for Dhaka PM2.5 prediction.
+1. An event-aware retrieval-augmented forecasting framework for Los Angeles County PM2.5 prediction.
 2. A hybrid knowledge base combining historical PM2.5 windows, weather summaries, calendar context, and event records.
 3. A simple TimeRAF-inspired retrieval baseline for air-quality forecasting.
 4. A concept-drift-aware extension using rolling statistics and retrieval similarity indicators.
@@ -360,8 +362,10 @@ Avoid creating many scripts and config files until the MVP works.
 Primary target:
 
 ```text
-OpenAQ or another accessible PM2.5 source
-Location: Dhaka, Bangladesh
+US EPA AirData/AQS hourly parameter 88101
+Location: Los Angeles County, California, USA
+State/county codes: 06/037
+Study period: 2019-2024
 Frequency: hourly if available
 Target: PM2.5
 ```
@@ -370,14 +374,15 @@ Processing requirements:
 
 ```text
 - parse timestamps
-- convert to Asia/Dhaka timezone
+- convert to America/Los_Angeles with daylight-saving handling
 - remove impossible PM2.5 values
 - resample to hourly frequency
 - fill only short input gaps using past-available information
 - never interpolate target values; discard windows with incomplete targets
 - preserve missingness report
 - fit normalization statistics on training data only
-- save processed data as data/processed/dhaka_pm25_hourly.parquet
+- select the AQS site with the strongest continuous coverage during the audit
+- save processed data as data/processed/la_pm25_hourly.parquet
 ```
 
 ### 9.2 Weather
@@ -385,8 +390,8 @@ Processing requirements:
 Preferred source:
 
 ```text
-Open-Meteo first
-ERA5 optional later
+NOAA NCEI Global Hourly/ISD first
+Open-Meteo optional fallback
 ```
 
 Weather variables:
@@ -412,27 +417,33 @@ day_of_week
 is_weekend
 month
 season
-is_public_holiday
-is_ramadan
-is_eid_period
+is_us_federal_holiday
+is_california_holiday
 ```
 
-Bangladesh weekend days must be configurable. Do not hard-code a Western weekend assumption.
+Use the Saturday/Sunday weekend convention and verified US federal and California holiday dates.
 
 ### 9.4 Events
 
-Use GDELT or another accessible event/news source.
+Use NOAA Storm Events as the required structured event source. NOAA HMS historical fire/smoke records are an optional enrichment.
+
+NOAA Storm Events does not expose a machine-readable publication timestamp. The
+MVP records `published_at = event_start` together with
+`availability_assumption = event_start`; all resulting event-aware comparisons
+must be labeled retrospective sensitivity experiments. Strict operational event
+claims require a source-preserving cache with genuine publication or issuance
+timestamps.
 
 MVP structured event features:
 
 ```text
 event_count_24h
 event_count_72h
-fire_event_count_72h
+wildfire_event_count_72h
+smoke_event_count_72h
 traffic_event_count_72h
-rain_event_count_72h
+heavy_rain_event_count_72h
 industrial_event_count_7d
-negative_tone_avg_72h
 top_event_text
 ```
 
@@ -491,7 +502,8 @@ Event features:
 ```text
 event_count_24h
 event_count_72h
-fire_event_count_72h
+wildfire_event_count_72h
+smoke_event_count_72h
 traffic_event_count_72h
 industrial_event_count_7d
 holiday_event_flag
@@ -744,7 +756,7 @@ Do not generate explanations from an LLM alone.
 Example explanation format:
 
 ```text
-The model predicts a PM2.5 increase over the next 24 hours. The main evidence is high recent PM2.5 persistence, low wind speed, high humidity, and no rainfall. Retrieved historical windows with similar stagnant weather showed increasing PM2.5. Recent event retrieval found traffic-related events near Dhaka. The drift score is moderate, so the forecast should be interpreted with caution.
+The model predicts a PM2.5 increase over the next 24 hours. The main evidence is high recent PM2.5 persistence, low wind speed, and no rainfall. Retrieved historical windows with similar stagnant weather showed increasing PM2.5. Recent event retrieval found a source-recorded wildfire or smoke event affecting Los Angeles County. The drift score is moderate, so the forecast should be interpreted with caution.
 ```
 
 ---
@@ -986,7 +998,7 @@ Bad first version:
 full TimeRAF reproduction
 + full TSFM training
 + LLM reasoning
-+ GDELT
++ multiple live event/news sources
 + ERA5
 + satellite AOD
 + dashboard
@@ -1010,9 +1022,12 @@ The first implementation should be small, reproducible, and Kaggle-compatible.
 
 ---
 
-## 20. Final Implementation Prompt for Later
+## 20. Implementation Execution Contract
 
-Planning is accepted. Use this as the implementation handoff together with `structured_plan.md`:
+The repository scaffold, official-source ingestion, causal feature pipeline,
+baselines, retrieval modules, evaluation utilities, tests, and Kaggle notebooks
+now implement this contract. Use it together with `structured_plan.md` when
+running and extending the experiments:
 
 ```text
 Build the Kaggle-friendly research repository for:

@@ -1,6 +1,7 @@
 # Event-TimeRAF Finalized Implementation Plan
 
-Status: **planning complete; implementation not started**
+Status: **implementation scaffold complete; full 2019--2024 Kaggle experiment
+and frozen result artifacts pending**
 
 This document is the binding implementation contract for the project. `plan.md`
 remains the research overview, while this file controls implementation order,
@@ -15,7 +16,8 @@ change should be recorded here before code and paper claims are changed.
 
 | Item | Final decision |
 | --- | --- |
-| Location | Dhaka, Bangladesh |
+| Location | Los Angeles County, California, USA |
+| Study period | 2019--2024, subject to the data-readiness audit |
 | Target | Hourly PM2.5 in the source unit, expected to be `ug/m3` |
 | Forecast output | Full sequence from `t+1` through `t+24` |
 | Lookback | `L = 168` hourly observations |
@@ -86,10 +88,10 @@ coverage.
 
 | Data | Preferred source | Fallback rule |
 | --- | --- | --- |
-| PM2.5 | OpenAQ export/API or an accessible source-preserving archive | Use another documented Dhaka dataset; do not fabricate or merge incompatible units silently |
-| Weather | Open-Meteo historical weather | Use another documented historical source with equivalent variables |
-| Calendar | Deterministic generation plus verified Bangladesh holiday dates | Omit uncertain special-day flags and document the omission |
-| Events | GDELT or another source-preserving news/event archive | Use a previously downloaded cache with original source fields |
+| PM2.5 | US EPA AirData/AQS hourly parameter `88101` | Use parameter `88502` only as a separately documented sensitivity source; never merge parameter codes silently |
+| Weather | NOAA NCEI Global Hourly/ISD observations | Open-Meteo may be used only as a documented weather fallback |
+| Calendar | Deterministic US federal and California holiday features | Omit uncertain special-day flags and document the omission |
+| Events | NOAA Storm Events; optional NOAA HMS fire/smoke records | Use a previously downloaded source-preserving cache with original fields |
 
 Kaggle internet access cannot be assumed. Raw data should be downloaded once,
 validated, and attached as a Kaggle Dataset. The pipeline must accept local input
@@ -117,29 +119,36 @@ run event-free diagnostics but revise the event-aware claims before submission.
 Air-quality observations:
 
 ```text
-timestamp_utc, timestamp_local, station_id, latitude, longitude,
-parameter, value, unit, source
+timestamp_utc, timestamp_local, site_id, latitude, longitude,
+pm25_observed, pm25, pm25_filled, monitor_count
 ```
 
 Weather observations:
 
 ```text
-timestamp_utc, timestamp_local, temperature_2m,
-relative_humidity_2m, precipitation, wind_speed_10m,
-wind_direction_10m, surface_pressure, cloud_cover, source
+timestamp_utc, timestamp_local, temperature_c, dewpoint_c,
+relative_humidity, precipitation_mm, wind_speed_ms,
+wind_direction_deg, pressure_hpa
 ```
 
 Event records:
 
 ```text
-event_id, event_time, published_at, retrieved_at, location,
-latitude, longitude, category, source, source_url, title,
-summary, tone, keywords
+event_id, event_time, event_end, published_at,
+availability_assumption, source_coverage_start, source_coverage_end,
+coverage_basis, category, source, source_url, title, summary
 ```
 
 `published_at` is the default information-availability timestamp. If it is not
 available, the record must be marked and excluded from strict causal experiments
 or handled in a clearly labeled sensitivity analysis.
+
+NOAA Storm Events lacks a machine-readable publication timestamp. The implemented
+MVP therefore records `published_at = event_time` and
+`availability_assumption = event_start`; event-aware results from this source are
+retrospective sensitivity results. The audit separately reports source-coverage
+days, event-active days, category counts, and whether strict publication-time
+availability is satisfied.
 
 ---
 
@@ -215,7 +224,10 @@ figures. It must not retrain models.
 
 ```text
 data paths and source metadata
-timezone = Asia/Dhaka
+timezone = America/Los_Angeles
+study years = 2019..2024
+EPA state/county codes = 06/037
+EPA PM2.5 parameter = 88101
 frequency = 1h
 lookback = 168
 horizon = 24
@@ -315,8 +327,7 @@ Calendar features:
 
 ```text
 origin and known target-hour cyclical encodings, day of week, month, season,
-configurable Bangladesh weekend, verified public holiday,
-Ramadan and Eid flags only when dates are reliable
+Saturday/Sunday weekend, verified US federal and California holidays
 ```
 
 Future calendar values are allowed because they are deterministic and known at
@@ -330,9 +341,9 @@ total counts, event-burst ratio, mean tone, source count,
 and identifiers of the highest-ranked evidence records
 ```
 
-Keyword categories begin with fire, traffic, rainstorm, construction,
-industrial activity, public gathering, holiday movement, dust, flood, and
-policy. Rules must be deterministic, versioned, and auditable.
+Event categories begin with wildfire, smoke, high wind, excessive heat, heavy
+rain, flood, dust, traffic, industrial activity, and policy. Rules must be
+deterministic, versioned, and auditable.
 
 ### 6.2 Window construction
 
@@ -606,8 +617,9 @@ shows no future overlap, and `M05` through `M07` artifacts exist.
 Deduplicate/classify events, build past-window event vectors, attach event context
 to historical candidates, and implement hybrid ranking.
 
-Exit gate: all used records satisfy `published_at <= origin`, event coverage is
-reported, and `M08` predictions and evidence exist.
+Exit gate: all used records satisfy `published_at <= origin`, event coverage and
+availability assumptions are reported, strict and retrospective-sensitivity
+results are not conflated, and `M08` predictions and evidence exist.
 
 ### Phase 6: Drift and full MVP
 
@@ -665,7 +677,8 @@ Before declaring implementation complete:
 [ ] Chronological split and target boundaries are correct.
 [ ] No target interpolation or future feature access occurs.
 [ ] Retrieval candidates end before each query origin.
-[ ] Event records were published by each query origin.
+[ ] Event records were published by each query origin, or the run is explicitly
+    labeled as a retrospective availability sensitivity.
 [ ] Baseline, retrieval, full-MVP, and TSFM-gate predictions exist.
 [ ] Metrics are available overall and by horizon.
 [ ] Required ablations and bootstrap intervals are saved.
@@ -676,10 +689,11 @@ Before declaring implementation complete:
 
 ---
 
-## 14. Implementation Start Order
+## 14. Experiment Execution Order
 
-The next implementation prompt should execute only through the first stable
-checkpoint before adding complexity:
+The code and notebooks cover the following stages. Execute them in this order,
+and stop at each checkpoint for the required audit or evidence review before
+adding complexity:
 
 ```text
 1. Create the skeleton, configuration, tests, and run manifest.
