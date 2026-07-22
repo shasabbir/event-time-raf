@@ -17,7 +17,7 @@ def cfg(tmp_path: Path):
 
 @pytest.fixture
 def modeling_frame(cfg):
-    rows = 1_200
+    rows = 3_000
     timestamp = pd.date_range("2019-01-01", periods=rows, freq="h", tz="UTC")
     phase = np.arange(rows)
     pm25 = 18 + 5 * np.sin(2 * np.pi * phase / 24) + 0.01 * phase
@@ -57,4 +57,3 @@ def modeling_frame(cfg):
     for name in CALENDAR_FEATURES:
         frame[name] = calendar[name]
     return frame
-
