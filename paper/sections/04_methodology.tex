@@ -1,7 +1,7 @@
 \section{Methodology}
 
 \subsection{Overview}
-Fig.~\ref{fig:architecture} shows the planned Event-TimeRAF pipeline. The first step is to align air-quality observations with weather and calendar features. The system then creates sliding windows and a time-series knowledge base. The time-series retriever returns similar historical windows, while the event retriever returns relevant event/news records close to the forecast timestamp. The retrieved evidence is combined with structured features to generate a forecast, confidence proxy, drift score, and explanation.
+Fig.~\ref{fig:architecture} shows the planned Event-TimeRAF pipeline. The first step is to align air-quality observations with weather, calendar, and availability-filtered event features. The system then creates sliding windows and a time-series knowledge base. In the MVP, one hybrid retriever ranks historical windows using PM2.5, weather, calendar, and event-context similarity. A separate source-record lookup links recent event identifiers to explanations; it does not supply future event labels to the model. The retrieved evidence is combined with structured features to generate a forecast, uncertainty proxy, drift score, and explanation.
 
 \begin{figure}[!t]
 \centering
@@ -51,7 +51,7 @@ Hourly PM2.5 observations will be taken from US EPA AirData/AQS parameter 88101 
 All normalization statistics will be fitted on the training split only. The same normalization procedure will be used for query windows and retrieved candidate windows, following the TimeRAF requirement that input and retrieved sequences use consistent preprocessing.
 
 \subsection{Time-Series Knowledge Base}
-The time-series knowledge base will contain historical PM2.5 windows. Each record will store a window identifier, start time, end time, input window values, future window values, weather summary, calendar summary, embedding vector or normalized window vector, data split, and normalization identifier. For validation and test evaluation, retrieval will be restricted to training-history windows to prevent leakage.
+The time-series knowledge base will contain historical PM2.5 windows. Each record will store a window identifier, start time, end time, input window values, future window values, weather summary, calendar summary, embedding vector or normalized window vector, data split, and normalization identifier. Knowledge-base origins are separated by 192 hours, equal to the 168-hour input and 24-hour future combined. For every query, a candidate is eligible only when its complete future ends before the query input begins. Validation and test retrieval is additionally restricted to training-history windows. These rules exclude self-matches, near-duplicate windows, and overlap with the query context.
 
 Given a query window $X_t$, the time-series retriever returns
 \begin{equation}
@@ -62,7 +62,7 @@ where $k$ is the number of retrieved candidates. The default planned setting is 
 \subsection{Event Knowledge Base}
 The event knowledge base will contain source-preserving records relevant to Los Angeles County. NOAA Storm Events is the required structured source, while NOAA Hazard Mapping System fire and smoke records are an optional enrichment \cite{noaastormevents2026,noaahms2026}. Planned fields include event identifier, event start and end, information-availability timestamp, location, category, source, source URL, title, and summary. Event categories include wildfire, smoke, excessive heat, high wind, heavy rain, flood, dust, traffic, industrial activity, and policy restrictions.
 
-For the first implementation, events will be represented as structured aggregate features such as 24-hour and 72-hour event counts, wildfire count, smoke count, high-wind count, heat count, source count, and top event identifier. Every event must be available by the forecast origin under a recorded availability rule. NOAA Storm Events does not provide a machine-readable publication timestamp; consequently, the implementation records event start as a retrospective availability assumption. Results that use this assumption will be labeled sensitivity experiments rather than strict operational forecasts. Strict experiments require source records with genuine publication or issuance timestamps.
+For the first implementation, model inputs represent events with hourly publication counts, rolling 24-hour, 72-hour, and 168-hour counts, category-specific 72-hour counts, active-event counts, and an event-burst ratio. Recent source event identifiers are retained only as explanation evidence. Every event used as a model input must be available by the forecast origin under a recorded availability rule. Evaluation distinguishes events published in the prior 72 hours, events active at the origin, and recorded event intervals overlapping the target horizon. Target overlap is used only as a post-hoc label and never as a model input. NOAA Storm Events does not provide a machine-readable publication timestamp; consequently, the implementation records event start as a retrospective availability assumption. Results that use this assumption will be labeled sensitivity experiments rather than strict operational forecasts. Strict experiments require source records with genuine publication or issuance timestamps.
 
 \subsection{Hybrid Retrieval Score}
 The planned hybrid retrieval score combines time-series similarity, weather relevance, calendar relevance, and event relevance:
@@ -94,12 +94,13 @@ The implementation represents operational distribution shift using transparent i
     \lambda_1 z_{\mu,t} +
     \lambda_2 z_{\sigma,t} +
     \lambda_3 (1-\bar{s}_{ts,t}) +
-    \lambda_4 b_{event,t},
+    \lambda_4 z_{w,t} +
+    \lambda_5 b_{event,t},
 \end{equation}
-where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts, $\bar{s}_{ts,t}$ is average retrieval similarity, and $b_{event,t}$ is an event-burst score. The exact thresholds will be selected using validation data.
+where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts, $\bar{s}_{ts,t}$ is average retrieval similarity, $z_{w,t}$ is weather-pattern shift, and $b_{event,t}$ is an event-burst score. The implemented components are robustly scaled against training data and averaged with equal weight; the alert threshold is selected from validation scores.
 
 \subsection{Explanation Generation}
-The explanation module will generate evidence-based explanations. It will use feature importance or SHAP values, weather flags, retrieved historical windows, retrieved event records, calendar context, forecast direction, and drift score. It will not generate explanations from an unrestricted language model. Each explanation must be traceable to stored evidence.
+The explanation module will generate evidence-based explanations. It will use signed local XGBoost contributions averaged across the 24 direct horizon models, weather flags, retrieved historical windows, retrieved event records, calendar context, forecast direction, component-level drift evidence, and an uncertainty proxy combining retrieved-trajectory spread with validation residual error. It will not generate explanations from an unrestricted language model. Each explanation must be traceable to stored machine-readable evidence.
 
 Table~\ref{tab:timeraf_comparison} summarizes the methodological relation between TimeRAF and Event-TimeRAF.
 

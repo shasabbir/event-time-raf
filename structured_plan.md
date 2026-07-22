@@ -262,10 +262,10 @@ schemas.
 | `data/knowledge_base/ts_kb_arrays.npz` | Candidate inputs, futures, and retrieval vectors |
 | `data/knowledge_base/event_kb.parquet` | Deduplicated source-preserving event records |
 | `outputs/evidence/retrieval_evidence.parquet` | Query, rank, candidate, all score components, and aligned candidate future |
-| `outputs/predictions/predictions.parquet` | Model, origin, horizon, target time, actual, prediction, seed, and subset flags |
+| `outputs/predictions/predictions.parquet` | Run ID, seed, model, origin, horizon, target time, actual, prediction, availability mode, drift score, and event/drift subset flags |
 | `outputs/tables/metrics.csv` | Model and subset metrics overall and by horizon |
 | `outputs/tables/ablation_results.csv` | Fixed model variants and confidence intervals |
-| `outputs/logs/run_manifest.json` | Config hash, seed, dependency versions, data hashes, runtime, and artifact paths |
+| `outputs/logs/run_manifest.json` | Run ID, config hash and values, seed, code revision, dependency versions, data/artifact hashes, runtime, options, and artifact paths |
 
 Predictions use long format: one row per model, forecast origin, and horizon.
 All paper tables must be generated from these saved artifacts.
@@ -290,8 +290,9 @@ These rules are mandatory and will be tested:
 7. An event is usable only when `published_at <= t`.
 8. Validation and test queries retrieve from the training knowledge base only.
 9. For every query, a candidate is eligible only when its full future segment
-   ends before the query origin. Self-matches and overlapping input/target windows
-   are excluded.
+   ends before the query input window begins. Knowledge-base records use a
+   `L+H=192` hour stride, so candidate records and query/candidate records do not
+   overlap. Self-matches and near-duplicate historical windows are excluded.
 10. Random, cosine, and hybrid retrieval use the same eligible candidate pool.
 11. Validation selects hyperparameters and thresholds. Test data is evaluated
     once after choices are frozen.
@@ -383,6 +384,11 @@ y_aligned = query_input_mean + query_input_std * y_candidate_norm
 This prevents a candidate's absolute historical pollution level from being
 copied blindly while retaining its future pattern.
 
+Knowledge-base origins are spaced by 192 hours (`L+H`). At query time, a
+candidate is eligible only when `candidate_target_end < query_input_start`.
+This strict embargo prevents candidate inputs or futures from duplicating any
+part of the query lookback.
+
 ### 7.2 Retrieval variants
 
 | Variant | Definition |
@@ -390,6 +396,7 @@ copied blindly while retaining its future pattern.
 | Random | Uniform sample of `k` eligible candidates using the recorded seed |
 | Cosine | Top-k cosine similarity on normalized PM2.5 windows |
 | Hybrid | Weighted score using time-series, weather, calendar, and event-context similarities |
+| Hybrid-no-event | The same weighted context score with the event component removed and remaining weights renormalized; used only for the controlled no-event ablation |
 
 The default hybrid score is:
 
@@ -434,6 +441,13 @@ Event information has two roles:
 
 The MVP does not require text embeddings. No event may be manually invented,
 and every quoted or paraphrased event must retain its source record.
+
+Evaluation keeps three distinct event labels: an event published in the prior
+72 hours, an event active at the forecast origin, and an event whose recorded
+interval overlaps the forecast target. Only the first two may describe causal
+origin context. Target overlap is a post-hoc evaluation label and never enters
+model features. Availability mode is saved in every metrics and prediction
+artifact.
 
 ---
 
@@ -543,6 +557,10 @@ MAPE may be shown as a diagnostic with an explicit epsilon but is not used for
 model selection because it is unstable near zero. Report event-period,
 drift-flagged, and normal-period metrics only when each subset has at least 50
 forecast origins; otherwise present those cases descriptively.
+
+Subset counts use unique forecast origins, not the number of origin-horizon
+rows. Rows below the threshold retain descriptive counts but have inferential
+metrics suppressed.
 
 ### 11.2 Uncertainty and comparisons
 
@@ -676,14 +694,17 @@ Before declaring implementation complete:
 [ ] Target arrays have shape [N, 24].
 [ ] Chronological split and target boundaries are correct.
 [ ] No target interpolation or future feature access occurs.
-[ ] Retrieval candidates end before each query origin.
+[ ] Retrieval candidates end before each query input begins, and KB records use
+    the non-overlapping 192-hour stride.
 [ ] Event records were published by each query origin, or the run is explicitly
     labeled as a retrospective availability sensitivity.
 [ ] Baseline, retrieval, full-MVP, and TSFM-gate predictions exist.
 [ ] Metrics are available overall and by horizon.
 [ ] Required ablations and bootstrap intervals are saved.
-[ ] Explanations link to machine-readable evidence.
-[ ] A run manifest records config, data hashes, versions, and seed.
+[ ] Explanations aggregate all 24 direct-model contribution vectors and link to
+    machine-readable retrieval, event, feature-effect, and drift evidence.
+[ ] A run manifest records run ID, config hash and values, code revision, data
+    and artifact hashes, versions, seed, runtime, and publication-gate status.
 [ ] Paper claims and title match the experiments actually completed.
 ```
 
