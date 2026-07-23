@@ -50,6 +50,36 @@ Strict event availability & False & Caveat \\
 \end{tabular}
 \end{table}
 
+\begin{table*}[!t]
+\centering
+\caption{Dataset and Source Summary}
+\label{tab:dataset_summary}
+\begin{tabular}{p{0.18\linewidth}p{0.27\linewidth}p{0.18\linewidth}p{0.25\linewidth}}
+\toprule
+Data group & Source & Final scope & Use in pipeline \\
+\midrule
+PM2.5 & EPA AirData/AQS hourly parameter 88101 & Los Angeles County,
+2019--2024; 52,602 observed target hours & Target sequence and lag/rolling
+features \\
+Weather & NOAA Global Hourly/ISD, station \texttt{72297023129} & 2019--2024;
+0.9942 usable core coverage & Temperature, humidity, wind, pressure, and rain
+features \\
+Events & NOAA Storm Events annual detail archives & 204 Los Angeles records;
+117 event days & Retrospective event-start features and explanation evidence \\
+Calendar & Generated from timestamps and public holiday rules & 2019--2024
+hourly calendar & Hour, weekday, weekend, month, season, and holiday features \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Data and Code Availability}
+The raw public records are available from EPA AirData, NOAA Global Hourly/ISD,
+and NOAA Storm Events \cite{epaairdata2026,noaaisd2026,noaastormevents2026}.
+The experiment used a private Kaggle delivery cache for NOAA Storm Events only
+because direct NCEI access was unavailable in the notebook environment; every
+cached NOAA file was verified against the generated source manifest. Source code
+is not publicly available.
+
 \subsection{Forecasting Task and Split}
 The forecasting task predicts PM2.5 from one to 24 hours ahead using a 168-hour
 lookback window. The split is chronological: the earliest 70\% of valid windows
@@ -67,6 +97,56 @@ and retrieval-augmented Chronos-Bolt forecast fusion. The Chronos checkpoint is
 \texttt{amazon/chronos-bolt-small}; it completed successfully in the final run,
 so the foundation-model publication gate is satisfied.
 
+\begin{table}[!t]
+\centering
+\caption{Evaluated Model Families}
+\label{tab:model_families}
+\begin{tabular}{ll}
+\toprule
+ID & Description \\
+\midrule
+M00--M02 & Persistence and seasonal naive baselines \\
+M03--M04 & XGBoost PM2.5-only and context models \\
+M05--M06 & Random and cosine retrieval-only baselines \\
+M07 & XGBoost with cosine retrieval features \\
+M08--M09 & Event-TimeRAF without/with drift indicators \\
+M10--M11 & Frozen Chronos-Bolt and retrieval fusion \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Implementation and Hyperparameters}
+The final run was executed on Kaggle using Python 3.12.13 on Linux
+6.12.90. The runtime was 1,576.87 seconds. Key package versions recorded in the
+run manifest include NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost
+3.2.0, PyTorch 2.10.0+cu128, and chronos-forecasting 2.3.1. Table
+\ref{tab:hyperparameters} reports the principal hyperparameters.
+
+\begin{table*}[!t]
+\centering
+\caption{Final Run Hyperparameters and Runtime Settings}
+\label{tab:hyperparameters}
+\begin{tabular}{ll}
+\toprule
+Component & Setting \\
+\midrule
+Study period & 2019--2024 \\
+Lookback and horizon & $L=168$ hours, $H=24$ hours \\
+Split & 70\% train, 15\% validation, 15\% test, chronological \\
+Retrieval & $k=8$, sensitivity for $k \in \{1,4,8,16\}$ \\
+Knowledge-base stride & 192 hours \\
+Hybrid retrieval weights & time-series 0.5, weather 0.2, calendar 0.1, event 0.2 \\
+XGBoost & 350 estimators, max depth 6, learning rate 0.05, subsample 0.85,
+colsample 0.85, $\lambda=1.0$ \\
+Drift detector & 24-hour recent window, 168-hour reference window,
+0.90 validation quantile threshold \\
+Chronos checkpoint & \texttt{amazon/chronos-bolt-small}, batch size 64 \\
+Chronos fusion weights tested & $\{0,0.25,0.5,0.75,1.0\}$; selected 0.75 \\
+Bootstrap & 500 paired block-bootstrap resamples, 24-hour blocks \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
 \subsection{Metrics and Statistical Checks}
 The primary metrics are MSE, MAE, RMSE, MAPE, sMAPE, and $R^2$. MSE is retained
 for comparability with the TimeRAF base paper, while MAE and RMSE provide more
@@ -75,3 +155,31 @@ interpretable PM2.5 error scales. Subset metrics are reported only when at least
 active-event subset contains 293 origins, and the drift subset contains 560
 origins, so all pre-specified subsets pass the minimum-size gate. Pairwise comparisons
 use paired block bootstrap intervals with 24-hour blocks and 500 resamples.
+
+\subsection{Position Relative to Existing Studies}
+Direct numerical comparison with existing TSFM and air-quality papers is not
+valid because they use different datasets, forecast horizons, variables, and
+evaluation protocols. Table~\ref{tab:literature_positioning} therefore compares
+methodological coverage rather than claiming cross-paper performance dominance.
+
+\begin{table*}[!t]
+\centering
+\caption{Methodological Positioning Against Related Forecasting Work}
+\label{tab:literature_positioning}
+\begin{tabular}{p{0.18\linewidth}ccccp{0.27\linewidth}}
+\toprule
+Method family & TSFM & Retrieval & Events & Explainability & Comment \\
+\midrule
+PatchTST-style Transformers \cite{nie2023patchtst} & No & No & No & Limited &
+Strong sequence modeling, but event context is not central. \\
+Chronos \cite{ansari2024chronos} & Yes & No & No & Limited & Frozen
+zero-shot baseline used in this study. \\
+TimeRAF \cite{zhang2025timeraf} & Yes & Yes & No & Retrieval cases & Base
+retrieval-augmented TSFM method; does not target official event-aware PM2.5. \\
+XGBoost context baseline \cite{chen2016xgboost} & No & No & No & Feature
+importance & Strong supervised tabular baseline for local PM2.5. \\
+Event-TimeRAF & Yes & Yes & Yes & Evidence-grounded & Adds official event
+audit, causal retrieval, drift indicators, and Chronos retrieval fusion. \\
+\bottomrule
+\end{tabular}
+\end{table*}

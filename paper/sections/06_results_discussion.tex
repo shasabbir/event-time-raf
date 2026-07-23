@@ -91,6 +91,39 @@ $k$ & MSE & MAE & RMSE \\
 \end{tabular}
 \end{table}
 
+Table~\ref{tab:event_drift_results} reports representative event and drift
+subsets for the strongest context model, the full Event-TimeRAF model, and the
+two Chronos variants. All subsets pass the minimum-size gate. The event subset
+has lower MSE than the non-event subset for these models, which should not be
+interpreted as events being easier in general; it reflects the particular 2024
+test-period event hours retained by the audit. On drift-flagged origins, the
+full Event-TimeRAF model is worse than the context baseline, while
+retrieval-augmented Chronos is slightly better than frozen Chronos by MSE. This
+again indicates that the present event/drift feature fusion is not sufficient to
+dominate the context baseline.
+
+\begin{table*}[!t]
+\centering
+\caption{Representative Event and Drift Subset Results}
+\label{tab:event_drift_results}
+\begin{tabular}{llrrr}
+\toprule
+Subset & Model & Origins & MSE & MAE \\
+\midrule
+Non-event & M04 XGBoost context & 6,667 & 27.520 & 3.179 \\
+Event & M04 XGBoost context & 532 & 9.451 & 2.450 \\
+Non-event & M09 Event-TimeRAF full & 6,667 & 27.942 & 3.187 \\
+Event & M09 Event-TimeRAF full & 532 & 11.301 & 2.666 \\
+Non-drift & M04 XGBoost context & 6,639 & 26.107 & 3.088 \\
+Drift & M04 XGBoost context & 560 & 27.110 & 3.562 \\
+Non-drift & M09 Event-TimeRAF full & 6,639 & 26.330 & 3.088 \\
+Drift & M09 Event-TimeRAF full & 560 & 31.244 & 3.872 \\
+Drift & M10 frozen Chronos-Bolt & 560 & 28.333 & 3.476 \\
+Drift & M11 Chronos + retrieval & 560 & 28.198 & 3.580 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
 Fig.~\ref{fig:mse_horizon} and Fig.~\ref{fig:mae_horizon} show horizon-wise
 test errors. Fig.~\ref{fig:retrieval_diagnostics} summarizes retrieval behavior,
 and Fig.~\ref{fig:drift_scores} shows the drift-score distribution across the
@@ -124,6 +157,83 @@ artifacts and share run identifier \texttt{20260723T112033170131Z}.
 \caption{Drift-score diagnostics for the final test run.}
 \label{fig:drift_scores}
 \end{figure}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/forecast_case.png}
+\caption{Representative forecast case generated from the final test run.}
+\label{fig:forecast_case}
+\end{figure}
+
+\subsection{Explainability Analysis}
+
+Explainability is implemented as a source-grounded evidence record rather than
+as a post-hoc free-text interpretation. For each evaluated forecast origin, the
+pipeline stores the run identifier, window identifier, origin timestamp,
+retrieved historical evidence identifiers, event evidence identifiers, leading
+feature effects, drift components, retrieval spread, validation residual MAE,
+uncertainty proxy, drift score, drift flag, and event-availability mode. The
+final run produced 7,199 explanation records in
+\texttt{explanations.parquet}. A representative record identifies the strongest
+local contribution fields as the current PM2.5 value and recent rolling PM2.5
+means, links the prediction to three retrieved historical windows, links recent
+source-recorded storm events when available, and marks distribution shift when
+the drift detector is active.
+
+Table~\ref{tab:explainability_outputs} summarizes the explanation layer. This
+design supports auditability because every explanatory statement can be traced
+back to a model feature, a retrieved time-series window, an official event
+record, or a drift component. It does not prove causality: event evidence is
+reported as contextual support, and the drift flag is treated as an uncertainty
+warning.
+
+\begin{table}[!t]
+\centering
+\caption{Explanation Evidence Stored by Event-TimeRAF}
+\label{tab:explainability_outputs}
+\begin{tabular}{p{0.33\columnwidth}p{0.57\columnwidth}}
+\toprule
+Evidence field & Interpretation role \\
+\midrule
+Top feature effects & Local model drivers from the direct forecaster. \\
+Retrieved windows & Historical analogues used by the retrieval module. \\
+Event evidence IDs & Official storm-event context linked to the origin. \\
+Drift components & Mean, variance, weather, similarity, and event-burst shift signals. \\
+Uncertainty proxy & Combined retrieval spread and validation residual error. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Computational Cost and Reproducibility}
+
+The final publication-mode run completed in 1,576.9 seconds in a Kaggle Linux
+notebook environment using Python 3.12.13. The recorded package versions include
+NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost 3.2.0, PyTorch
+2.10.0+cu128, and \texttt{chronos-forecasting} 2.3.1. The run manifest records
+the configuration SHA-256 hash and artifact checksums. The CPU, GPU, and RAM
+model identifiers were not saved in the manifest; therefore this paper reports
+runtime and software versions but does not claim hardware-normalized efficiency.
+
+\begin{table}[!t]
+\centering
+\caption{Final-Run Computational and Reproducibility Summary}
+\label{tab:compute_summary}
+\begin{tabular}{ll}
+\toprule
+Item & Recorded value \\
+\midrule
+Run identifier & \texttt{20260723T112033170131Z} \\
+Runtime & 1,576.9 seconds \\
+Platform & Kaggle Linux notebook \\
+Python & 3.12.13 \\
+Forecast horizon & 24 hours \\
+Lookback window & 168 hours \\
+Bootstrap resamples & 500 \\
+Chronos checkpoint & \texttt{amazon/chronos-bolt-small} \\
+Code availability & Source code is not publicly available. \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 The main interpretation is that conventional supervised context features are
 very strong for this Los Angeles County 24-hour PM2.5 task. Retrieval is useful

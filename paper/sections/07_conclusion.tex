@@ -5,23 +5,13 @@ for explainable Los Angeles County PM2.5 forecasting under distribution shift.
 The implemented pipeline combines official EPA PM2.5 observations, NOAA weather,
 hash-verified NOAA Storm Events records, leakage-safe time-series retrieval,
 direct XGBoost forecasters, drift indicators, evidence-based explanations, and a
-frozen Chronos-Bolt publication gate.
-
-The final 2019--2024 Kaggle experiment shows that the strongest overall model is
-the XGBoost weather-calendar context baseline, not the full Event-TimeRAF
-variant. The full Event-TimeRAF XGBoost model remains competitive with the
-context baseline but does not improve the all-origin test score. The frozen
-Chronos-Bolt gate completes successfully, and retrieval-augmented Chronos gives a
-small favorable MSE change over frozen Chronos, although the bootstrap interval
-does not establish a conclusive improvement. These findings suggest that
-retrieval and event context are promising but need stronger integration than the
-current feature-level design to reliably outperform strong tabular context
-models.
-
-The main limitation is event availability. NOAA Storm Events records are official
-and source-verified, but they lack machine-readable publication timestamps. As a
-result, the event-aware results are retrospective event-start sensitivity results
-rather than strict operational event forecasts. Future work should add event
-sources with genuine issue times, improve event-category representation, test
-learnable retrievers, and evaluate deeper foundation-model integration closer to
-TimeRAF's Channel Prompting design.
+frozen Chronos-Bolt publication gate. In the final 2019--2024 Kaggle
+experiment, the strongest all-origin model is the XGBoost weather-calendar
+context baseline with MSE 26.185, while the full Event-TimeRAF XGBoost variant
+obtains MSE 26.712. Retrieval improves the standalone cosine baseline over
+random retrieval and gives a small favorable MSE change when fused with frozen
+Chronos-Bolt, but the full feature-level design does not outperform the strongest
+supervised context baseline. The study therefore positions Event-TimeRAF as an
+auditable event-aware retrieval framework with mixed empirical effects, and it
+identifies stricter event availability, external validation, and deeper
+foundation-model integration as the main directions for the next version.

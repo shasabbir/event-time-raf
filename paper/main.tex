@@ -11,7 +11,7 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 
-\title{Event-TimeRAF: Event-Aware Retrieval-Augmented Foundation Models for Explainable Air Quality Forecasting Under Concept Drift}
+\title{Event-TimeRAF: Event-Aware Retrieval-Augmented Foundation Model for Explainable Air Quality Forecasting Under Concept Drift}
 
 \author{Author Name,~\IEEEmembership{Student Member,~IEEE}%
 \thanks{This manuscript reports an academic Kaggle-based experiment using official-source public data.}
@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-Urban air-quality forecasting is important for public-health warnings, environmental management, and city-scale decision support. Recent time-series foundation models have shown useful zero-shot forecasting capability, and TimeRAF enriches such models by retrieving relevant time-series sequences from a knowledge base and incorporating them into a frozen time-series foundation model. However, air-pollution variation is often influenced by outside context, including meteorology, holidays, wildfire smoke, high-wind events, heavy rain, and other environmental factors. This paper presents Event-TimeRAF, an event-aware retrieval-augmented forecasting framework for Los Angeles County PM2.5 prediction. The framework combines historical air-quality windows, weather features, calendar context, retrieved time-series patterns, source-recorded environmental events, distribution-shift indicators, and evidence-based explanation generation. We evaluate the method on official EPA AirData PM2.5 observations, NOAA Global Hourly weather, and hash-verified NOAA Storm Events records for 2019--2024. In the final Kaggle run, the best overall model is the weather-calendar XGBoost context baseline with MSE 26.185, while the full Event-TimeRAF XGBoost variant obtains MSE 26.712. The frozen Chronos-Bolt baseline obtains MSE 28.941, and retrieval-augmented Chronos improves it to MSE 28.709. Because NOAA Storm Events lacks machine-readable publication timestamps, event-aware results are reported as retrospective event-start sensitivity results rather than strict real-time event forecasts.
+Urban air-quality forecasting is important for public-health warnings, environmental management, and city-scale decision support. Time-series foundation models have recently shown promising zero-shot forecasting capability, and TimeRAF demonstrates that retrieval augmentation can supplement a frozen forecasting backbone with useful historical knowledge. However, PM2.5 variation is strongly affected by local context such as meteorology, holidays, high-wind events, heavy rain, wildfire activity, and other environmental disturbances. This paper introduces Event-TimeRAF, an event-aware retrieval-augmented framework for Los Angeles County PM2.5 forecasting. Event-TimeRAF builds a source-preserving knowledge base from official air-quality, weather, calendar, and storm-event records; retrieves causally eligible historical windows; fuses retrieved evidence with tabular forecasters and a frozen Chronos-Bolt foundation model; and generates evidence-grounded explanations under an explicit drift audit. We evaluate the framework on EPA AirData PM2.5, NOAA Global Hourly weather, and hash-verified NOAA Storm Events records for 2019--2024. The strongest overall model is an XGBoost weather-calendar context baseline with MSE 26.185, while the full Event-TimeRAF XGBoost variant obtains MSE 26.712. The frozen Chronos-Bolt baseline obtains MSE 28.941, and retrieval-augmented Chronos reduces it to MSE 28.709. These results show that retrieval is beneficial in selected settings, especially for the frozen foundation-model fusion, but is not uniformly superior to strong supervised context features. Because NOAA Storm Events lacks machine-readable publication timestamps, event-aware results are reported as retrospective event-start sensitivity results rather than strict real-time event forecasts.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -31,10 +31,12 @@ Air quality forecasting, PM2.5, retrieval-augmented forecasting, time-series fou
 
 \input{sections/01_introduction}
 \input{sections/02_related_work}
+\input{sections/03_critical_gaps_contributions}
 \input{sections/03_problem_formulation}
 \input{sections/04_methodology}
 \input{sections/05_experimental_setup}
 \input{sections/06_results_discussion}
+\input{sections/07_limitations_future_work}
 \input{sections/07_conclusion}
 
 \bibliographystyle{IEEEtran}

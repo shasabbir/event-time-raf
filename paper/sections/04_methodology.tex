@@ -3,6 +3,18 @@
 \subsection{Overview}
 Fig.~\ref{fig:architecture} shows the Event-TimeRAF pipeline. The first step is to align air-quality observations with weather, calendar, and availability-filtered event features. The system then creates sliding windows and a time-series knowledge base. The implemented hybrid retriever ranks historical windows using PM2.5, weather, calendar, and event-context similarity. A separate source-record lookup links recent event identifiers to explanations; it does not supply future event labels to the model. The retrieved evidence is combined with structured features to generate a forecast, uncertainty proxy, drift score, and explanation.
 
+For each forecast origin $t$, Event-TimeRAF maps the aligned context into a
+forecast through
+\begin{equation}
+    \hat{Y}_{t+1:t+H} =
+    F_{\theta}\bigl(\phi(X_t,W_t,C_t,E_t), G_t, D_t\bigr),
+    \label{eq:event_timeraf_mapping}
+\end{equation}
+where $\phi(\cdot)$ denotes the tabular feature construction, $G_t$ denotes
+retrieved historical evidence, and $D_t$ denotes drift evidence. The key
+methodological constraint is that every element of $G_t$ and $D_t$ must be
+available no later than the forecast origin.
+
 \begin{figure}[!t]
 \centering
 \resizebox{\columnwidth}{!}{%
@@ -16,7 +28,7 @@ Fig.~\ref{fig:architecture} shows the Event-TimeRAF pipeline. The first step is 
 \node[block, below=of air] (align) {Weather + Calendar\\Alignment};
 \node[block, below=of align] (windows) {Sliding Window\\Construction};
 \node[smallblock, below left=7mm and 8mm of windows] (tskb) {Time-Series\\Knowledge Base};
-\node[smallblock, below right=7mm and 8mm of windows] (evkb) {Event/News\\Knowledge Base};
+\node[smallblock, below right=7mm and 8mm of windows] (evkb) {Event\\Knowledge Base};
 \node[smallblock, below=of tskb] (tsret) {Time-Series\\Retriever};
 \node[smallblock, below=of evkb] (evret) {Event\\Retriever};
 \node[block, below right=8mm and -15mm of tsret] (fusion) {Hybrid Fusion\\Module};
@@ -53,6 +65,23 @@ All normalization statistics are fitted on the training split only. The same nor
 \subsection{Time-Series Knowledge Base}
 The time-series knowledge base contains historical PM2.5 windows. Each record stores a window identifier, start time, end time, input window values, future window values, weather summary, calendar summary, normalized window vector, data split, and normalization identifier. Knowledge-base origins are separated by 192 hours, equal to the 168-hour input and 24-hour future combined. For every query, a candidate is eligible only when its complete future ends before the query input begins. Validation and test retrieval is additionally restricted to training-history windows. These rules exclude self-matches, near-duplicate windows, and overlap with the query context.
 
+Formally, the knowledge base is
+\begin{equation}
+    \mathcal{K} = \{(u_i, X_i, Y_i, m_i, c_i, e_i)\}_{i=1}^{N},
+\end{equation}
+where $u_i$ is the candidate origin, $X_i$ and $Y_i$ are the candidate lookback
+and future windows, $m_i$ is a weather summary, $c_i$ is a calendar summary, and
+$e_i$ is the event-context summary available at $u_i$. For a query origin $t$,
+the causally eligible set is
+\begin{equation}
+    \mathcal{A}_t =
+    \{i: u_i + H < t-L+1,\; i \in \mathcal{T}_{train}\},
+    \label{eq:eligible_set}
+\end{equation}
+for validation and test queries. The strict inequality in
+(\ref{eq:eligible_set}) ensures that a candidate's target period finishes before
+the query input period begins.
+
 Given a query window $X_t$, the time-series retriever returns
 \begin{equation}
     R^{ts}_t = \{r^{ts}_{t,1}, r^{ts}_{t,2}, \ldots, r^{ts}_{t,k}\},
@@ -76,6 +105,16 @@ The hybrid retrieval score combines time-series similarity, weather relevance, c
 \end{equation}
 where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is calendar similarity, and $s_e$ is event relevance. The implemented weights are $\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$.
 
+The retrieved set is selected as
+\begin{equation}
+    G_t = \operatorname{TopK}_{i \in \mathcal{A}_t}\; s(t,i).
+    \label{eq:topk}
+\end{equation}
+For retrieval-only baselines, the forecast is the uniform or
+similarity-weighted average of the retrieved candidates' future PM2.5 windows.
+For feature-level models, the retrieved futures and candidate metadata are
+summarized as mean, spread, similarity, and event-match features.
+
 \subsection{Fusion and Forecasting Backbone}
 The feature-level fusion method combines PM2.5 lag/rolling features, weather features, calendar features, retrieved time-series summary features, event features, and drift indicators. The tabular forecasting backbone uses 24 direct XGBoost regressors, one for each forecast horizon, because this design is efficient on Kaggle and provides a strong baseline. The foundation-model gate additionally evaluates frozen Chronos-Bolt and a validation-weighted forecast-level fusion between Chronos and retrieved historical forecasts. A later extension may use an MLP residual fusion module inspired by Channel Prompting:
 \begin{equation}
@@ -86,6 +125,17 @@ The feature-level fusion method combines PM2.5 lag/rolling features, weather fea
     \label{eq:fusion}
 \end{equation}
 where $h_t$ is the input representation and $r_{t,i}$ is the representation of the $i$-th retrieved candidate. This mirrors the TimeRAF idea of preserving the original input representation while adding uniformly averaged information extracted from retrieved candidates.
+
+The frozen Chronos-Bolt gate uses forecast-level fusion rather than internal
+Channel Prompting. Let $\hat{Y}^{C}_t$ be the frozen Chronos forecast and
+$\hat{Y}^{R}_t$ be the retrieved historical forecast. The fused prediction is
+\begin{equation}
+    \hat{Y}^{CR}_t(\omega) =
+    \omega \hat{Y}^{C}_t + (1-\omega)\hat{Y}^{R}_t,
+    \label{eq:chronos_fusion}
+\end{equation}
+where $\omega \in \{0,0.25,0.5,0.75,1.0\}$ is selected on the validation split.
+The final run selected $\omega=0.75$.
 
 \subsection{Concept Drift Detection}
 The implementation represents operational distribution shift using transparent indicators rather than claiming perfect concept-drift identification. The indicators are recent mean shift, recent variance shift, retrieval similarity drop, weather-pattern shift, and event-burst ratio. A simple drift score can be defined as
@@ -114,7 +164,7 @@ Aspect & TimeRAF & Event-TimeRAF \\
 \midrule
 Target domain & General zero-shot TSF & Los Angeles County PM2.5 forecasting \\
 Knowledge base & Time-series windows & PM2.5 windows, weather, calendar, events \\
-Retriever & Learnable dual encoder & Random/cosine first; learnable later \\
+Retriever & Learnable dual encoder & Random, cosine, and hybrid similarity \\
 Integration & Channel Prompting & Feature fusion; forecast-level TSFM retrieval fusion \\
 Backbone & Frozen TSFM & Direct XGBoost; frozen Chronos-Bolt gate \\
 Explanations & Retrieved-case visualization & Evidence-based forecast explanation \\

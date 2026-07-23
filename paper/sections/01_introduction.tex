@@ -1,21 +1,67 @@
 \section{Introduction}
 
-Air pollution is a major urban risk factor, and fine particulate matter (PM2.5) is especially important because it is associated with respiratory and cardiovascular health effects \cite{who2021airquality}. Forecasting PM2.5 can support public-health alerts, exposure reduction, transport planning, and environmental policy. In Los Angeles County, air quality can change because of meteorological conditions, traffic patterns, seasonal behavior, industrial activity, wildfire smoke, and unusual environmental events. These properties make air-quality forecasting a difficult time-series forecasting task.
+Fine particulate matter (PM2.5) is a major urban air-quality risk because it is
+associated with respiratory and cardiovascular health effects
+\cite{who2021airquality}. Accurate short-term PM2.5 forecasts can support
+public-health alerts, exposure reduction, transport planning, and environmental
+operations. In Los Angeles County, however, PM2.5 dynamics are difficult to
+model with pollutant history alone. Concentrations can change with wind speed,
+boundary-layer behavior, rainfall, seasonal activity, holidays, wildfire smoke,
+and unusual storm or high-wind events. These factors make the forecasting problem
+both temporal and contextual.
 
-Classical forecasting models and machine-learning models such as ARIMA, tree-based regressors, recurrent neural networks, and Transformer-based models can learn historical patterns when training and testing conditions are similar. However, urban air quality is strongly context-dependent. A model trained only on past numerical observations may perform poorly during unusual weather, public holidays, traffic disruptions, fire incidents, dust events, or other external shocks. This limitation is closely connected to concept drift, where the data-generating process changes over time.
+Recent time-series foundation models (TSFMs) aim to improve forecasting
+generalization by pre-training on large time-series corpora and transferring the
+learned forecasting ability to new domains. Representative models include
+TimesFM, Moirai, MOMENT, Chronos, and Tiny Time Mixers
+\cite{das2024timesfm,woo2024moirai,goswami2024moment,ansari2024chronos,ekambaram2024ttm}.
+In parallel, retrieval-augmented generation has shown that non-parametric memory
+can help foundation models access relevant external knowledge at inference time
+\cite{lewis2020rag,karpukhin2020dpr}. TimeRAF combines these two ideas for
+zero-shot time-series forecasting by retrieving relevant historical sequences
+from a curated knowledge base and integrating them into a frozen TSFM through
+Channel Prompting \cite{zhang2025timeraf}.
 
-Time-series foundation models (TSFMs) have recently been proposed to improve generalization across forecasting tasks. Models such as TimesFM, Moirai, MOMENT, Chronos, and Tiny Time Mixers (TTM) aim to transfer forecasting knowledge learned from large time-series corpora to new downstream domains \cite{das2024timesfm,woo2024moirai,goswami2024moment,ansari2024chronos,ekambaram2024ttm}. TimeRAF takes this direction further by introducing retrieval augmentation for zero-shot time-series forecasting \cite{zhang2025timeraf}. It builds a time-series knowledge base, retrieves relevant candidate sequences, and integrates the retrieved knowledge using Channel Prompting while keeping the TSFM backbone frozen.
+Air-quality forecasting raises a domain-specific retrieval question that is not
+fully addressed by numerical time-series retrieval alone. A historical PM2.5
+window may look similar to the current window but occur under different weather
+or event conditions. Conversely, a window with moderate numerical similarity may
+be more informative if it shares high-wind, rainfall, holiday, smoke, or
+stagnation context. This motivates a retrieval framework that treats source
+records, weather, calendar information, and distribution-shift indicators as
+part of the forecasting evidence rather than as unrelated metadata.
 
-TimeRAF is a strong base method, but the retrieved knowledge is mainly numerical time-series data. For air-quality forecasting, external context is important: rainfall can wash out particulates, low wind speed can increase stagnation, holidays can change traffic patterns, and wildfire or smoke events can produce abrupt changes. Therefore, a natural extension is to retrieve not only similar time-series patterns, but also event, weather, and calendar context relevant to the forecast horizon.
+This paper introduces Event-TimeRAF, an event-aware retrieval-augmented
+framework for explainable PM2.5 forecasting under concept drift. The design is
+inspired by TimeRAF, but it is adapted to an official-source environmental
+forecasting setting. The implemented system uses leakage-safe retrieval over
+historical PM2.5 windows, weather and calendar context, source-recorded NOAA
+Storm Events, transparent drift indicators, direct XGBoost forecasters, a frozen
+Chronos-Bolt publication gate, and evidence-grounded explanations. The framework
+answers three practical questions: (1) how can official environmental records be
+converted into a retrieval-compatible knowledge base; (2) how should retrieval
+be constrained so that future target information is not leaked; and (3) when
+does retrieval help beyond strong weather-calendar supervised baselines?
 
-This paper presents Event-TimeRAF, an event-aware retrieval-augmented framework for explainable Los Angeles County PM2.5 forecasting under distribution shift. The main contributions are:
+The main contributions are as follows:
 \begin{itemize}
-    \item an event-aware retrieval-augmented forecasting framework for urban PM2.5 prediction;
-    \item a hybrid knowledge-base design that combines air-quality windows, weather summaries, calendar information, and event/news records;
-    \item a TimeRAF-style retrieval baseline using random retrieval and similarity-based retrieval over historical windows;
-    \item simple concept-drift indicators based on distribution shift, retrieval similarity, weather changes, and event bursts;
-    \item evidence-based explanation generation using retrieved historical cases, event context, weather drivers, drift indicators, and feature importance;
-    \item an ablation study comparing no retrieval, random retrieval, time-series retrieval, event retrieval, drift-aware retrieval, frozen Chronos-Bolt, and retrieval-augmented Chronos-Bolt.
+    \item We formulate an event-aware retrieval-augmented PM2.5 forecasting
+    framework that combines time-series windows, weather summaries, calendar
+    context, storm-event records, and drift indicators.
+    \item We implement a Kaggle-compatible official-source pipeline using EPA
+    AirData PM2.5, NOAA Global Hourly weather, and hash-verified NOAA Storm
+    Events records for Los Angeles County during 2019--2024.
+    \item We define leakage-safe retrieval eligibility rules that prevent
+    candidate windows from overlapping the query context or future target.
+    \item We evaluate random retrieval, cosine retrieval, event-aware hybrid
+    retrieval, drift-aware feature fusion, frozen Chronos-Bolt, and
+    retrieval-augmented Chronos-Bolt under one manifest-backed final run.
+    \item We report a conservative empirical finding: retrieval improves the
+    frozen Chronos-Bolt MSE slightly, but the best overall model is a strong
+    XGBoost weather-calendar context baseline.
 \end{itemize}
 
-The final experiment uses official-source records for 2019--2024 and reports only values generated by the saved Kaggle run artifacts. The results are mixed: the retrieval-augmented Chronos model improves MSE over frozen Chronos-Bolt, but the strongest overall model is a conventional XGBoost weather-calendar context baseline. This outcome motivates a careful discussion of where retrieval helps and where the current feature-level Event-TimeRAF design remains insufficient.
+The final result is therefore not a uniformly positive retrieval story. Instead,
+it is an audited study showing where event-aware retrieval helps, where it does
+not, and what is required before such a method can be described as a strict
+operational event-aware air-quality forecaster.

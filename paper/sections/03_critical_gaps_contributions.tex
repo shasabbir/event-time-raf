@@ -1,0 +1,61 @@
+\section{Critical Gaps and Core Contributions}
+
+\subsection{Critical Gaps in Prior Studies}
+Existing forecasting approaches leave several gaps for event-sensitive urban air
+quality forecasting.
+
+\textit{Gap 1: numerical history alone is not enough.} Statistical, deep, and
+foundation forecasting models can learn temporal regularities, but PM2.5 changes
+often depend on weather, calendar behavior, and source-recorded environmental
+events. A model that ignores those factors can retrieve or learn patterns that
+are numerically similar but contextually different.
+
+\textit{Gap 2: retrieval must be leakage-safe.} Time-series retrieval can easily
+introduce look-ahead bias if retrieved candidates overlap the query input or
+target period. Environmental forecasting studies also risk using post-hoc event
+labels as if they were available before the forecast origin.
+
+\textit{Gap 3: event availability is rarely audited.} Public event databases are
+useful but not always operationally timestamped. NOAA Storm Events is official,
+but it does not provide a machine-readable publication timestamp. Without an
+explicit availability rule, event-aware forecasting claims may overstate
+real-time usability.
+
+\textit{Gap 4: foundation-model gains need domain verification.} TSFMs can be
+strong zero-shot forecasters, but their advantage is not guaranteed in a local
+PM2.5 task where supervised weather-calendar features are highly informative.
+Retrieval-augmented foundation-model claims therefore require a frozen-backbone
+baseline and a retrieval-augmented variant evaluated on the same test origins.
+
+\textit{Gap 5: explanations should be evidence-grounded.} Feature-importance
+scores alone do not explain whether a forecast is linked to weather shift,
+retrieved historical cases, event context, or drift. A deployable environmental
+forecasting workflow needs traceable evidence rather than unrestricted generated
+text.
+
+\subsection{Core Contributions}
+The proposed Event-TimeRAF framework addresses these gaps through the following
+components:
+\begin{itemize}
+    \item \textit{Context-aware retrieval knowledge base:} a source-preserving
+    knowledge base that combines PM2.5 windows, weather summaries, calendar
+    signatures, and NOAA Storm Events context.
+    \item \textit{Causal retrieval eligibility:} a strict candidate-filtering
+    rule that allows a candidate only when its future target window finishes
+    before the query lookback begins.
+    \item \textit{Audited event availability:} a data-readiness audit that
+    records event source, delivery mode, source overlap, category coverage, and
+    whether the event timestamps are strict publication times or retrospective
+    event-start assumptions.
+    \item \textit{Dual forecasting evaluation:} direct XGBoost feature-level
+    fusion is evaluated alongside frozen Chronos-Bolt and validation-weighted
+    retrieval-augmented Chronos fusion.
+    \item \textit{Evidence-based explanation layer:} forecast explanations are
+    constructed from stored retrieval, weather, event, drift, and local model
+    contribution evidence.
+\end{itemize}
+
+Unlike a full TimeRAF reproduction, this work does not train a dual-encoder
+retriever or implement internal Channel Prompting. Instead, it provides an
+audited domain adaptation of the retrieval-augmentation idea and tests whether
+the idea is useful under official-source PM2.5 forecasting constraints.
