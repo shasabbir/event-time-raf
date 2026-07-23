@@ -14,7 +14,7 @@
 \title{Event-TimeRAF: Event-Aware Retrieval-Augmented Foundation Models for Explainable Air Quality Forecasting Under Concept Drift}
 
 \author{Author Name,~\IEEEmembership{Student Member,~IEEE}%
-\thanks{This is an implementation-stage draft prepared for academic supervision. Experimental results are intentionally left as placeholders until the full official-source evaluation is completed.}
+\thanks{This manuscript reports an academic Kaggle-based experiment using official-source public data.}
 }
 
 \begin{document}
@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-Urban air-quality forecasting is important for public-health warnings, environmental management, and city-scale decision support. Recent time-series foundation models have shown useful zero-shot forecasting capability, and TimeRAF enriches such models by retrieving relevant time-series sequences from a knowledge base and incorporating them into a frozen time-series foundation model. However, air-pollution variation is often influenced by outside context, including meteorology, holidays, traffic activity, wildfire smoke, and other event-driven factors. In this draft, we propose Event-TimeRAF, an event-aware retrieval-augmented forecasting framework for Los Angeles County PM2.5 prediction. The proposed methodology combines historical air-quality windows, weather features, calendar context, retrieved time-series patterns, source-recorded environmental events, distribution-shift indicators, and evidence-based explanation generation. The manuscript presents the motivation, related work, problem formulation, methodology, and experimental plan; no empirical performance result is claimed before the official-source pipeline is executed and audited.
+Urban air-quality forecasting is important for public-health warnings, environmental management, and city-scale decision support. Recent time-series foundation models have shown useful zero-shot forecasting capability, and TimeRAF enriches such models by retrieving relevant time-series sequences from a knowledge base and incorporating them into a frozen time-series foundation model. However, air-pollution variation is often influenced by outside context, including meteorology, holidays, wildfire smoke, high-wind events, heavy rain, and other environmental factors. This paper presents Event-TimeRAF, an event-aware retrieval-augmented forecasting framework for Los Angeles County PM2.5 prediction. The framework combines historical air-quality windows, weather features, calendar context, retrieved time-series patterns, source-recorded environmental events, distribution-shift indicators, and evidence-based explanation generation. We evaluate the method on official EPA AirData PM2.5 observations, NOAA Global Hourly weather, and hash-verified NOAA Storm Events records for 2019--2024. In the final Kaggle run, the best overall model is the weather-calendar XGBoost context baseline with MSE 26.185, while the full Event-TimeRAF XGBoost variant obtains MSE 26.712. The frozen Chronos-Bolt baseline obtains MSE 28.941, and retrieval-augmented Chronos improves it to MSE 28.709. Because NOAA Storm Events lacks machine-readable publication timestamps, event-aware results are reported as retrospective event-start sensitivity results rather than strict real-time event forecasts.
 \end{abstract}
 
 \begin{IEEEkeywords}

@@ -1,72 +1,77 @@
 \section{Experimental Setup}
 
-This section describes the planned experimental setup. The experiments have not yet been performed.
+This section reports the executed final Kaggle experiment. The run identifier is
+\texttt{20260723T112033170131Z}. All model-selection choices were frozen before
+reading the final test results, and the results notebook rejected non-final or
+mixed-run artifacts.
 
-\subsection{Planned Data}
-Table~\ref{tab:planned_data} lists the planned data sources and feature groups. The initial study period is 2019--2024, subject to PM2.5 target coverage and event-data audit results. The preferred PM2.5 target is a single high-coverage AQS site; if no single site passes the coverage gate, the audited fallback is the hourly median across official Los Angeles County AQS monitors.
+\subsection{Data Sources and Audit}
+The study period is 2019--2024. PM2.5 observations were taken from US EPA
+AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. No
+single monitoring site was used as the final target; the audited target is the
+hourly county median across official Los Angeles County AQS monitors. This
+fallback selected \texttt{06-037-COUNTY}, with 52,602 observed target hours and
+observed PM2.5 coverage of 0.9997. The PM2.5 unit was consistently recorded as
+micrograms per cubic meter.
 
-When the NCEI Storm Events bulk endpoint is unavailable in the execution environment, unchanged annual NOAA detail archives may be supplied through a privately attached source-preserving cache. Each archive must match an official NCEI URL, recorded byte size, and SHA-256 hash in the cache manifest. This changes only the delivery path: the records remain attributed to NOAA Storm Events, and the cache path and delivery mode are retained in the data audit and run manifest.
+Weather covariates were taken from NOAA Global Hourly/ISD through the official
+NOAA Open Data Dissemination public buckets \cite{noaaisd2026}. The selected
+station was \texttt{72297023129}, Long Beach / Daugherty Field / Airport,
+10.28 km from the PM2.5 target centroid. The complete weather-feature coverage
+after allowed past-only short-gap filling was 0.9942, and the raw measured core
+coverage was 0.9905.
+
+Environmental events were loaded from hash-verified NOAA Storm Events annual
+detail archives \cite{noaastormevents2026}. Because Kaggle could not reliably
+download NCEI Storm Events directly, the experiment used a private delivery
+cache containing unchanged NOAA annual archives and a source manifest with
+official URLs, byte counts, and SHA-256 hashes. The audit retained the delivery
+mode \texttt{verified\_official\_noaa\_cache}. The event audit found 117 event
+days, 2,192 source-overlap days, and three qualifying event categories. NOAA
+Storm Events does not expose machine-readable publication timestamps; therefore,
+event-aware outputs use the recorded event start time as a retrospective
+availability assumption. They are not strict real-time event forecasts.
 
 \begin{table}[!t]
 \centering
-\caption{Planned Data Sources and Feature Groups}
-\label{tab:planned_data}
-\begin{tabular}{p{0.24\linewidth}p{0.29\linewidth}p{0.32\linewidth}}
+\caption{Final Data-Readiness Audit}
+\label{tab:data_audit}
+\begin{tabular}{lcc}
 \toprule
-Group & Planned Source & Example Features \\
+Gate & Value & Status \\
 \midrule
-Air quality & US EPA AirData/AQS & hourly PM2.5, site, timestamp \\
-Weather & NOAA Global Hourly/ISD via NOAA NODD & temperature, humidity, rain, wind, pressure \\
-Calendar & Generated US/California features & hour, weekday, weekend, season, holidays \\
-Events & NOAA Storm Events; optional HMS & event counts, categories, source records \\
+PM2.5 observed coverage & 0.9997 & Pass \\
+Weather complete coverage & 0.9942 & Pass \\
+Event days & 117 & Pass \\
+Event overlap days & 2,192 & Pass \\
+Qualifying event categories & 3 & Pass \\
+Strict event availability & False & Caveat \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Forecasting Task}
-The initial task predicts the complete PM2.5 sequence from one to 24 hours ahead using a 168-hour lookback window. The planned split uses the earliest 70\% of observations for training, the next 15\% for validation, and the latest 15\% for testing. Random splitting will not be used.
+\subsection{Forecasting Task and Split}
+The forecasting task predicts PM2.5 from one to 24 hours ahead using a 168-hour
+lookback window. The split is chronological: the earliest 70\% of valid windows
+are used for training, the next 15\% for validation, and the latest 15\% for
+testing. The final test set contains 7,199 forecast origins and 172,776
+forecasted hourly target points. Random splitting is not used.
 
-\subsection{Baselines}
-The planned baselines are:
-\begin{itemize}
-    \item persistence baseline;
-    \item daily and weekly seasonal naive baselines;
-    \item direct XGBoost models using PM2.5 lag/rolling features;
-    \item direct XGBoost models using PM2.5, weather, and calendar features;
-    \item random-retrieval baseline;
-    \item cosine TimeRAF-inspired retrieval baseline;
-    \item Event-TimeRAF without drift indicators;
-    \item full Event-TimeRAF with event features and drift indicators.
-\end{itemize}
+\subsection{Models}
+The evaluated models are persistence, daily seasonal naive, weekly seasonal
+naive, a direct XGBoost model using PM2.5 features, a direct XGBoost context
+model using PM2.5, weather, and calendar features, random retrieval, cosine
+retrieval, XGBoost with cosine retrieval features, Event-TimeRAF without drift
+features, full Event-TimeRAF with event and drift features, frozen Chronos-Bolt,
+and retrieval-augmented Chronos-Bolt forecast fusion. The Chronos checkpoint is
+\texttt{amazon/chronos-bolt-small}; it completed successfully in the final run,
+so the foundation-model publication gate is satisfied.
 
-The NOAA Storm Events variants are retrospective event-availability sensitivity experiments because event start is used when a publication timestamp is unavailable. They will not be presented as strict real-time event forecasts.
-
-A frozen Chronos-Bolt model and its retrieval-augmented forecast-level fusion are the planned foundation-model publication gate. Other models such as ARIMA/SARIMA, LSTM/GRU, PatchTST, or TTM may be added if time and runtime allow.
-
-\subsection{Metrics}
-The planned metrics are mean squared error (MSE), mean absolute error (MAE), root mean squared error (RMSE), mean absolute percentage error (MAPE), symmetric MAPE (sMAPE), and $R^2$. MSE is included for comparability with the TimeRAF base paper, while MAE and RMSE are important for interpretation in air-quality forecasting. Separate target-event, drift-period, and normal-period errors will be reported only when a subset contains at least 50 unique forecast origins. Smaller subsets will be described by counts and cases without inferential comparison.
-
-\subsection{Ablation Plan}
-Table~\ref{tab:ablation_plan} gives the planned ablation matrix. The entries describe planned model variants only; no result is reported.
-
-\begin{table*}[!t]
-\centering
-\caption{Planned Ablation Study}
-\label{tab:ablation_plan}
-\begin{tabular}{lccccccc}
-\toprule
-Model & PM2.5 & Weather & Calendar & TS Retrieval & Event Retrieval & Drift & Explanation \\
-\midrule
-Persistence & Yes & No & No & No & No & No & No \\
-Seasonal naive & Yes & No & Yes & No & No & No & No \\
-XGBoost-basic & Yes & No & No & No & No & No & No \\
-XGBoost-weather-calendar & Yes & Yes & Yes & No & No & No & No \\
-Random-retrieval baseline & Yes & Yes & Yes & Random & No & No & Limited \\
-Cosine TimeRAF-inspired & Yes & Yes & Yes & Cosine & No & No & Limited \\
-Event-TimeRAF-no-drift & Yes & Yes & Yes & Yes & Yes & No & Yes \\
-Event-TimeRAF-full & Yes & Yes & Yes & Yes & Yes & Yes & Yes \\
-\bottomrule
-\end{tabular}
-\end{table*}
-
-Additional planned analyses include candidate-count sensitivity for $k \in \{1,4,8,16\}$, optional $k=32$, uniform versus similarity-weighted retrieval aggregation, and knowledge-base size sensitivity if runtime allows.
+\subsection{Metrics and Statistical Checks}
+The primary metrics are MSE, MAE, RMSE, MAPE, sMAPE, and $R^2$. MSE is retained
+for comparability with the TimeRAF base paper, while MAE and RMSE provide more
+interpretable PM2.5 error scales. Subset metrics are reported only when at least
+50 forecast origins are available. The event subset contains 532 origins, the
+active-event subset contains 293 origins, and the drift subset contains 560
+origins, so all pre-specified subsets pass the minimum-size gate. Pairwise comparisons
+use paired block bootstrap intervals with 24-hour blocks and 500 resamples.

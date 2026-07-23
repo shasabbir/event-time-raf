@@ -16,9 +16,9 @@ The forecasting goal is to learn a function
     F_{\theta}(X_t, W_t, C_t, R^{ts}_t, R^{ev}_t, D_t),
     \label{eq:forecast}
 \end{equation}
-where $R^{ts}_t$ is retrieved time-series knowledge, $R^{ev}_t$ is retrieved event knowledge, and $D_t$ contains concept-drift indicators. In the initial implementation, the first target setting is $L=168$ hours and $H=24$ hours. Longer horizons of 48, 72, and 96 hours are planned after the 24-hour pipeline is stable.
+where $R^{ts}_t$ is retrieved time-series knowledge, $R^{ev}_t$ is retrieved event knowledge, and $D_t$ contains concept-drift indicators. The implemented target setting is $L=168$ hours and $H=24$ hours.
 
-The planned evaluation uses a time-based split:
+The evaluation uses a time-based split:
 \begin{equation}
     \mathcal{T}_{train} < \mathcal{T}_{val} < \mathcal{T}_{test},
 \end{equation}

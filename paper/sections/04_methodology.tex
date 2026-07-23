@@ -1,7 +1,7 @@
 \section{Methodology}
 
 \subsection{Overview}
-Fig.~\ref{fig:architecture} shows the planned Event-TimeRAF pipeline. The first step is to align air-quality observations with weather, calendar, and availability-filtered event features. The system then creates sliding windows and a time-series knowledge base. In the MVP, one hybrid retriever ranks historical windows using PM2.5, weather, calendar, and event-context similarity. A separate source-record lookup links recent event identifiers to explanations; it does not supply future event labels to the model. The retrieved evidence is combined with structured features to generate a forecast, uncertainty proxy, drift score, and explanation.
+Fig.~\ref{fig:architecture} shows the Event-TimeRAF pipeline. The first step is to align air-quality observations with weather, calendar, and availability-filtered event features. The system then creates sliding windows and a time-series knowledge base. The implemented hybrid retriever ranks historical windows using PM2.5, weather, calendar, and event-context similarity. A separate source-record lookup links recent event identifiers to explanations; it does not supply future event labels to the model. The retrieved evidence is combined with structured features to generate a forecast, uncertainty proxy, drift score, and explanation.
 
 \begin{figure}[!t]
 \centering
@@ -36,36 +36,36 @@ Fig.~\ref{fig:architecture} shows the planned Event-TimeRAF pipeline. The first 
 \draw[arrow] (model) -- (out);
 \end{tikzpicture}
 }
-\caption{Planned Event-TimeRAF architecture. The figure is conceptual and does not report experimental results.}
+\caption{Event-TimeRAF architecture used by the implemented pipeline.}
 \label{fig:architecture}
 \end{figure}
 
 \subsection{Relationship to TimeRAF}
 TimeRAF retrieves top-$k$ candidate time-series windows from a curated knowledge base and incorporates the retrieved candidates using Channel Prompting \cite{zhang2025timeraf}. It uses a learnable dual-encoder retriever, dot-product similarity, a frozen TSFM backbone, and candidate augmentation during retriever training. Event-TimeRAF keeps the retrieval-augmentation principle, but applies it to Los Angeles County PM2.5 forecasting and expands the knowledge sources beyond numerical sequences.
 
-The first implementation will not be a complete clone of TimeRAF. Instead, it will implement a TimeRAF-style retrieval baseline using random retrieval and cosine similarity. A dual-encoder MLP retriever, candidate augmentation, and TSFM-based Channel Prompting are reserved for later extensions after the Kaggle-compatible MVP is reproducible.
+The implemented system is not a complete clone of TimeRAF. Instead, it implements TimeRAF-style retrieval baselines using random retrieval, cosine similarity, and a transparent hybrid similarity score. A dual-encoder MLP retriever, candidate augmentation, and full TSFM-based Channel Prompting are reserved for later extensions. The final run includes a frozen Chronos-Bolt gate and a validation-weighted forecast-level fusion between Chronos and retrieved historical forecasts.
 
 \subsection{Dataset Construction}
-Hourly PM2.5 observations will be taken from US EPA AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. The data audit will select one monitoring site using coverage and continuity criteria when a single site satisfies the coverage gate. If no single site satisfies the gate, the target will be the hourly county median across official Los Angeles County AQS monitors, and the aggregation method will be recorded in the audit. Timestamps will be converted to \texttt{America/Los\_Angeles} with explicit daylight-saving handling. Short input gaps may be filled only from past-available observations; targets will never be interpolated. Weather covariates will come from the nearest suitable NOAA Integrated Surface Database station \cite{noaaisd2026}. Calendar features will include hour, weekday, weekend, month, season, US federal holidays, and California holidays.
+Hourly PM2.5 observations are taken from US EPA AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. The data audit selects one monitoring site using coverage and continuity criteria when a single site satisfies the coverage gate. In the final run, no single site is used as the target; the audited fallback is the hourly county median across official Los Angeles County AQS monitors. Timestamps are converted to \texttt{America/Los\_Angeles} with explicit daylight-saving handling. Short input gaps may be filled only from past-available observations; targets are never interpolated. Weather covariates come from the nearest suitable NOAA Integrated Surface Database station \cite{noaaisd2026}. Calendar features include hour, weekday, weekend, month, season, US federal holidays, and California holidays.
 
-All normalization statistics will be fitted on the training split only. The same normalization procedure will be used for query windows and retrieved candidate windows, following the TimeRAF requirement that input and retrieved sequences use consistent preprocessing.
+All normalization statistics are fitted on the training split only. The same normalization procedure is used for query windows and retrieved candidate windows, following the TimeRAF requirement that input and retrieved sequences use consistent preprocessing.
 
 \subsection{Time-Series Knowledge Base}
-The time-series knowledge base will contain historical PM2.5 windows. Each record will store a window identifier, start time, end time, input window values, future window values, weather summary, calendar summary, embedding vector or normalized window vector, data split, and normalization identifier. Knowledge-base origins are separated by 192 hours, equal to the 168-hour input and 24-hour future combined. For every query, a candidate is eligible only when its complete future ends before the query input begins. Validation and test retrieval is additionally restricted to training-history windows. These rules exclude self-matches, near-duplicate windows, and overlap with the query context.
+The time-series knowledge base contains historical PM2.5 windows. Each record stores a window identifier, start time, end time, input window values, future window values, weather summary, calendar summary, normalized window vector, data split, and normalization identifier. Knowledge-base origins are separated by 192 hours, equal to the 168-hour input and 24-hour future combined. For every query, a candidate is eligible only when its complete future ends before the query input begins. Validation and test retrieval is additionally restricted to training-history windows. These rules exclude self-matches, near-duplicate windows, and overlap with the query context.
 
 Given a query window $X_t$, the time-series retriever returns
 \begin{equation}
     R^{ts}_t = \{r^{ts}_{t,1}, r^{ts}_{t,2}, \ldots, r^{ts}_{t,k}\},
 \end{equation}
-where $k$ is the number of retrieved candidates. The default planned setting is $k=8$, with sensitivity analysis for $k \in \{1,4,8,16\}$ and optionally $k=32$.
+where $k$ is the number of retrieved candidates. The default setting is $k=8$, with sensitivity analysis for $k \in \{1,4,8,16\}$.
 
 \subsection{Event Knowledge Base}
-The event knowledge base will contain source-preserving records relevant to Los Angeles County. NOAA Storm Events is the required structured source, while NOAA Hazard Mapping System fire and smoke records are an optional enrichment \cite{noaastormevents2026,noaahms2026}. Planned fields include event identifier, event start and end, information-availability timestamp, location, category, source, source URL, title, and summary. Event categories include wildfire, smoke, excessive heat, high wind, heavy rain, flood, dust, traffic, industrial activity, and policy restrictions.
+The event knowledge base contains source-preserving records relevant to Los Angeles County. NOAA Storm Events is the required structured source, while NOAA Hazard Mapping System fire and smoke records remain an optional enrichment \cite{noaastormevents2026,noaahms2026}. Stored fields include event identifier, event start and end, information-availability assumption, location, category, source, source URL, title, and summary. Event categories include wildfire, smoke, excessive heat, high wind, heavy rain, flood, dust, and other weather-related records.
 
-For the first implementation, model inputs represent events with hourly publication counts, rolling 24-hour, 72-hour, and 168-hour counts, category-specific 72-hour counts, active-event counts, and an event-burst ratio. Recent source event identifiers are retained only as explanation evidence. Every event used as a model input must be available by the forecast origin under a recorded availability rule. Evaluation distinguishes events published in the prior 72 hours, events active at the origin, and recorded event intervals overlapping the target horizon. Target overlap is used only as a post-hoc label and never as a model input. NOAA Storm Events does not provide a machine-readable publication timestamp; consequently, the implementation records event start as a retrospective availability assumption. Results that use this assumption will be labeled sensitivity experiments rather than strict operational forecasts. Strict experiments require source records with genuine publication or issuance timestamps.
+Model inputs represent events with hourly publication-assumption counts, rolling 24-hour, 72-hour, and 168-hour counts, category-specific 72-hour counts, active-event counts, and an event-burst ratio. Recent source event identifiers are retained only as explanation evidence. Every event used as a model input must be available by the forecast origin under a recorded availability rule. Evaluation distinguishes events published in the prior 72 hours, events active at the origin, and recorded event intervals overlapping the target horizon. Target overlap is used only as a post-hoc label and never as a model input. NOAA Storm Events does not provide a machine-readable publication timestamp; consequently, the implementation records event start as a retrospective availability assumption. Results that use this assumption are labeled sensitivity experiments rather than strict operational forecasts. Strict experiments require source records with genuine publication or issuance timestamps.
 
 \subsection{Hybrid Retrieval Score}
-The planned hybrid retrieval score combines time-series similarity, weather relevance, calendar relevance, and event relevance:
+The hybrid retrieval score combines time-series similarity, weather relevance, calendar relevance, and event relevance:
 \begin{equation}
     s(q, i) =
     \alpha s_{ts}(q,i) +
@@ -74,10 +74,10 @@ The planned hybrid retrieval score combines time-series similarity, weather rele
     \delta s_{e}(q,i),
     \label{eq:hybrid_score}
 \end{equation}
-where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is calendar similarity, and $s_e$ is event relevance. Initial weights are planned as $\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$. These weights will only be adjusted with validation data after implementation.
+where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is calendar similarity, and $s_e$ is event relevance. The implemented weights are $\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$.
 
 \subsection{Fusion and Forecasting Backbone}
-The MVP fusion method combines PM2.5 lag/rolling features, weather features, calendar features, retrieved time-series summary features, event features, and drift indicators. The forecasting backbone uses 24 direct XGBoost regressors, one for each forecast horizon, because this design is efficient on Kaggle and provides a strong tabular baseline. A later extension may use an MLP residual fusion module inspired by Channel Prompting:
+The feature-level fusion method combines PM2.5 lag/rolling features, weather features, calendar features, retrieved time-series summary features, event features, and drift indicators. The tabular forecasting backbone uses 24 direct XGBoost regressors, one for each forecast horizon, because this design is efficient on Kaggle and provides a strong baseline. The foundation-model gate additionally evaluates frozen Chronos-Bolt and a validation-weighted forecast-level fusion between Chronos and retrieved historical forecasts. A later extension may use an MLP residual fusion module inspired by Channel Prompting:
 \begin{equation}
     z_i = \mathrm{Concat}(h_t, r_{t,i}),
 \end{equation}
@@ -100,7 +100,7 @@ The implementation represents operational distribution shift using transparent i
 where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts, $\bar{s}_{ts,t}$ is average retrieval similarity, $z_{w,t}$ is weather-pattern shift, and $b_{event,t}$ is an event-burst score. The implemented components are robustly scaled against training data and averaged with equal weight; the alert threshold is selected from validation scores.
 
 \subsection{Explanation Generation}
-The explanation module will generate evidence-based explanations. It will use signed local XGBoost contributions averaged across the 24 direct horizon models, weather flags, retrieved historical windows, retrieved event records, calendar context, forecast direction, component-level drift evidence, and an uncertainty proxy combining retrieved-trajectory spread with validation residual error. It will not generate explanations from an unrestricted language model. Each explanation must be traceable to stored machine-readable evidence.
+The explanation module generates evidence-based explanations. It uses signed local XGBoost contributions averaged across the 24 direct horizon models, weather flags, retrieved historical windows, retrieved event records, calendar context, forecast direction, component-level drift evidence, and an uncertainty proxy combining retrieved-trajectory spread with validation residual error. It does not generate explanations from an unrestricted language model. Each explanation is traceable to stored machine-readable evidence.
 
 Table~\ref{tab:timeraf_comparison} summarizes the methodological relation between TimeRAF and Event-TimeRAF.
 
@@ -110,13 +110,13 @@ Table~\ref{tab:timeraf_comparison} summarizes the methodological relation betwee
 \label{tab:timeraf_comparison}
 \begin{tabular}{p{0.27\linewidth}p{0.29\linewidth}p{0.29\linewidth}}
 \toprule
-Aspect & TimeRAF & Event-TimeRAF Draft \\
+Aspect & TimeRAF & Event-TimeRAF \\
 \midrule
 Target domain & General zero-shot TSF & Los Angeles County PM2.5 forecasting \\
 Knowledge base & Time-series windows & PM2.5 windows, weather, calendar, events \\
 Retriever & Learnable dual encoder & Random/cosine first; learnable later \\
-Integration & Channel Prompting & Feature fusion first; Channel-Prompting-inspired later \\
-Backbone & Frozen TSFM & Direct XGBoost MVP; frozen TSFM gate \\
+Integration & Channel Prompting & Feature fusion; forecast-level TSFM retrieval fusion \\
+Backbone & Frozen TSFM & Direct XGBoost; frozen Chronos-Bolt gate \\
 Explanations & Retrieved-case visualization & Evidence-based forecast explanation \\
 Drift handling & Not central & Explicit drift indicators \\
 \bottomrule

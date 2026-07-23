@@ -1,5 +1,27 @@
 \section{Conclusion}
 
-This draft proposed Event-TimeRAF, an event-aware retrieval-augmented framework for explainable Los Angeles County PM2.5 forecasting under distribution shift. The proposed framework extends the TimeRAF idea by combining time-series retrieval with weather, calendar, source-recorded environmental events, drift indicators, and evidence-based explanation generation. The implementation is designed as a Kaggle-compatible pipeline using official US data, direct XGBoost baselines, leakage-safe retrieval, and a frozen-TSFM publication gate.
+This paper presented Event-TimeRAF, an event-aware retrieval-augmented framework
+for explainable Los Angeles County PM2.5 forecasting under distribution shift.
+The implemented pipeline combines official EPA PM2.5 observations, NOAA weather,
+hash-verified NOAA Storm Events records, leakage-safe time-series retrieval,
+direct XGBoost forecasters, drift indicators, evidence-based explanations, and a
+frozen Chronos-Bolt publication gate.
 
-Because the complete experiment has not yet been executed, this manuscript does not report performance claims. The next step is to run and audit the full 2019--2024 pipeline on Kaggle, complete the frozen-TSFM publication gate, freeze validation choices, evaluate the test set once, and populate the paper only from saved artifacts. The conclusion will be revised after those results are available.
+The final 2019--2024 Kaggle experiment shows that the strongest overall model is
+the XGBoost weather-calendar context baseline, not the full Event-TimeRAF
+variant. The full Event-TimeRAF XGBoost model remains competitive with the
+context baseline but does not improve the all-origin test score. The frozen
+Chronos-Bolt gate completes successfully, and retrieval-augmented Chronos gives a
+small favorable MSE change over frozen Chronos, although the bootstrap interval
+does not establish a conclusive improvement. These findings suggest that
+retrieval and event context are promising but need stronger integration than the
+current feature-level design to reliably outperform strong tabular context
+models.
+
+The main limitation is event availability. NOAA Storm Events records are official
+and source-verified, but they lack machine-readable publication timestamps. As a
+result, the event-aware results are retrospective event-start sensitivity results
+rather than strict operational event forecasts. Future work should add event
+sources with genuine issue times, improve event-category representation, test
+learnable retrievers, and evaluate deeper foundation-model integration closer to
+TimeRAF's Channel Prompting design.
