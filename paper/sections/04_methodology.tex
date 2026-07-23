@@ -82,6 +82,38 @@ for validation and test queries. The strict inequality in
 (\ref{eq:eligible_set}) ensures that a candidate's target period finishes before
 the query input period begins.
 
+\begin{figure}[!t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+    axis/.style={-Latex, thick},
+    span/.style={rectangle, draw=black, minimum height=6mm, align=center, font=\scriptsize},
+    tlabel/.style={font=\scriptsize},
+    brace/.style={-Latex, thick}
+]
+\draw[axis] (0,0) -- (11,0);
+\node[tlabel, below] at (0,0) {past};
+\node[tlabel, below] at (11,0) {future};
+
+\node[span, fill=gray!10, minimum width=2.7cm] (cin) at (2.0,0.55) {candidate\\input};
+\node[span, fill=gray!25, minimum width=1.2cm, right=0mm of cin] (ctar) {candidate\\target};
+\node[tlabel, above] at (3.95,1.0) {$u_i+H$};
+
+\node[span, fill=blue!8, minimum width=2.7cm] (qin) at (7.4,0.55) {query\\input};
+\node[span, fill=blue!22, minimum width=1.2cm, right=0mm of qin] (qtar) {query\\target};
+\node[tlabel, above] at (6.05,1.0) {$t-L+1$};
+\node[tlabel, above] at (8.75,1.0) {$t$};
+
+\draw[dashed] (4.0,-0.35) -- (4.0,1.15);
+\draw[dashed] (6.05,-0.35) -- (6.05,1.15);
+\draw[brace] (4.15,-0.65) -- node[below, font=\scriptsize] {required gap} (5.9,-0.65);
+\node[tlabel, align=center] at (5.05,-1.25) {eligible only when the\\candidate target ends first};
+\end{tikzpicture}
+}
+\caption{Causal retrieval timeline used to prevent future leakage.}
+\label{fig:retrieval_timeline}
+\end{figure}
+
 Given a query window $X_t$, the time-series retriever returns
 \begin{equation}
     R^{ts}_t = \{r^{ts}_{t,1}, r^{ts}_{t,2}, \ldots, r^{ts}_{t,k}\},
@@ -151,6 +183,35 @@ where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts, $\
 
 \subsection{Explanation Generation}
 The explanation module generates evidence-based explanations. It uses signed local XGBoost contributions averaged across the 24 direct horizon models, weather flags, retrieved historical windows, retrieved event records, calendar context, forecast direction, component-level drift evidence, and an uncertainty proxy combining retrieved-trajectory spread with validation residual error. It does not generate explanations from an unrestricted language model. Each explanation is traceable to stored machine-readable evidence.
+
+\begin{figure}[!t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=4mm,
+    block/.style={rectangle, rounded corners, draw=black, align=center, minimum width=28mm, minimum height=6mm, font=\scriptsize},
+    evidence/.style={rectangle, draw=black, align=center, minimum width=22mm, minimum height=6mm, font=\scriptsize, fill=gray!10},
+    arrow/.style={-Latex, thick}
+]
+\node[evidence] (features) {feature\\effects};
+\node[evidence, below=of features] (retrieved) {retrieved\\windows};
+\node[evidence, below=of retrieved] (events) {event\\IDs};
+\node[evidence, below=of events] (drift) {drift\\components};
+\node[evidence, below=of drift] (uncertainty) {uncertainty\\proxy};
+\node[block, right=12mm of events] (record) {machine-readable\\evidence record};
+\node[block, right=12mm of record] (text) {forecast\\explanation};
+
+\draw[arrow] (features.east) -- (record.west);
+\draw[arrow] (retrieved.east) -- (record.west);
+\draw[arrow] (events.east) -- (record.west);
+\draw[arrow] (drift.east) -- (record.west);
+\draw[arrow] (uncertainty.east) -- (record.west);
+\draw[arrow] (record) -- (text);
+\end{tikzpicture}
+}
+\caption{Evidence-grounded explanation flow used by Event-TimeRAF.}
+\label{fig:explanation_flow}
+\end{figure}
 
 Table~\ref{tab:timeraf_comparison} summarizes the methodological relation between TimeRAF and Event-TimeRAF.
 

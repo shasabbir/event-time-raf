@@ -32,6 +32,39 @@ Storm Events does not expose machine-readable publication timestamps; therefore,
 event-aware outputs use the recorded event start time as a retrospective
 availability assumption. They are not strict real-time event forecasts.
 
+\begin{figure*}[!t]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=7mm,
+    source/.style={rectangle, rounded corners, draw=black, align=center, minimum width=30mm, minimum height=9mm, font=\scriptsize, fill=gray!10},
+    process/.style={rectangle, rounded corners, draw=black, align=center, minimum width=34mm, minimum height=9mm, font=\scriptsize},
+    gate/.style={diamond, aspect=2.1, draw=black, align=center, minimum width=24mm, minimum height=9mm, font=\scriptsize},
+    arrow/.style={-Latex, thick}
+]
+\node[source] (epa) {EPA AirData\\PM2.5};
+\node[source, below=of epa] (weather) {NOAA Global\\Hourly weather};
+\node[source, below=of weather] (storm) {NOAA Storm\\Events cache};
+\node[process, right=16mm of weather] (audit) {source audit\\and hash checks};
+\node[gate, right=15mm of audit] (gates) {coverage\\gates};
+\node[process, right=15mm of gates] (panel) {hourly aligned\\analysis panel};
+\node[process, right=15mm of panel] (windows) {chronological\\train/val/test\\windows};
+\node[process, below=10mm of panel] (artifacts) {run manifest,\\tables, figures,\\evidence files};
+
+\draw[arrow] (epa.east) -- (audit.west);
+\draw[arrow] (weather.east) -- (audit.west);
+\draw[arrow] (storm.east) -- (audit.west);
+\draw[arrow] (audit) -- (gates);
+\draw[arrow] (gates) -- (panel);
+\draw[arrow] (panel) -- (windows);
+\draw[arrow] (panel) -- (artifacts);
+\draw[arrow] (windows) |- (artifacts);
+\end{tikzpicture}
+}
+\caption{Official-source data audit and experimental artifact flow.}
+\label{fig:data_audit_flow}
+\end{figure*}
+
 \begin{table}[!t]
 \centering
 \caption{Final Data-Readiness Audit}
