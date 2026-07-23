@@ -89,9 +89,9 @@ coverage.
 | Data | Preferred source | Fallback rule |
 | --- | --- | --- |
 | PM2.5 | US EPA AirData/AQS hourly parameter `88101` | Use parameter `88502` only as a separately documented sensitivity source; never merge parameter codes silently |
-| Weather | NOAA NCEI Global Hourly/ISD observations | Open-Meteo may be used only as a documented weather fallback |
+| Weather | NOAA NCEI Global Hourly/ISD observations through NOAA NODD | Open-Meteo may be used only as a documented weather fallback |
 | Calendar | Deterministic US federal and California holiday features | Omit uncertain special-day flags and document the omission |
-| Events | NOAA Storm Events; optional NOAA HMS fire/smoke records | Use a previously downloaded source-preserving cache with original fields |
+| Events | NOAA Storm Events; optional NOAA HMS fire/smoke records | Use unchanged NOAA annual archives prepared from the official NCEI index; attach them privately with their generated source manifest and SHA-256 hashes |
 
 Kaggle internet access cannot be assumed. Raw data should be downloaded once,
 validated, and attached as a Kaggle Dataset. The pipeline must accept local input
@@ -102,7 +102,8 @@ paths and must not require a live API during the main experiment run.
 Proceed with the hourly primary task only if the selected period has:
 
 - at least nine usable months, with twelve or more preferred;
-- at least 70% observed hourly PM2.5 values before filling;
+- at least 70% observed hourly PM2.5 values before filling for the selected
+  target series;
 - known and consistent PM2.5 units;
 - weather coverage sufficient to align at least 95% of usable PM2.5 hours;
 - no dependence on interpolating PM2.5 targets;
@@ -110,9 +111,14 @@ Proceed with the hourly primary task only if the selected period has:
   categories with at least 20 retained records each for event-effect claims.
 
 Long gaps are excluded through window validity checks. The pipeline must not
-silently switch from hourly to daily frequency. If the PM2.5 gate fails, replace
-the source or formally revise the task and paper. If only the event gate fails,
-run event-free diagnostics but revise the event-aware claims before submission.
+silently switch from hourly to daily frequency. The preferred target is the
+single AQS monitor with strongest continuous coverage; when no single monitor
+meets the PM2.5 gate, the formally revised target is a county-level hourly
+median across official Los Angeles County AQS monitors. The audit must record
+`aggregation_method` as either `single_monitor` or `county_hourly_median`. If
+the revised PM2.5 target still fails, replace the source or formally revise the
+task and paper. If only the event gate fails, run event-free diagnostics but
+revise the event-aware claims before submission.
 
 ### 2.3 Canonical schemas
 
@@ -136,7 +142,8 @@ Event records:
 ```text
 event_id, event_time, event_end, published_at,
 availability_assumption, source_coverage_start, source_coverage_end,
-coverage_basis, category, source, source_url, title, summary
+coverage_basis, category, source, source_url, delivery_mode,
+delivery_source, title, summary
 ```
 
 `published_at` is the default information-availability timestamp. If it is not
@@ -149,6 +156,15 @@ MVP therefore records `published_at = event_time` and
 retrospective sensitivity results. The audit separately reports source-coverage
 days, event-active days, category counts, and whether strict publication-time
 availability is satisfied.
+
+Attaching an original-file cache changes only the delivery path. It does not
+change the event source or resolve the missing publication timestamp. A cache
+is admissible only when it contains unchanged NOAA annual detail archives, the
+official URLs, retrieval time, byte sizes, and matching SHA-256 hashes in
+`source_manifest.json`. Third-party combined or transformed event datasets are
+not admissible for the final study. The audit and run manifest must retain the
+cache path and `delivery_mode` so this fallback is reproducible and is not
+misreported as a live NCEI download.
 
 ---
 
@@ -165,6 +181,7 @@ ASA/
   configs/
     default.yaml
   notebooks/
+    00_prepare_official_noaa_storm_cache.ipynb
     01_event_timeraf_kaggle_pipeline.ipynb
     02_results_and_figures.ipynb
   src/
@@ -199,8 +216,10 @@ ASA/
   paper/
 ```
 
-The main notebook orchestrates the package and can run top to bottom on Kaggle.
-The second notebook reads saved artifacts only and creates final tables and
+The preparation notebook creates a hash-verified private cache from unchanged
+official NOAA Storm Events archives when Kaggle cannot reach NCEI. The main
+notebook orchestrates the package and can run top to bottom on Kaggle. The
+results notebook reads saved artifacts only and creates final tables and
 figures. It must not retrain models.
 
 ### 3.1 Module ownership

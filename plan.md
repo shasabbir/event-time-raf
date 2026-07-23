@@ -381,7 +381,9 @@ Processing requirements:
 - never interpolate target values; discard windows with incomplete targets
 - preserve missingness report
 - fit normalization statistics on training data only
-- select the AQS site with the strongest continuous coverage during the audit
+- select the AQS site with the strongest continuous coverage during the audit;
+  if no single site passes the PM2.5 coverage gate, use the formally documented
+  Los Angeles County hourly median across official AQS monitors
 - save processed data as data/processed/la_pm25_hourly.parquet
 ```
 
@@ -390,7 +392,7 @@ Processing requirements:
 Preferred source:
 
 ```text
-NOAA NCEI Global Hourly/ISD first
+NOAA NCEI Global Hourly/ISD through the official NOAA NODD public buckets first
 Open-Meteo optional fallback
 ```
 
@@ -447,7 +449,14 @@ industrial_event_count_7d
 top_event_text
 ```
 
-If event collection becomes unstable, the fallback is a previously downloaded, source-preserving event cache with original timestamps and source fields. Events must never be manually invented.
+If event collection becomes unstable, the fallback is a privately attached
+cache of unchanged NOAA annual archives prepared from the official NCEI index.
+The preparation notebook records official URLs, retrieval time, file sizes, and
+SHA-256 hashes. The main pipeline verifies this manifest before loading any
+event. Third-party combined or transformed datasets are not acceptable for the
+final study. This is a delivery fallback only: records stay attributed to NOAA
+Storm Events, and the audit records the cache path and delivery mode. Events
+must never be manually invented.
 
 ---
 

@@ -3,7 +3,9 @@
 This section describes the planned experimental setup. The experiments have not yet been performed.
 
 \subsection{Planned Data}
-Table~\ref{tab:planned_data} lists the planned data sources and feature groups. The initial study period is 2019--2024, subject to site-level PM2.5 coverage and event-data audit results.
+Table~\ref{tab:planned_data} lists the planned data sources and feature groups. The initial study period is 2019--2024, subject to PM2.5 target coverage and event-data audit results. The preferred PM2.5 target is a single high-coverage AQS site; if no single site passes the coverage gate, the audited fallback is the hourly median across official Los Angeles County AQS monitors.
+
+When the NCEI Storm Events bulk endpoint is unavailable in the execution environment, unchanged annual NOAA detail archives may be supplied through a privately attached source-preserving cache. Each archive must match an official NCEI URL, recorded byte size, and SHA-256 hash in the cache manifest. This changes only the delivery path: the records remain attributed to NOAA Storm Events, and the cache path and delivery mode are retained in the data audit and run manifest.
 
 \begin{table}[!t]
 \centering
@@ -14,7 +16,7 @@ Table~\ref{tab:planned_data} lists the planned data sources and feature groups. 
 Group & Planned Source & Example Features \\
 \midrule
 Air quality & US EPA AirData/AQS & hourly PM2.5, site, timestamp \\
-Weather & NOAA Global Hourly/ISD & temperature, humidity, rain, wind, pressure \\
+Weather & NOAA Global Hourly/ISD via NOAA NODD & temperature, humidity, rain, wind, pressure \\
 Calendar & Generated US/California features & hour, weekday, weekend, season, holidays \\
 Events & NOAA Storm Events; optional HMS & event counts, categories, source records \\
 \bottomrule
