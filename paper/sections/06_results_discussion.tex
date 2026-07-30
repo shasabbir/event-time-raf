@@ -1,13 +1,17 @@
 \section{Results and Discussion}
 
 Table~\ref{tab:main_results} reports the final test-set results. The strongest
-overall model is the XGBoost context baseline, which uses PM2.5 history,
-weather, and calendar features. It obtains MSE 26.185 and MAE 3.125. The full
-Event-TimeRAF XGBoost variant obtains MSE 26.712 and MAE 3.149. Therefore, this
-run does not support a claim that the full Event-TimeRAF XGBoost variant
-outperforms the strongest non-retrieval context baseline on the all-origin test
-set. It does, however, substantially outperform the persistence and seasonal
-naive baselines.
+numerical model is the drift-gated Event-TimeRAF variant M12, which obtains MSE
+26.111, MAE 3.116, RMSE 5.110, and $R^2$ 0.381. M12 is a prediction-level
+selector over already trained forecasters: outside drift it follows the
+validation-selected non-drift source, and during drift it follows the
+validation-selected drift source. The strongest ungated supervised context model
+is M04, which uses PM2.5 history, weather, and calendar features and obtains MSE
+26.185 and MAE 3.125. The full feature-level Event-TimeRAF XGBoost variant M09
+obtains MSE 26.712 and MAE 3.149. Therefore, the final run supports a modest
+drift-gated improvement, but it does not support a claim that the full
+feature-level Event-TimeRAF model uniformly dominates the strongest context
+baseline.
 
 \begin{table*}[!t]
 \centering
@@ -21,7 +25,7 @@ M00 persistence & 47.649 & 4.137 & 6.903 & -0.130 \\
 M01 daily seasonal & 48.706 & 4.057 & 6.979 & -0.155 \\
 M02 weekly seasonal & 65.606 & 5.123 & 8.100 & -0.556 \\
 M03 XGBoost PM2.5 & 29.949 & 3.368 & 5.473 & 0.290 \\
-M04 XGBoost context & \textbf{26.185} & \textbf{3.125} & \textbf{5.117} & \textbf{0.379} \\
+M04 XGBoost context & 26.185 & 3.125 & 5.117 & 0.379 \\
 M05 random retrieval & 42.367 & 4.257 & 6.509 & -0.005 \\
 M06 cosine retrieval & 38.083 & 3.940 & 6.171 & 0.097 \\
 M07 XGBoost cosine & 26.672 & 3.151 & 5.164 & 0.367 \\
@@ -29,6 +33,7 @@ M08 Event-TimeRAF no drift & 26.677 & 3.145 & 5.165 & 0.367 \\
 M09 Event-TimeRAF full & 26.712 & 3.149 & 5.168 & 0.367 \\
 M10 frozen Chronos-Bolt & 28.941 & 3.205 & 5.380 & 0.314 \\
 M11 Chronos + retrieval & 28.709 & 3.209 & 5.358 & 0.319 \\
+M12 drift-gated Event-TimeRAF & \textbf{26.111} & \textbf{3.116} & \textbf{5.110} & \textbf{0.381} \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -48,7 +53,12 @@ fully below zero. Cosine retrieval improves over random retrieval in the
 retrieval-only setting. In contrast, adding cosine retrieval features to the
 already strong XGBoost context model does not improve the all-origin result in
 this run. Event-hybrid retrieval and drift indicators also do not show a clear
-overall improvement beyond the context baseline.
+overall improvement beyond the context baseline. The M12 drift gate improves
+MAE relative to M04 with a fully negative confidence interval
+($-0.0097$, 95\% CI $[-0.0185,-0.0013]$), but its MSE interval crosses zero.
+The auxiliary A01 source is an XGBoost random-retrieval variant used only for
+the drift-gate selection analysis. The M12 result should therefore be described
+as the best numerical model rather than a statistically decisive MSE win.
 
 \begin{table*}[!t]
 \centering
@@ -65,6 +75,8 @@ M08 minus M07, event hybrid & 0.005 & -0.292 & 0.275 \\
 M09 minus M08, drift indicators & 0.035 & -0.101 & 0.161 \\
 M09 minus M04, full Event-TimeRAF & 0.528 & -0.026 & 1.182 \\
 M11 minus M10, Chronos retrieval & -0.233 & -0.665 & 0.152 \\
+M12 minus M04, drift gate & -0.073 & -0.244 & 0.107 \\
+M12 minus A01, auxiliary gate source & -0.062 & -0.182 & 0.031 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -92,15 +104,14 @@ $k$ & MSE & MAE & RMSE \\
 \end{table}
 
 Table~\ref{tab:event_drift_results} reports representative event and drift
-subsets for the strongest context model, the full Event-TimeRAF model, and the
-two Chronos variants. All subsets pass the minimum-size gate. The event subset
-has lower MSE than the non-event subset for these models, which should not be
-interpreted as events being easier in general; it reflects the particular 2024
-test-period event hours retained by the audit. On drift-flagged origins, the
-full Event-TimeRAF model is worse than the context baseline, while
-retrieval-augmented Chronos is slightly better than frozen Chronos by MSE. This
-again indicates that the present event/drift feature fusion is not sufficient to
-dominate the context baseline.
+subsets for the strongest context model, the full Event-TimeRAF model, the
+drift-gated Event-TimeRAF variant, and the two Chronos variants. All subsets
+pass the minimum-size gate. The event subset has lower MSE than the non-event
+subset for these models, which should not be interpreted as events being easier
+in general; it reflects the particular 2024 test-period event hours retained by
+the audit. On drift-flagged origins, M12 matches the M04 MSE because the gate
+selects the context model for that regime, while M12 improves the non-drift and
+event subsets slightly through its non-drift source.
 
 \begin{table*}[!t]
 \centering
@@ -114,10 +125,14 @@ Non-event & M04 XGBoost context & 6,667 & 27.520 & 3.179 \\
 Event & M04 XGBoost context & 532 & 9.451 & 2.450 \\
 Non-event & M09 Event-TimeRAF full & 6,667 & 27.942 & 3.187 \\
 Event & M09 Event-TimeRAF full & 532 & 11.301 & 2.666 \\
+Non-event & M12 drift-gated Event-TimeRAF & 6,667 & 27.447 & 3.169 \\
+Event & M12 drift-gated Event-TimeRAF & 532 & 9.375 & 2.450 \\
 Non-drift & M04 XGBoost context & 6,639 & 26.107 & 3.088 \\
 Drift & M04 XGBoost context & 560 & 27.110 & 3.562 \\
 Non-drift & M09 Event-TimeRAF full & 6,639 & 26.330 & 3.088 \\
 Drift & M09 Event-TimeRAF full & 560 & 31.244 & 3.872 \\
+Non-drift & M12 drift-gated Event-TimeRAF & 6,639 & 26.027 & 3.078 \\
+Drift & M12 drift-gated Event-TimeRAF & 560 & 27.110 & 3.562 \\
 Drift & M10 frozen Chronos-Bolt & 560 & 28.333 & 3.476 \\
 Drift & M11 Chronos + retrieval & 560 & 28.198 & 3.580 \\
 \bottomrule
@@ -237,12 +252,13 @@ Code availability & \url{https://github.com/shasabbir/event-time-raf} \\
 
 The main interpretation is that conventional supervised context features are
 very strong for this Los Angeles County 24-hour PM2.5 task. Retrieval is useful
-as a standalone historical-pattern baseline and gives a small favorable MSE
-change when fused with frozen Chronos-Bolt, but the present feature-level
+as a standalone historical-pattern baseline, gives a small favorable MSE change
+when fused with frozen Chronos-Bolt, and improves the best numerical result when
+used through a drift-gated selector. However, the present feature-level
 Event-TimeRAF design does not beat the best XGBoost context baseline overall.
-This negative result is important for the final paper: Event-TimeRAF should be
-presented as an implemented and audited event-aware retrieval framework with
-mixed empirical effects, not as a uniformly superior forecasting model.
+Event-TimeRAF should therefore be presented as an implemented and audited
+event-aware retrieval framework with selective gains, not as a uniformly
+superior forecasting model.
 
 Finally, all event-aware interpretations must be read with the availability
 caveat. NOAA Storm Events records are official and hash-verified, but the source

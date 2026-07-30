@@ -53,9 +53,25 @@ available no later than the forecast origin.
 \end{figure}
 
 \subsection{Relationship to TimeRAF}
-TimeRAF retrieves top-$k$ candidate time-series windows from a curated knowledge base and incorporates the retrieved candidates using Channel Prompting \cite{zhang2025timeraf}. It uses a learnable dual-encoder retriever, dot-product similarity, a frozen TSFM backbone, and candidate augmentation during retriever training. Event-TimeRAF keeps the retrieval-augmentation principle, but applies it to Los Angeles County PM2.5 forecasting and expands the knowledge sources beyond numerical sequences.
+TimeRAF retrieves top-$k$ candidate time-series windows from a curated knowledge
+base and incorporates the retrieved candidates using Channel Prompting
+\cite{zhang2025timeraf}. It uses a learnable MLP-based dual-encoder retriever,
+dot-product similarity, a frozen TSFM backbone, and candidate augmentation
+during retriever training. Event-TimeRAF keeps the retrieval-augmentation
+principle, but changes the application setting from general zero-shot benchmark
+forecasting to official-source Los Angeles County PM2.5 forecasting with
+weather, calendar, event, drift, and explanation constraints.
 
-The implemented system is not a complete clone of TimeRAF. Instead, it implements TimeRAF-style retrieval baselines using random retrieval, cosine similarity, and a transparent hybrid similarity score. A dual-encoder MLP retriever, candidate augmentation, and full TSFM-based Channel Prompting are reserved for later extensions. The final run includes a frozen Chronos-Bolt gate and a validation-weighted forecast-level fusion between Chronos and retrieved historical forecasts.
+Table~\ref{tab:timeraf_comparison} gives the direct methodological comparison.
+The comparison is not a head-to-head performance ranking because the two studies
+use different datasets, forecast horizons, and evaluation protocols. The key
+distinction is that TimeRAF is a full neural retrieval-augmented TSFM
+architecture, whereas Event-TimeRAF is a domain adaptation that prioritizes
+official data provenance, causal retrieval eligibility, event-availability
+auditing, and evidence-grounded environmental explanations. A dual-encoder
+retriever, candidate augmentation, and full internal Channel Prompting are
+therefore treated as future extensions rather than completed components in this
+implementation.
 
 \subsection{Dataset Construction}
 Hourly PM2.5 observations are taken from US EPA AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. The data audit selects one monitoring site using coverage and continuity criteria when a single site satisfies the coverage gate. In the final run, no single site is used as the target; the audited fallback is the hourly county median across official Los Angeles County AQS monitors. Timestamps are converted to \texttt{America/Los\_Angeles} with explicit daylight-saving handling. Short input gaps may be filled only from past-available observations; targets are never interpolated. Weather covariates come from the nearest suitable NOAA Integrated Surface Database station \cite{noaaisd2026}. Calendar features include hour, weekday, weekend, month, season, US federal holidays, and California holidays.
@@ -158,6 +174,21 @@ The feature-level fusion method combines PM2.5 lag/rolling features, weather fea
 \end{equation}
 where $h_t$ is the input representation and $r_{t,i}$ is the representation of the $i$-th retrieved candidate. This mirrors the TimeRAF idea of preserving the original input representation while adding uniformly averaged information extracted from retrieved candidates.
 
+The final tabular gate is a lightweight drift-conditioned selector. It compares
+the strongest validation candidates separately on drift and non-drift validation
+origins, then applies the selected source to the corresponding test origins:
+\begin{equation}
+    \hat{Y}^{G}_t =
+    \begin{cases}
+    \hat{Y}^{a}_{t}, & D_t = 0,\\
+    \hat{Y}^{b}_{t}, & D_t = 1,
+    \end{cases}
+    \label{eq:drift_gate}
+\end{equation}
+where $a$ and $b$ are chosen only from validation errors. This gate does not
+train a new model; it tests whether a transparent drift-specific selection rule
+can avoid applying the same forecaster in all regimes.
+
 The frozen Chronos-Bolt gate uses forecast-level fusion rather than internal
 Channel Prompting. Let $\hat{Y}^{C}_t$ be the frozen Chronos forecast and
 $\hat{Y}^{R}_t$ be the retrieved historical forecast. The fused prediction is
@@ -213,23 +244,58 @@ The explanation module generates evidence-based explanations. It uses signed loc
 \label{fig:explanation_flow}
 \end{figure}
 
-Table~\ref{tab:timeraf_comparison} summarizes the methodological relation between TimeRAF and Event-TimeRAF.
+Table~\ref{tab:timeraf_comparison} also clarifies which parts of TimeRAF were
+implemented directly and which parts were adapted for the environmental setting.
 
-\begin{table}[!t]
+\begin{table*}[!t]
 \centering
-\caption{Methodological Comparison Between TimeRAF and Event-TimeRAF}
+\caption{TimeRAF Versus Event-TimeRAF}
 \label{tab:timeraf_comparison}
-\begin{tabular}{p{0.27\linewidth}p{0.29\linewidth}p{0.29\linewidth}}
+\begin{tabular}{p{0.15\textwidth}p{0.38\textwidth}p{0.39\textwidth}}
 \toprule
 Aspect & TimeRAF & Event-TimeRAF \\
 \midrule
-Target domain & General zero-shot TSF & Los Angeles County PM2.5 forecasting \\
-Knowledge base & Time-series windows & PM2.5 windows, weather, calendar, events \\
-Retriever & Learnable dual encoder & Random, cosine, and hybrid similarity \\
-Integration & Channel Prompting & Feature fusion; forecast-level TSFM retrieval fusion \\
-Backbone & Frozen TSFM & Direct XGBoost; frozen Chronos-Bolt gate \\
-Explanations & Retrieved-case visualization & Evidence-based forecast explanation \\
-Drift handling & Not central & Explicit drift indicators \\
+Primary objective & Improve zero-shot time-series forecasting by augmenting a
+frozen TSFM with retrieved external time-series knowledge. & Test whether the
+TimeRAF retrieval idea helps an official-source, event-sensitive PM2.5
+forecasting task under drift and availability constraints. \\
+Forecasting domain & Multi-domain time-series benchmarks, with zero-shot
+generalization as the main setting. & Los Angeles County hourly PM2.5
+forecasting for 2019--2024. \\
+Knowledge base & Curated time-series windows built from multi-domain or
+domain-specific datasets, normalized consistently with the query. & Hybrid
+official-source knowledge base containing PM2.5 windows, NOAA weather summaries,
+calendar signatures, and NOAA Storm Events context. \\
+Retriever & Learnable MLP-based dual encoder with dot-product scores and
+forecaster-guided retriever learning. & Random, cosine, and transparent hybrid
+similarity retrievers; no learned dual encoder in the implemented Kaggle run. \\
+Candidate count & Uses top-$k$ retrieval; the base paper uses $k=8$ as the
+default and studies candidate-count sensitivity. & Uses $k=8$ as the default
+and reports sensitivity for $k \in \{1,4,8,16\}$. \\
+Knowledge integration & Channel Prompting integrates retrieved candidates into
+the frozen TSFM representation. & Feature-level fusion for XGBoost models,
+validation-selected drift gating, and validation-weighted forecast-level fusion
+for frozen Chronos-Bolt. \\
+Backbone & Frozen TSFM backbone, with TTM-Base reported as the main backbone in
+the base paper. & Direct XGBoost horizon models plus a frozen
+\texttt{amazon/chronos-bolt-small} publication gate. \\
+Leakage control & Uses non-overlapping knowledge-base windows and retrieval
+constraints, including avoiding same-dataset retrieval during training. & Requires
+each candidate's target window to end before the query lookback begins; validation
+and test retrieval are restricted to training-history windows. \\
+Event handling & Not an explicit component of the base method. & Adds
+availability-tagged storm-event features and source-record evidence; event
+results are labeled retrospective when strict publication timestamps are absent.
+\\
+Drift handling & Not a central module in the base method. & Adds explicit mean,
+variance, retrieval-similarity, weather, and event-burst drift indicators. \\
+Explainability & Provides retrieved-case visualizations to inspect how retrieved
+knowledge supports forecasting. & Stores evidence-grounded explanations using
+feature effects, retrieved windows, event IDs, drift components, and uncertainty
+proxies. \\
+Implementation status & Full proposed neural architecture with learnable
+retrieval and Channel Prompting. & TimeRAF-inspired domain implementation;
+learnable retriever and internal Channel Prompting remain future work. \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}

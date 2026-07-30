@@ -18,14 +18,15 @@ A stronger version should repeat the same protocol on another U.S. county or
 city with different meteorology, emissions, and event profiles.
 
 The third limitation concerns model integration. Event-TimeRAF currently uses
-retrieved trajectories and event context as feature-level evidence, with a
-frozen Chronos-Bolt gate for foundation-model validation. This is weaker than a
-learnable retrieval-and-prompting architecture that directly conditions the
-foundation model. Future work should test a learnable retriever, richer
-event-type embeddings, calibrated uncertainty estimation, and a closer
-adaptation of TimeRAF-style Channel Prompting for environmental forecasting.
+retrieved trajectories and event context as feature-level evidence, a lightweight
+validation-selected drift gate, and a frozen Chronos-Bolt gate for
+foundation-model validation. This is weaker than a learnable
+retrieval-and-prompting architecture that directly conditions the foundation
+model. Future work should test a learnable retriever, richer event-type
+embeddings, calibrated uncertainty estimation, and a closer adaptation of
+TimeRAF-style Channel Prompting for environmental forecasting.
 
 Finally, the present manuscript uses verified references and official data
-sources only. The reference list should be expanded with additional recent
-2023--2026 air-quality forecasting, time-series foundation model, retrieval, and
-explainability studies before journal submission.
+sources only. Before journal submission, the reference list can be expanded
+further with additional 2025--2026 air-quality forecasting and operational
+event-availability studies if they are directly relevant to the final claims.
