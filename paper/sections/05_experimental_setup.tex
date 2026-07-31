@@ -1,14 +1,14 @@
 \section{Experimental Setup}
 
-This section reports the executed final Kaggle experiment. The run identifier is
-\texttt{20260723T112033170131Z}. All model-selection choices were frozen before
-reading the final test results, and the results notebook rejected non-final or
-mixed-run artifacts.
+This section describes the reported experiment. All model-selection choices
+were fixed using the training and validation partitions before the test results
+were examined. Artifact consistency was verified using run identifier
+\texttt{20260723T112033170131Z}.
 
 \subsection{Data Sources and Audit}
 The study period is 2019--2024. PM2.5 observations were taken from US EPA
 AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. No
-single monitoring site was used as the final target; the audited target is the
+single monitoring site was used as the target series; the audited target is the
 hourly county median across official Los Angeles County AQS monitors. This
 fallback selected \texttt{06-037-COUNTY}, with 52,602 observed target hours and
 observed PM2.5 coverage of 0.9997. The PM2.5 unit was consistently recorded as
@@ -22,8 +22,8 @@ after allowed past-only short-gap filling was 0.9942, and the raw measured core
 coverage was 0.9905.
 
 Environmental events were loaded from hash-verified NOAA Storm Events annual
-detail archives \cite{noaastormevents2026}. Because Kaggle could not reliably
-download NCEI Storm Events directly, the experiment used a private delivery
+detail archives \cite{noaastormevents2026}. Because direct access to NCEI was
+unavailable in the execution environment, the experiment used a locally staged
 cache containing unchanged NOAA annual archives and a source manifest with
 official URLs, byte counts, and SHA-256 hashes. The audit retained the delivery
 mode \texttt{verified\_official\_noaa\_cache}. The event audit found 117 event
@@ -67,7 +67,7 @@ availability assumption. They are not strict real-time event forecasts.
 
 \begin{table}[!t]
 \centering
-\caption{Final Data-Readiness Audit}
+\caption{Data-Readiness Audit}
 \label{tab:data_audit}
 \begin{tabular}{lcc}
 \toprule
@@ -89,7 +89,7 @@ Strict event availability & False & Caveat \\
 \label{tab:dataset_summary}
 \begin{tabular}{p{0.18\linewidth}p{0.27\linewidth}p{0.18\linewidth}p{0.25\linewidth}}
 \toprule
-Data group & Source & Final scope & Use in pipeline \\
+Data group & Source & Evaluated scope & Use in pipeline \\
 \midrule
 PM2.5 & EPA AirData/AQS hourly parameter 88101 & Los Angeles County,
 2019--2024; 52,602 observed target hours & Target sequence and lag/rolling
@@ -108,8 +108,8 @@ hourly calendar & Hour, weekday, weekend, month, season, and holiday features \\
 \subsection{Data and Code Availability}
 The raw public records are available from EPA AirData, NOAA Global Hourly/ISD,
 and NOAA Storm Events \cite{epaairdata2026,noaaisd2026,noaastormevents2026}.
-The experiment used a private Kaggle delivery cache for NOAA Storm Events only
-because direct NCEI access was unavailable in the notebook environment; every
+The experiment used a locally staged NOAA Storm Events cache because direct
+NCEI access was unavailable in the execution environment; every
 cached NOAA file was verified against the generated source manifest. Source code
 is available at \url{https://github.com/shasabbir/event-time-raf}.
 
@@ -126,9 +126,8 @@ naive, a direct XGBoost model using PM2.5 features, a direct XGBoost context
 model using PM2.5, weather, and calendar features, random retrieval, cosine
 retrieval, XGBoost with cosine retrieval features, Event-TimeRAF without drift
 features, full Event-TimeRAF with event and drift features, frozen Chronos-Bolt,
-and retrieval-augmented Chronos-Bolt forecast fusion. The Chronos checkpoint is
-\texttt{amazon/chronos-bolt-small}; it completed successfully in the final run,
-so the foundation-model publication gate is satisfied.
+and retrieval-augmented Chronos-Bolt forecast fusion. The foundation-model
+evaluation uses the \texttt{amazon/chronos-bolt-small} checkpoint.
 
 \begin{table}[!t]
 \centering
@@ -149,15 +148,15 @@ M10--M11 & Frozen Chronos-Bolt and retrieval fusion \\
 \end{table}
 
 \subsection{Implementation and Hyperparameters}
-The final run was executed on Kaggle using Python 3.12.13 on Linux
-6.12.90. The runtime was 1,576.87 seconds. Key package versions recorded in the
+The experiment was executed in a cloud-hosted Linux 6.12.90 environment using
+Python 3.12.13. The runtime was 1,576.87 seconds. Key package versions recorded in the
 run manifest include NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost
 3.2.0, PyTorch 2.10.0+cu128, and chronos-forecasting 2.3.1. Table
 \ref{tab:hyperparameters} reports the principal hyperparameters.
 
 \begin{table*}[!t]
 \centering
-\caption{Final Run Hyperparameters and Runtime Settings}
+\caption{Experimental Hyperparameters and Runtime Settings}
 \label{tab:hyperparameters}
 \begin{tabular}{ll}
 \toprule
@@ -182,11 +181,11 @@ Bootstrap & 500 paired block-bootstrap resamples, 24-hour blocks \\
 
 \subsection{Metrics and Statistical Checks}
 The primary metrics are MSE, MAE, RMSE, MAPE, sMAPE, and $R^2$. MSE is retained
-for comparability with the TimeRAF base paper, while MAE and RMSE provide more
+for comparability with the TimeRAF evaluation, while MAE and RMSE provide more
 interpretable PM2.5 error scales. Subset metrics are reported only when at least
 50 forecast origins are available. The event subset contains 532 origins, the
 active-event subset contains 293 origins, and the drift subset contains 560
-origins, so all pre-specified subsets pass the minimum-size gate. Pairwise comparisons
+origins, so all pre-specified subsets satisfy the minimum sample-size criterion. Pairwise comparisons
 use paired block bootstrap intervals with 24-hour blocks and 500 resamples.
 
 \subsection{Position Relative to Existing Studies}
@@ -212,7 +211,7 @@ retrieval-augmented TSFM method; does not target official event-aware PM2.5. \\
 XGBoost context baseline \cite{chen2016xgboost} & No & No & No & Feature
 importance & Strong supervised tabular baseline for local PM2.5. \\
 Event-TimeRAF & Yes & Yes & Yes & Evidence-grounded & Adds official event
-audit, causal retrieval, drift indicators, and Chronos retrieval fusion. \\
+audit, temporal leakage control, drift indicators, and Chronos retrieval fusion. \\
 \bottomrule
 \end{tabular}
 \end{table*}

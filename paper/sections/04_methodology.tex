@@ -48,7 +48,7 @@ available no later than the forecast origin.
 \draw[arrow] (model) -- (out);
 \end{tikzpicture}
 }
-\caption{Event-TimeRAF architecture used by the implemented pipeline.}
+\caption{Event-TimeRAF forecasting architecture.}
 \label{fig:architecture}
 \end{figure}
 
@@ -67,14 +67,14 @@ The comparison is not a head-to-head performance ranking because the two studies
 use different datasets, forecast horizons, and evaluation protocols. The key
 distinction is that TimeRAF is a full neural retrieval-augmented TSFM
 architecture, whereas Event-TimeRAF is a domain adaptation that prioritizes
-official data provenance, causal retrieval eligibility, event-availability
+official data provenance, temporally leakage-safe retrieval, event-availability
 auditing, and evidence-grounded environmental explanations. A dual-encoder
 retriever, candidate augmentation, and full internal Channel Prompting are
 therefore treated as future extensions rather than completed components in this
 implementation.
 
 \subsection{Dataset Construction}
-Hourly PM2.5 observations are taken from US EPA AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. The data audit selects one monitoring site using coverage and continuity criteria when a single site satisfies the coverage gate. In the final run, no single site is used as the target; the audited fallback is the hourly county median across official Los Angeles County AQS monitors. Timestamps are converted to \texttt{America/Los\_Angeles} with explicit daylight-saving handling. Short input gaps may be filled only from past-available observations; targets are never interpolated. Weather covariates come from the nearest suitable NOAA Integrated Surface Database station \cite{noaaisd2026}. Calendar features include hour, weekday, weekend, month, season, US federal holidays, and California holidays.
+Hourly PM2.5 observations are taken from US EPA AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. The data audit selects one monitoring site using coverage and continuity criteria when a single site satisfies the coverage criterion. Because no individual monitor met this criterion, the target is the hourly county median across official Los Angeles County AQS monitors. Timestamps are converted to \texttt{America/Los\_Angeles} with explicit daylight-saving handling. Short input gaps may be filled only from past-available observations; targets are never interpolated. Weather covariates come from the nearest suitable NOAA Integrated Surface Database station \cite{noaaisd2026}. Calendar features include hour, weekday, weekend, month, season, US federal holidays, and California holidays.
 
 All normalization statistics are fitted on the training split only. The same normalization procedure is used for query windows and retrieved candidate windows, following the TimeRAF requirement that input and retrieved sequences use consistent preprocessing.
 
@@ -88,7 +88,7 @@ Formally, the knowledge base is
 where $u_i$ is the candidate origin, $X_i$ and $Y_i$ are the candidate lookback
 and future windows, $m_i$ is a weather summary, $c_i$ is a calendar summary, and
 $e_i$ is the event-context summary available at $u_i$. For a query origin $t$,
-the causally eligible set is
+    the temporally eligible set is
 \begin{equation}
     \mathcal{A}_t =
     \{i: u_i + H < t-L+1,\; i \in \mathcal{T}_{train}\},
@@ -126,7 +126,7 @@ the query input period begins.
 \node[tlabel, align=center] at (5.05,-1.25) {eligible only when the\\candidate target ends first};
 \end{tikzpicture}
 }
-\caption{Causal retrieval timeline used to prevent future leakage.}
+\caption{Leakage-safe retrieval timeline used to enforce temporal eligibility.}
 \label{fig:retrieval_timeline}
 \end{figure}
 
@@ -164,17 +164,17 @@ For feature-level models, the retrieved futures and candidate metadata are
 summarized as mean, spread, similarity, and event-match features.
 
 \subsection{Fusion and Forecasting Backbone}
-The feature-level fusion method combines PM2.5 lag/rolling features, weather features, calendar features, retrieved time-series summary features, event features, and drift indicators. The tabular forecasting backbone uses 24 direct XGBoost regressors, one for each forecast horizon, because this design is efficient on Kaggle and provides a strong baseline. The foundation-model gate additionally evaluates frozen Chronos-Bolt and a validation-weighted forecast-level fusion between Chronos and retrieved historical forecasts. A later extension may use an MLP residual fusion module inspired by Channel Prompting:
-\begin{equation}
-    z_i = \mathrm{Concat}(h_t, r_{t,i}),
-\end{equation}
-\begin{equation}
-    h_t^{*} = h_t + \frac{1}{k}\sum_{i=1}^{k} \mathrm{MLP}(z_i),
-    \label{eq:fusion}
-\end{equation}
-where $h_t$ is the input representation and $r_{t,i}$ is the representation of the $i$-th retrieved candidate. This mirrors the TimeRAF idea of preserving the original input representation while adding uniformly averaged information extracted from retrieved candidates.
+The feature-level fusion method combines PM2.5 lag/rolling features, weather
+features, calendar features, retrieved time-series summary features, event
+features, and drift indicators. The tabular forecasting backbone uses 24 direct
+XGBoost regressors, one for each forecast horizon, providing an efficient and
+competitive supervised baseline. Frozen Chronos-Bolt is evaluated separately,
+both without retrieval and with validation-weighted forecast-level fusion
+between Chronos and retrieved historical forecasts. Unlike TimeRAF, the
+evaluated architecture does not modify the foundation model's internal
+representation through Channel Prompting.
 
-The final tabular gate is a lightweight drift-conditioned selector. It compares
+The tabular fusion stage includes a lightweight drift-conditioned selector. It compares
 the strongest validation candidates separately on drift and non-drift validation
 origins, then applies the selected source to the corresponding test origins:
 \begin{equation}
@@ -189,7 +189,7 @@ where $a$ and $b$ are chosen only from validation errors. This gate does not
 train a new model; it tests whether a transparent drift-specific selection rule
 can avoid applying the same forecaster in all regimes.
 
-The frozen Chronos-Bolt gate uses forecast-level fusion rather than internal
+The Chronos-Bolt retrieval variant uses forecast-level fusion rather than internal
 Channel Prompting. Let $\hat{Y}^{C}_t$ be the frozen Chronos forecast and
 $\hat{Y}^{R}_t$ be the retrieved historical forecast. The fused prediction is
 \begin{equation}
@@ -198,7 +198,7 @@ $\hat{Y}^{R}_t$ be the retrieved historical forecast. The fused prediction is
     \label{eq:chronos_fusion}
 \end{equation}
 where $\omega \in \{0,0.25,0.5,0.75,1.0\}$ is selected on the validation split.
-The final run selected $\omega=0.75$.
+Validation selected $\omega=0.75$.
 
 \subsection{Concept Drift Detection}
 The implementation represents operational distribution shift using transparent indicators rather than claiming perfect concept-drift identification. The indicators are recent mean shift, recent variance shift, retrieval similarity drop, weather-pattern shift, and event-burst ratio. A simple drift score can be defined as
@@ -268,17 +268,17 @@ official-source knowledge base containing PM2.5 windows, NOAA weather summaries,
 calendar signatures, and NOAA Storm Events context. \\
 Retriever & Learnable MLP-based dual encoder with dot-product scores and
 forecaster-guided retriever learning. & Random, cosine, and transparent hybrid
-similarity retrievers; no learned dual encoder in the implemented Kaggle run. \\
-Candidate count & Uses top-$k$ retrieval; the base paper uses $k=8$ as the
+similarity retrievers; no learned dual encoder is used. \\
+Candidate count & Uses top-$k$ retrieval; the TimeRAF study uses $k=8$ as the
 default and studies candidate-count sensitivity. & Uses $k=8$ as the default
 and reports sensitivity for $k \in \{1,4,8,16\}$. \\
 Knowledge integration & Channel Prompting integrates retrieved candidates into
 the frozen TSFM representation. & Feature-level fusion for XGBoost models,
 validation-selected drift gating, and validation-weighted forecast-level fusion
 for frozen Chronos-Bolt. \\
-Backbone & Frozen TSFM backbone, with TTM-Base reported as the main backbone in
-the base paper. & Direct XGBoost horizon models plus a frozen
-\texttt{amazon/chronos-bolt-small} publication gate. \\
+Backbone & Frozen TSFM backbone, with TTM-Base reported as the principal
+backbone. & Direct XGBoost horizon models and frozen
+\texttt{amazon/chronos-bolt-small}. \\
 Leakage control & Uses non-overlapping knowledge-base windows and retrieval
 constraints, including avoiding same-dataset retrieval during training. & Requires
 each candidate's target window to end before the query lookback begins; validation

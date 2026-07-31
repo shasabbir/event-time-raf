@@ -37,7 +37,7 @@ inspired by TimeRAF, but it is adapted to an official-source environmental
 forecasting setting. The implemented system uses leakage-safe retrieval over
 historical PM2.5 windows, weather and calendar context, source-recorded NOAA
 Storm Events, transparent drift indicators, direct XGBoost forecasters, a frozen
-Chronos-Bolt publication gate, and evidence-grounded explanations. The framework
+Chronos-Bolt baseline, and evidence-grounded explanations. The framework
 answers three practical questions: (1) how can official environmental records be
 converted into a retrieval-compatible knowledge base; (2) how should retrieval
 be constrained so that future target information is not leaked; and (3) when
@@ -48,20 +48,20 @@ The main contributions are as follows:
     \item We formulate an event-aware retrieval-augmented PM2.5 forecasting
     framework that combines time-series windows, weather summaries, calendar
     context, storm-event records, and drift indicators.
-    \item We implement a Kaggle-compatible official-source pipeline using EPA
+    \item We implement a reproducible official-source pipeline using EPA
     AirData PM2.5, NOAA Global Hourly weather, and hash-verified NOAA Storm
     Events records for Los Angeles County during 2019--2024.
     \item We define leakage-safe retrieval eligibility rules that prevent
     candidate windows from overlapping the query context or future target.
     \item We evaluate random retrieval, cosine retrieval, event-aware hybrid
     retrieval, drift-aware feature fusion, frozen Chronos-Bolt, and
-    retrieval-augmented Chronos-Bolt under one manifest-backed final run.
+    retrieval-augmented Chronos-Bolt under a controlled evaluation protocol.
     \item We report a conservative empirical finding: retrieval improves the
     frozen Chronos-Bolt MSE slightly, but the best overall model is a strong
     XGBoost weather-calendar context baseline.
 \end{itemize}
 
-The final result is therefore not a uniformly positive retrieval story. Instead,
-it is an audited study showing where event-aware retrieval helps, where it does
-not, and what is required before such a method can be described as a strict
-operational event-aware air-quality forecaster.
+The findings therefore do not indicate uniform gains from retrieval. Instead,
+the evaluation identifies the settings in which event-aware retrieval is useful,
+the settings in which it is not, and the additional evidence required before
+the method can support operational event-aware air-quality forecasting.

@@ -4,7 +4,7 @@ Let $x_t$ denote the PM2.5 measurement at time $t$. For a forecast time $t$, the
 \begin{equation}
     X_t = [x_{t-L+1}, x_{t-L+2}, \ldots, x_t],
 \end{equation}
-where $L$ is the lookback length. Let $W_t$ denote weather covariates aligned with the lookback window, $C_t$ denote calendar features, and $E_t$ denote event context retrieved from an event/news knowledge base. The target is the future PM2.5 sequence
+where $L$ is the lookback length. Let $W_t$ denote weather covariates aligned with the lookback window, $C_t$ denote calendar features, and $E_t$ denote event context obtained from the NOAA Storm Events knowledge base. The target is the future PM2.5 sequence
 \begin{equation}
     Y_{t+1:t+H} = [x_{t+1}, x_{t+2}, \ldots, x_{t+H}],
 \end{equation}
@@ -13,7 +13,7 @@ where $H$ is the forecasting horizon.
 The forecasting goal is to learn a function
 \begin{equation}
     \hat{Y}_{t+1:t+H} =
-    F_{\theta}(X_t, W_t, C_t, R^{ts}_t, R^{ev}_t, D_t),
+    F_{\theta}(X_t, W_t, C_t, E_t, R^{ts}_t, R^{ev}_t, D_t),
     \label{eq:forecast}
 \end{equation}
 where $R^{ts}_t$ is retrieved time-series knowledge, $R^{ev}_t$ is retrieved event knowledge, and $D_t$ contains concept-drift indicators. The implemented target setting is $L=168$ hours and $H=24$ hours.
@@ -39,8 +39,9 @@ $H$ & Forecast horizon \\
 $X_t$ & Historical PM2.5 sequence at time $t$ \\
 $W_t$ & Weather covariates \\
 $C_t$ & Calendar/context features \\
+$E_t$ & Event context available at the forecast origin \\
 $R^{ts}_t$ & Retrieved time-series knowledge \\
-$R^{ev}_t$ & Retrieved event/news knowledge \\
+$R^{ev}_t$ & Retrieved event knowledge \\
 $D_t$ & Drift indicators \\
 $\hat{Y}_{t+1:t+H}$ & Predicted future PM2.5 values \\
 \bottomrule

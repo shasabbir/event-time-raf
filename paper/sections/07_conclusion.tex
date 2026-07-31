@@ -5,8 +5,8 @@ for explainable Los Angeles County PM2.5 forecasting under distribution shift.
 The implemented pipeline combines official EPA PM2.5 observations, NOAA weather,
 hash-verified NOAA Storm Events records, leakage-safe time-series retrieval,
 direct XGBoost forecasters, drift indicators, evidence-based explanations, and a
-frozen Chronos-Bolt publication gate. In the final 2019--2024 Kaggle
-experiment, the drift-gated Event-TimeRAF variant obtains the best numerical
+frozen Chronos-Bolt evaluation. In the 2019--2024 experiment, the drift-gated
+Event-TimeRAF variant obtains the best numerical
 all-origin result with MSE 26.111, MAE 3.116, RMSE 5.110, and $R^2$ 0.381. The
 strongest ungated supervised context model obtains MSE 26.185, while the full
 feature-level Event-TimeRAF XGBoost variant obtains MSE 26.712. Retrieval
@@ -15,6 +15,6 @@ favorable MSE change when fused with frozen Chronos-Bolt. The M12 drift gate
 also improves MAE over the context baseline with a negative bootstrap interval,
 although its MSE improvement is not statistically conclusive. The study
 therefore positions Event-TimeRAF as an auditable event-aware retrieval
-framework with selective empirical gains, and it identifies stricter event
-availability, external validation, and deeper foundation-model integration as
-the main directions for the next version.
+framework with selective empirical gains. Stricter event availability, external
+validation, and deeper foundation-model integration remain priorities for future
+research.

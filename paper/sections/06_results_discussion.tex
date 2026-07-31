@@ -1,6 +1,6 @@
 \section{Results and Discussion}
 
-Table~\ref{tab:main_results} reports the final test-set results. The strongest
+Table~\ref{tab:main_results} reports the test-set results. The strongest
 numerical model is the drift-gated Event-TimeRAF variant M12, which obtains MSE
 26.111, MAE 3.116, RMSE 5.110, and $R^2$ 0.381. M12 is a prediction-level
 selector over already trained forecasters: outside drift it follows the
@@ -8,14 +8,14 @@ validation-selected non-drift source, and during drift it follows the
 validation-selected drift source. The strongest ungated supervised context model
 is M04, which uses PM2.5 history, weather, and calendar features and obtains MSE
 26.185 and MAE 3.125. The full feature-level Event-TimeRAF XGBoost variant M09
-obtains MSE 26.712 and MAE 3.149. Therefore, the final run supports a modest
+obtains MSE 26.712 and MAE 3.149. Therefore, the results support a modest
 drift-gated improvement, but it does not support a claim that the full
 feature-level Event-TimeRAF model uniformly dominates the strongest context
 baseline.
 
 \begin{table*}[!t]
 \centering
-\caption{Final Overall Test Results for 24-Hour PM2.5 Forecasting}
+\caption{Overall Test Results for 24-Hour PM2.5 Forecasting}
 \label{tab:main_results}
 \begin{tabular}{lrrrr}
 \toprule
@@ -38,8 +38,8 @@ M12 drift-gated Event-TimeRAF & \textbf{26.111} & \textbf{3.116} & \textbf{5.110
 \end{tabular}
 \end{table*}
 
-The frozen Chronos-Bolt publication gate completed successfully. The validation
-fusion search selected a retrieval-fusion weight of 0.75. On the test set,
+The frozen Chronos-Bolt evaluation completed successfully. Validation selected
+a retrieval-fusion weight of 0.75. On the test set,
 retrieval-augmented Chronos reduces MSE from 28.941 to 28.709, an improvement of
 about 0.8\% relative to frozen Chronos-Bolt. The paired block-bootstrap
 comparison gives an MSE difference of -0.233 with a 95\% interval from -0.665 to
@@ -84,7 +84,7 @@ M12 minus A01, auxiliary gate source & -0.062 & -0.182 & 0.031 \\
 The $k$ sensitivity results in Table~\ref{tab:k_sensitivity} show that the
 retrieval-only cosine baseline improves as more neighbors are used within the
 tested range. The best retrieval-only configuration among $k \in \{1,4,8,16\}$
-is $k=16$, with MSE 36.488. The final Event-TimeRAF feature models used the
+is $k=16$, with MSE 36.488. The reported Event-TimeRAF feature models used the
 pre-specified default $k=8$.
 
 \begin{table}[!t]
@@ -106,7 +106,7 @@ $k$ & MSE & MAE & RMSE \\
 Table~\ref{tab:event_drift_results} reports representative event and drift
 subsets for the strongest context model, the full Event-TimeRAF model, the
 drift-gated Event-TimeRAF variant, and the two Chronos variants. All subsets
-pass the minimum-size gate. The event subset has lower MSE than the non-event
+satisfy the pre-specified minimum sample-size criterion. The event subset has lower MSE than the non-event
 subset for these models, which should not be interpreted as events being easier
 in general; it reflects the particular 2024 test-period event hours retained by
 the audit. On drift-flagged origins, M12 matches the M04 MSE because the gate
@@ -142,41 +142,41 @@ Drift & M11 Chronos + retrieval & 560 & 28.198 & 3.580 \\
 Fig.~\ref{fig:mse_horizon} and Fig.~\ref{fig:mae_horizon} show horizon-wise
 test errors. Fig.~\ref{fig:retrieval_diagnostics} summarizes retrieval behavior,
 and Fig.~\ref{fig:drift_scores} shows the drift-score distribution across the
-test period. These plots are generated directly from the saved final-run
-artifacts and share run identifier \texttt{20260723T112033170131Z}.
+test period. These plots are generated directly from a consistent set of saved
+artifacts identified by \texttt{20260723T112033170131Z}.
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]{figures/mse_by_horizon.png}
-\caption{MSE by forecast horizon for the final test run.}
+\caption{MSE by forecast horizon on the test set.}
 \label{fig:mse_horizon}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]{figures/mae_by_horizon.png}
-\caption{MAE by forecast horizon for the final test run.}
+\caption{MAE by forecast horizon on the test set.}
 \label{fig:mae_horizon}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]{figures/retrieval_diagnostics.png}
-\caption{Retrieval diagnostics for the final test run.}
+\caption{Retrieval diagnostics on the test set.}
 \label{fig:retrieval_diagnostics}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]{figures/drift_scores.png}
-\caption{Drift-score diagnostics for the final test run.}
+\caption{Drift-score diagnostics on the test set.}
 \label{fig:drift_scores}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]{figures/forecast_case.png}
-\caption{Representative forecast case generated from the final test run.}
+\caption{Representative forecast case from the test set.}
 \label{fig:forecast_case}
 \end{figure}
 
@@ -188,7 +188,7 @@ pipeline stores the run identifier, window identifier, origin timestamp,
 retrieved historical evidence identifiers, event evidence identifiers, leading
 feature effects, drift components, retrieval spread, validation residual MAE,
 uncertainty proxy, drift score, drift flag, and event-availability mode. The
-final run produced 7,199 explanation records in
+evaluation produced 7,199 explanation records in
 \texttt{explanations.parquet}. A representative record identifies the strongest
 local contribution fields as the current PM2.5 value and recent rolling PM2.5
 means, links the prediction to three retrieved historical windows, links recent
@@ -221,8 +221,8 @@ Uncertainty proxy & Combined retrieval spread and validation residual error. \\
 
 \subsection{Computational Cost and Reproducibility}
 
-The final publication-mode run completed in 1,576.9 seconds in a Kaggle Linux
-notebook environment using Python 3.12.13. The recorded package versions include
+The complete experiment executed in 1,576.9 seconds in a cloud-hosted Linux
+environment using Python 3.12.13. The recorded package versions include
 NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost 3.2.0, PyTorch
 2.10.0+cu128, and \texttt{chronos-forecasting} 2.3.1. The run manifest records
 the configuration SHA-256 hash and artifact checksums. The CPU, GPU, and RAM
@@ -231,7 +231,7 @@ runtime and software versions but does not claim hardware-normalized efficiency.
 
 \begin{table}[!t]
 \centering
-\caption{Final-Run Computational and Reproducibility Summary}
+\caption{Computational and Reproducibility Summary}
 \label{tab:compute_summary}
 \begin{tabular}{ll}
 \toprule
@@ -239,7 +239,7 @@ Item & Recorded value \\
 \midrule
 Run identifier & \texttt{20260723T112033170131Z} \\
 Runtime & 1,576.9 seconds \\
-Platform & Kaggle Linux notebook \\
+Platform & Cloud-hosted Linux environment \\
 Python & 3.12.13 \\
 Forecast horizon & 24 hours \\
 Lookback window & 168 hours \\
