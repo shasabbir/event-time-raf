@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-label="Source-Audited Context Builder internals">
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#263238"/></marker>
+<style><![CDATA[
+.label{font-family:Arial,Helvetica,sans-serif;font-size:18px;fill:#263238}
+.small{font-family:Arial,Helvetica,sans-serif;font-size:15px;fill:#5F6B73}
+.mono{font-family:Consolas,'Courier New',monospace;font-size:14px;fill:#263238}
+.group{font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:700;fill:#263238}
+.title{font-family:Arial,Helvetica,sans-serif;font-size:21px;font-weight:700;fill:#263238}
+]]></style>
+</defs>
+<rect x="0" y="0" width="1200" height="640" fill="#FFFFFF"/>
+<rect x="24" y="48" width="260" height="538" rx="12" fill="none" stroke="#5F6B73" stroke-width="1.7" stroke-dasharray="8 6"/>
+<rect x="38" y="36" width="150" height="24" fill="#FFFFFF"/>
+<text x="46" y="53" class="group" text-anchor="start" dominant-baseline="middle">Source audit</text>
+<rect x="52" y="96" width="204" height="72" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="154.0" y="111.0" class="label" text-anchor="middle" dominant-baseline="middle">EPA PM2.5</text>
+<text x="154.0" y="133.0" class="label" text-anchor="middle" dominant-baseline="middle">county monitors</text>
+<text x="154.0" y="154" class="mono" text-anchor="middle" dominant-baseline="middle">coverage=0.9997</text>
+<rect x="52" y="208" width="204" height="72" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="154.0" y="223.0" class="label" text-anchor="middle" dominant-baseline="middle">NOAA weather</text>
+<text x="154.0" y="245.0" class="label" text-anchor="middle" dominant-baseline="middle">station 72297023129</text>
+<text x="154.0" y="266" class="mono" text-anchor="middle" dominant-baseline="middle">coverage=0.9942</text>
+<rect x="52" y="320" width="204" height="72" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="154.0" y="335.0" class="label" text-anchor="middle" dominant-baseline="middle">NOAA events</text>
+<text x="154.0" y="357.0" class="label" text-anchor="middle" dominant-baseline="middle">hash + manifest</text>
+<text x="154.0" y="378" class="mono" text-anchor="middle" dominant-baseline="middle">117 event days</text>
+<rect x="52" y="432" width="204" height="88" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="154.0" y="455.0" class="label" text-anchor="middle" dominant-baseline="middle">Availability and</text>
+<text x="154.0" y="477.0" class="label" text-anchor="middle" dominant-baseline="middle">duplicate checks</text>
+<text x="154.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle">event-start caveat</text>
+<polyline points="154,168 154,208" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="154,280 154,320" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="154,392 154,432" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="316" y="48" width="430" height="538" rx="12" fill="none" stroke="#4E79A7" stroke-width="1.7" stroke-dasharray="8 6"/>
+<rect x="330" y="36" width="270" height="24" fill="#FFFFFF"/>
+<text x="338" y="53" class="group" text-anchor="start" dominant-baseline="middle">Hourly context construction</text>
+<rect x="346" y="92" width="170" height="74" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="431.0" y="108.0" class="label" text-anchor="middle" dominant-baseline="middle">PM2.5 lags, rolling</text>
+<text x="431.0" y="130.0" class="label" text-anchor="middle" dominant-baseline="middle">and differences</text>
+<text x="431.0" y="152" class="mono" text-anchor="middle" dominant-baseline="middle">23 features</text>
+<rect x="546" y="92" width="170" height="74" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="631.0" y="108.0" class="label" text-anchor="middle" dominant-baseline="middle">Weather values,</text>
+<text x="631.0" y="130.0" class="label" text-anchor="middle" dominant-baseline="middle">flags, rolling means</text>
+<text x="631.0" y="152" class="mono" text-anchor="middle" dominant-baseline="middle">14 features</text>
+<rect x="346" y="222" width="170" height="74" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="431.0" y="238.0" class="label" text-anchor="middle" dominant-baseline="middle">Cyclic calendar</text>
+<text x="431.0" y="260.0" class="label" text-anchor="middle" dominant-baseline="middle">and holidays</text>
+<text x="431.0" y="282" class="mono" text-anchor="middle" dominant-baseline="middle">9 features</text>
+<rect x="546" y="222" width="170" height="74" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
+<text x="631.0" y="238.0" class="label" text-anchor="middle" dominant-baseline="middle">Event counts, active</text>
+<text x="631.0" y="260.0" class="label" text-anchor="middle" dominant-baseline="middle">states, burst ratio</text>
+<text x="631.0" y="282" class="mono" text-anchor="middle" dominant-baseline="middle">40 features</text>
+<circle cx="531" cy="390" r="30" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="531" y="390" class="label" text-anchor="middle" dominant-baseline="middle">||</text>
+<polyline points="431,166 431,190 330,190 330,390 501,390" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="631,166 631,190 732,190 732,390 561,390" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="431,296 431,350 501,350 501,390" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="631,296 631,350 561,350 561,390" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="406" y="444" width="250" height="76" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="531.0" y="472.0" class="label" text-anchor="middle" dominant-baseline="middle">Origin context vector</text>
+<text x="531.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle">q_t in R^86</text>
+<polyline points="531,420 531,444" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="531" y="548" class="small" text-anchor="middle" dominant-baseline="middle">Fitted and checked on chronological training history</text>
+<rect x="778" y="48" width="398" height="538" rx="12" fill="none" stroke="#4E7D57" stroke-width="1.7" stroke-dasharray="8 6"/>
+<rect x="792" y="36" width="250" height="24" fill="#FFFFFF"/>
+<text x="800" y="53" class="group" text-anchor="start" dominant-baseline="middle">Window and split contract</text>
+<rect x="812" y="94" width="330" height="76" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="977.0" y="122.0" class="label" text-anchor="middle" dominant-baseline="middle">Aligned hourly panel</text>
+<text x="977.0" y="156" class="mono" text-anchor="middle" dominant-baseline="middle">T x (1 + 86)</text>
+<rect x="812" y="226" width="146" height="82" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="885.0" y="257.0" class="label" text-anchor="middle" dominant-baseline="middle">Lookback</text>
+<text x="885.0" y="294" class="mono" text-anchor="middle" dominant-baseline="middle">X_t: 168 x 1</text>
+<rect x="996" y="226" width="146" height="82" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
+<text x="1069.0" y="257.0" class="label" text-anchor="middle" dominant-baseline="middle">Future target</text>
+<text x="1069.0" y="294" class="mono" text-anchor="middle" dominant-baseline="middle">Y_t: 24 x 1</text>
+<polyline points="977,170 977,206 885,206 885,226" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="977,206 1069,206 1069,226" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="812" y="372" width="330" height="90" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="977.0" y="407.0" class="label" text-anchor="middle" dominant-baseline="middle">Chronological partitions</text>
+<text x="977.0" y="448" class="mono" text-anchor="middle" dominant-baseline="middle">70% train | 15% val | 15% test</text>
+<polyline points="885,308 885,350 977,350 977,372" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="1069,308 1069,350 977,350" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="977" y="510" class="mono" text-anchor="middle" dominant-baseline="middle">48,332 valid input-target windows</text>
+<text x="977" y="542" class="small" text-anchor="middle" dominant-baseline="middle">targets are never interpolated</text>
+</svg>

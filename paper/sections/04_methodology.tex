@@ -1,7 +1,38 @@
 \section{Methodology}
 
-\subsection{Overview}
-Fig.~\ref{fig:architecture} shows the Event-TimeRAF pipeline. The first step is to align air-quality observations with weather, calendar, and availability-filtered event features. The system then creates sliding windows and a time-series knowledge base. The implemented hybrid retriever ranks historical windows using PM2.5, weather, calendar, and event-context similarity. A separate source-record lookup links recent event identifiers to explanations; it does not supply future event labels to the model. The retrieved evidence is combined with structured features to generate a forecast, uncertainty proxy, drift score, and explanation.
+Event-TimeRAF comprises three top-level components. The Source-Audited Context
+Builder (SACB) converts heterogeneous official records into a chronological
+hourly context while retaining provenance and availability metadata. The
+Leakage-Safe Event-Context Retriever (LSER) constructs an embargoed historical
+memory and selects analogues according to PM2.5, weather, calendar, and event
+similarity. The Drift-Aware Forecast and Evidence Head (DFEH) exposes
+feature-level and forecast-level prediction paths, shift indicators, and a
+machine-readable explanation record. These components are deterministic or
+supervised modules over one-dimensional time-series and tabular inputs; no
+image operator, learned attention block, or internal TimeRAF Channel Prompting
+is implied.
+
+\subsection{Framework Overview and Forward Pass}
+
+Figure~\ref{fig:architecture} summarizes the complete dataflow. EPA PM2.5,
+NOAA weather, calendar, and NOAA Storm Events records first enter the SACB,
+which audits, aligns, and transforms them into a query context and
+input--target windows. The LSER filters the training-history knowledge base,
+ranks eligible candidates, and returns aligned candidate futures and retrieval
+statistics. The DFEH then supplies those statistics to 24 direct XGBoost
+regressors, evaluates a separate frozen Chronos-Bolt fusion path, computes drift
+evidence, and writes the forecast and its supporting record.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{figures/event_timeraf_pipeline_overview.pdf}
+\caption{Proposed Event-TimeRAF pipeline. Official records pass through the
+Source-Audited Context Builder (SACB), training-history candidates are selected
+by the Leakage-Safe Event-Context Retriever (LSER), and the Drift-Aware
+Forecast and Evidence Head (DFEH) produces 24-hour forecasts and traceable
+evidence. Tensor annotations show the reported configuration.}
+\label{fig:architecture}
+\end{figure*}
 
 For each forecast origin $t$, Event-TimeRAF maps the aligned context into a
 forecast through
@@ -14,81 +45,127 @@ where $\phi(\cdot)$ denotes the tabular feature construction, $G_t$ denotes
 retrieved historical evidence, and $D_t$ denotes drift evidence. The key
 methodological constraint is that every element of $G_t$ and $D_t$ must be
 available no later than the forecast origin.
+Equation~(\ref{eq:event_timeraf_mapping}) is the compact functional form that
+the tensor-level forward pass below expands.
 
-\begin{figure}[!t]
+For a batch of $B$ origins, the implemented forward pass can be expanded in
+tensor notation as
+\begin{equation}
+\begin{aligned}
+Q &= \operatorname{SACB}(X,W,C,E) &&\in \mathbb{R}^{B\times 86},\\
+G &= \operatorname{LSER}(Q,\mathcal{K}) &&\in \mathbb{R}^{B\times 8\times 24},\\
+U_h &= [Q\,\|\,\rho(G)\,\|\,d\,\|\,C^{+}_{h}]
+&&\in \mathbb{R}^{B\times 152},\\
+\hat{Y}^{X} &= [f_1(U_1),\ldots,f_{24}(U_{24})]
+&&\in \mathbb{R}^{B\times 24},\\
+(\hat{Y},\mathcal{O}) &= \operatorname{DFEH}
+(\hat{Y}^{X},\hat{Y}^{C},\hat{Y}^{R},d,G)
+&&\in \mathbb{R}^{B\times 24}\times\mathcal{E},
+\end{aligned}
+\label{eq:forward_pass}
+\end{equation}
+where $Q$ is the 86-dimensional origin context, $\rho(G)\in
+\mathbb{R}^{B\times 51}$ contains the retrieved trajectory, spread, two
+similarity summaries, and candidate count, $d\in\mathbb{R}^{B\times 6}$
+contains five drift components and their mean score, and
+$C^{+}_{h}\in\mathbb{R}^{B\times 9}$ is the known calendar vector for horizon
+$h$. The symbol $\mathcal{E}$ denotes the schema of the evidence record
+$\mathcal{O}$. Equation~(\ref{eq:forward_pass}) describes both reported
+forecasting paths without presenting the XGBoost path as part of the frozen
+foundation model.
+
+\subsection{Source-Audited Context Builder}
+
+The SACB is motivated by the need to preserve data provenance and temporal
+availability before model fitting. As shown in Figure~\ref{fig:context_builder},
+source-specific checks precede feature construction. EPA monitor records are
+aggregated to an hourly county median, NOAA weather is aligned from the selected
+surface station, event archives are hash-verified against a manifest, and
+calendar values are derived from the local timestamp. The resulting context is
+then windowed and split chronologically; target values are never interpolated.
+
+\begin{figure*}[!t]
 \centering
-\resizebox{\columnwidth}{!}{%
-\begin{tikzpicture}[
-    node distance=4.5mm,
-    block/.style={rectangle, rounded corners, draw=black, align=center, minimum width=35mm, minimum height=6mm, font=\scriptsize},
-    smallblock/.style={rectangle, rounded corners, draw=black, align=center, minimum width=28mm, minimum height=6mm, font=\scriptsize},
-    arrow/.style={-Latex, thick}
-]
-\node[block] (air) {Historical PM2.5\\Data};
-\node[block, below=of air] (align) {Weather + Calendar\\Alignment};
-\node[block, below=of align] (windows) {Sliding Window\\Construction};
-\node[smallblock, below left=7mm and 8mm of windows] (tskb) {Time-Series\\Knowledge Base};
-\node[smallblock, below right=7mm and 8mm of windows] (evkb) {Event\\Knowledge Base};
-\node[smallblock, below=of tskb] (tsret) {Time-Series\\Retriever};
-\node[smallblock, below=of evkb] (evret) {Event\\Retriever};
-\node[block, below right=8mm and -15mm of tsret] (fusion) {Hybrid Fusion\\Module};
-\node[block, below=of fusion] (model) {Forecasting\\Backbone};
-\node[block, below=of model] (out) {Forecast + Confidence\\+ Drift + Explanation};
+\includegraphics[width=\textwidth]{figures/source_audited_context_builder.pdf}
+\caption{Source-Audited Context Builder. Source checks feed four feature groups
+that form an 86-dimensional origin vector. The aligned panel is converted into
+168-hour inputs and 24-hour targets before the chronological split.}
+\label{fig:context_builder}
+\end{figure*}
 
-\draw[arrow] (air) -- (align);
-\draw[arrow] (align) -- (windows);
-\draw[arrow] (windows) -- (tskb);
-\draw[arrow] (windows) -- (evkb);
-\draw[arrow] (tskb) -- (tsret);
-\draw[arrow] (evkb) -- (evret);
-\draw[arrow] (windows) -- (fusion);
-\draw[arrow] (tsret) -- (fusion);
-\draw[arrow] (evret) -- (fusion);
-\draw[arrow] (fusion) -- (model);
-\draw[arrow] (model) -- (out);
-\end{tikzpicture}
-}
-\caption{Event-TimeRAF forecasting architecture.}
-\label{fig:architecture}
-\end{figure}
+\subsubsection{Dataset Construction}
+Hourly PM2.5 observations are taken from US EPA AirData/AQS parameter 88101 for
+Los Angeles County \cite{epaairdata2026}. The data audit selects one monitoring
+site using coverage and continuity criteria when a single site satisfies the
+coverage criterion. Because no individual monitor met this criterion, the
+target is the hourly county median across official Los Angeles County AQS
+monitors. Timestamps are converted to \texttt{America/Los\_Angeles} with
+explicit daylight-saving handling. Short input gaps may be filled only from
+past-available observations; targets are never interpolated. Weather covariates
+come from the nearest suitable NOAA Integrated Surface Database station
+\cite{noaaisd2026}. Calendar features include cyclic hour, weekday, and month
+terms, weekend status, US federal holidays, and California holidays.
 
-\subsection{Relationship to TimeRAF}
-TimeRAF retrieves top-$k$ candidate time-series windows from a curated knowledge
-base and incorporates the retrieved candidates using Channel Prompting
-\cite{zhang2025timeraf}. It uses a learnable MLP-based dual-encoder retriever,
-dot-product similarity, a frozen TSFM backbone, and candidate augmentation
-during retriever training. Event-TimeRAF keeps the retrieval-augmentation
-principle, but changes the application setting from general zero-shot benchmark
-forecasting to official-source Los Angeles County PM2.5 forecasting with
-weather, calendar, event, drift, and explanation constraints.
+At each origin, the feature groups are concatenated as
+\begin{equation}
+q_t=[p_t\,\|\,w_t\,\|\,c_t\,\|\,e_t]
+\in\mathbb{R}^{23+14+9+40}=\mathbb{R}^{86},
+\label{eq:context_vector}
+\end{equation}
+where $p_t$, $w_t$, $c_t$, and $e_t$ are respectively the PM2.5, weather,
+calendar, and event feature vectors. The PM2.5 group contains fixed lags,
+rolling moments and extrema, differences, the current value, and a fill flag.
+The weather group contains six measured variables, a precipitation-missing
+flag, derived condition flags, a stagnation proxy, and 24-hour rolling means.
+The event group contains one-hour and active counts, 24/72/168-hour counts,
+category-specific 72-hour counts, and an event-burst ratio.
+Thus, Equation~(\ref{eq:context_vector}) fixes both the feature ordering and
+the 86-dimensional SACB output used by downstream modules.
 
-Table~\ref{tab:timeraf_comparison} gives the direct methodological comparison.
-The comparison is not a head-to-head performance ranking because the two studies
-use different datasets, forecast horizons, and evaluation protocols. The key
-distinction is that TimeRAF is a full neural retrieval-augmented TSFM
-architecture, whereas Event-TimeRAF is a domain adaptation that prioritizes
-official data provenance, temporally leakage-safe retrieval, event-availability
-auditing, and evidence-grounded environmental explanations. A dual-encoder
-retriever, candidate augmentation, and full internal Channel Prompting are
-therefore treated as future extensions rather than completed components in this
-implementation.
+All normalization statistics are fitted on the training split only. Query and
+candidate windows use identical normalization, following the TimeRAF principle
+that retrieved and input sequences must share a preprocessing convention. The
+reported run contains 48,332 valid windows with
+$X\in\mathbb{R}^{48332\times168}$ and
+$Y\in\mathbb{R}^{48332\times24}$.
 
-\subsection{Dataset Construction}
-Hourly PM2.5 observations are taken from US EPA AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. The data audit selects one monitoring site using coverage and continuity criteria when a single site satisfies the coverage criterion. Because no individual monitor met this criterion, the target is the hourly county median across official Los Angeles County AQS monitors. Timestamps are converted to \texttt{America/Los\_Angeles} with explicit daylight-saving handling. Short input gaps may be filled only from past-available observations; targets are never interpolated. Weather covariates come from the nearest suitable NOAA Integrated Surface Database station \cite{noaaisd2026}. Calendar features include hour, weekday, weekend, month, season, US federal holidays, and California holidays.
+\subsection{Leakage-Safe Event-Context Retriever}
 
-All normalization statistics are fitted on the training split only. The same normalization procedure is used for query windows and retrieved candidate windows, following the TimeRAF requirement that input and retrieved sequences use consistent preprocessing.
+The LSER separates temporal eligibility from relevance. Figure
+\ref{fig:retrieval_timeline} first shows the embargo: a candidate is considered
+only if its complete target precedes the beginning of the query lookback. The
+eligible candidates are then compared along four independently stored
+similarity channels. The selected futures are aligned to the query scale and
+summarized for the forecasting head. This ordering prevents a high similarity
+score from overriding the temporal constraint.
 
-\subsection{Time-Series Knowledge Base}
-The time-series knowledge base contains historical PM2.5 windows. Each record stores a window identifier, start time, end time, input window values, future window values, weather summary, calendar summary, normalized window vector, data split, and normalization identifier. Knowledge-base origins are separated by 192 hours, equal to the 168-hour input and 24-hour future combined. For every query, a candidate is eligible only when its complete future ends before the query input begins. Validation and test retrieval is additionally restricted to training-history windows. These rules exclude self-matches, near-duplicate windows, and overlap with the query context.
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{figures/leakage_safe_event_context_retriever.pdf}
+\caption{Leakage-Safe Event-Context Retriever. A strict candidate-target
+embargo and training-history restriction are applied before hybrid ranking.
+The top eight candidates provide aligned future trajectories and a
+51-dimensional retrieval summary.}
+\label{fig:retrieval_timeline}
+\end{figure*}
+
+\subsubsection{Time-Series Knowledge Base}
+The time-series knowledge base contains historical PM2.5 windows. Each record
+stores a window identifier, start time, end time, input and future values,
+weather summary, calendar summary, normalized window vector, split, and
+normalization identifier. Knowledge-base origins are separated by 192 hours,
+equal to the 168-hour input and 24-hour future combined. The resulting reported
+knowledge base contains 191 non-overlapping training windows.
 
 Formally, the knowledge base is
 \begin{equation}
     \mathcal{K} = \{(u_i, X_i, Y_i, m_i, c_i, e_i)\}_{i=1}^{N},
+    \label{eq:knowledge_base}
 \end{equation}
 where $u_i$ is the candidate origin, $X_i$ and $Y_i$ are the candidate lookback
 and future windows, $m_i$ is a weather summary, $c_i$ is a calendar summary, and
 $e_i$ is the event-context summary available at $u_i$. For a query origin $t$,
-    the temporally eligible set is
+the temporally eligible set is
 \begin{equation}
     \mathcal{A}_t =
     \{i: u_i + H < t-L+1,\; i \in \mathcal{T}_{train}\},
@@ -96,53 +173,47 @@ $e_i$ is the event-context summary available at $u_i$. For a query origin $t$,
 \end{equation}
 for validation and test queries. The strict inequality in
 (\ref{eq:eligible_set}) ensures that a candidate's target period finishes before
-the query input period begins.
-
-\begin{figure}[!t]
-\centering
-\resizebox{\columnwidth}{!}{%
-\begin{tikzpicture}[
-    axis/.style={-Latex, thick},
-    span/.style={rectangle, draw=black, minimum height=6mm, align=center, font=\scriptsize},
-    tlabel/.style={font=\scriptsize},
-    brace/.style={-Latex, thick}
-]
-\draw[axis] (0,0) -- (11,0);
-\node[tlabel, below] at (0,0) {past};
-\node[tlabel, below] at (11,0) {future};
-
-\node[span, fill=gray!10, minimum width=2.7cm] (cin) at (2.0,0.55) {candidate\\input};
-\node[span, fill=gray!25, minimum width=1.2cm, right=0mm of cin] (ctar) {candidate\\target};
-\node[tlabel, above] at (3.95,1.0) {$u_i+H$};
-
-\node[span, fill=blue!8, minimum width=2.7cm] (qin) at (7.4,0.55) {query\\input};
-\node[span, fill=blue!22, minimum width=1.2cm, right=0mm of qin] (qtar) {query\\target};
-\node[tlabel, above] at (6.05,1.0) {$t-L+1$};
-\node[tlabel, above] at (8.75,1.0) {$t$};
-
-\draw[dashed] (4.0,-0.35) -- (4.0,1.15);
-\draw[dashed] (6.05,-0.35) -- (6.05,1.15);
-\draw[brace] (4.15,-0.65) -- node[below, font=\scriptsize] {required gap} (5.9,-0.65);
-\node[tlabel, align=center] at (5.05,-1.25) {eligible only when the\\candidate target ends first};
-\end{tikzpicture}
-}
-\caption{Leakage-safe retrieval timeline used to enforce temporal eligibility.}
-\label{fig:retrieval_timeline}
-\end{figure}
+the query input period begins. The training-history condition in
+(\ref{eq:eligible_set}) is also enforced for final validation and test retrieval.
+Equation~(\ref{eq:knowledge_base}) defines the stored candidate schema, while
+Equation~(\ref{eq:eligible_set}) defines the admissible subset at query time.
 
 Given a query window $X_t$, the time-series retriever returns
 \begin{equation}
     R^{ts}_t = \{r^{ts}_{t,1}, r^{ts}_{t,2}, \ldots, r^{ts}_{t,k}\},
+    \label{eq:retrieved_set}
 \end{equation}
-where $k$ is the number of retrieved candidates. The default setting is $k=8$, with sensitivity analysis for $k \in \{1,4,8,16\}$.
+where $k$ is the number of retrieved candidates. The default is $k=8$, with
+sensitivity analysis for $k\in\{1,4,8,16\}$.
+Equation~(\ref{eq:retrieved_set}) denotes the returned records before their
+future trajectories are summarized.
 
-\subsection{Event Knowledge Base}
-The event knowledge base contains source-preserving records relevant to Los Angeles County. NOAA Storm Events is the required structured source, while NOAA Hazard Mapping System fire and smoke records remain an optional enrichment \cite{noaastormevents2026,noaahms2026}. Stored fields include event identifier, event start and end, information-availability assumption, location, category, source, source URL, title, and summary. Event categories include wildfire, smoke, excessive heat, high wind, heavy rain, flood, dust, and other weather-related records.
+\subsubsection{Event Knowledge Base}
+The event knowledge base contains source-preserving records relevant to Los
+Angeles County. NOAA Storm Events is the required structured source, whereas
+NOAA Hazard Mapping System fire and smoke records remain an unmeasured optional
+extension \cite{noaastormevents2026,noaahms2026}. Stored fields include event
+identifier, start and end, information-availability assumption, location,
+category, source, source URL, title, and summary. The reported records cover
+wildfire, high wind, heavy rain, flood, and other weather categories; feature
+slots for absent configured categories remain zero.
 
-Model inputs represent events with hourly publication-assumption counts, rolling 24-hour, 72-hour, and 168-hour counts, category-specific 72-hour counts, active-event counts, and an event-burst ratio. Recent source event identifiers are retained only as explanation evidence. Every event used as a model input must be available by the forecast origin under a recorded availability rule. Evaluation distinguishes events published in the prior 72 hours, events active at the origin, and recorded event intervals overlapping the target horizon. Target overlap is used only as a post-hoc label and never as a model input. NOAA Storm Events does not provide a machine-readable publication timestamp; consequently, the implementation records event start as a retrospective availability assumption. Results that use this assumption are labeled sensitivity experiments rather than strict operational forecasts. Strict experiments require source records with genuine publication or issuance timestamps.
+Model inputs represent events with hourly counts, rolling 24-, 72-, and
+168-hour counts, category-specific 72-hour counts, active-event counts, and an
+event-burst ratio. Recent source identifiers are retained as explanation
+evidence. Target-horizon overlap is used only as a post-hoc subset label and
+never as a model input. NOAA Storm Events does not provide a machine-readable
+publication timestamp, so the implementation records event start as a
+retrospective availability assumption. Strict operational experiments require
+records with genuine publication or issue times.
 
-\subsection{Hybrid Retrieval Score}
-The hybrid retrieval score combines time-series similarity, weather relevance, calendar relevance, and event relevance:
+\subsubsection{Hybrid Ranking and Future Alignment}
+Both query and candidate PM2.5 windows are standardized by their own means and
+standard deviations and normalized to unit length. Weather and calendar groups
+are standardized using candidate statistics and mapped cosine similarity to
+$[0,1]$. Event similarity is clipped to $[0,1]$ with explicit zero-vector
+handling. The hybrid retrieval score combines time-series similarity, weather
+relevance, calendar relevance, and event relevance:
 \begin{equation}
     s(q, i) =
     \alpha s_{ts}(q,i) +
@@ -151,28 +222,70 @@ The hybrid retrieval score combines time-series similarity, weather relevance, c
     \delta s_{e}(q,i),
     \label{eq:hybrid_score}
 \end{equation}
-where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is calendar similarity, and $s_e$ is event relevance. The implemented weights are $\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$.
+where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is
+calendar similarity, and $s_e$ is event relevance. The implemented weights are
+$\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$.
+Equation~(\ref{eq:hybrid_score}) keeps each relevance channel explicit so that
+its contribution can be inspected without a learned latent scoring function.
 
 The retrieved set is selected as
 \begin{equation}
     G_t = \operatorname{TopK}_{i \in \mathcal{A}_t}\; s(t,i).
     \label{eq:topk}
 \end{equation}
-For retrieval-only baselines, the forecast is the uniform or
-similarity-weighted average of the retrieved candidates' future PM2.5 windows.
-For feature-level models, the retrieved futures and candidate metadata are
-summarized as mean, spread, similarity, and event-match features.
+Equation~(\ref{eq:topk}) is evaluated only after applying
+$\mathcal{A}_t$. Candidate futures are restored to the query scale as
+\begin{equation}
+\widetilde{Y}_{t,i}=\mu_t+\sigma_t
+\left(\frac{Y_i-\mu_i}{\max(\sigma_i,\epsilon)}\right),
+\qquad i\in G_t,
+\label{eq:future_alignment}
+\end{equation}
+where $(\mu_t,\sigma_t)$ and $(\mu_i,\sigma_i)$ are the query and candidate
+lookback statistics. Retrieval-only forecasts average
+$\widetilde{Y}_{t,i}$ uniformly or by non-negative normalized scores. The
+feature-level path retains the mean trajectory, horizon-wise spread, mean and
+maximum time-series similarity, and candidate count, yielding
+$\rho(G_t)\in\mathbb{R}^{51}$.
+The affine transformation in Equation~(\ref{eq:future_alignment}) preserves
+the candidate trajectory shape while restoring the query's local scale.
 
-\subsection{Fusion and Forecasting Backbone}
-The feature-level fusion method combines PM2.5 lag/rolling features, weather
-features, calendar features, retrieved time-series summary features, event
-features, and drift indicators. The tabular forecasting backbone uses 24 direct
-XGBoost regressors, one for each forecast horizon, providing an efficient and
-competitive supervised baseline. Frozen Chronos-Bolt is evaluated separately,
-both without retrieval and with validation-weighted forecast-level fusion
-between Chronos and retrieved historical forecasts. Unlike TimeRAF, the
-evaluated architecture does not modify the foundation model's internal
-representation through Channel Prompting.
+\subsection{Drift-Aware Forecast and Evidence Head}
+
+The DFEH is the common output layer for three analysis paths. As shown in
+Figure~\ref{fig:explanation_flow}, the direct path concatenates context,
+retrieval, drift, and future-calendar features for 24 separately trained
+XGBoost regressors. A second path evaluates frozen Chronos-Bolt and combines its
+forecast with the retrieved forecast at a validation-selected weight. The
+drift-state selector is retained as an exploratory analysis because the saved
+M12 result was assembled post hoc from test predictions; the notebook now
+implements validation-only source selection, but that corrected path has not
+yet produced the archived results used in this manuscript.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{figures/drift_aware_forecast_evidence_head.pdf}
+\caption{Drift-Aware Forecast and Evidence Head. Context, retrieval, drift, and
+future-calendar tensors feed direct horizon regressors; the frozen
+Chronos-Bolt path is fused only at forecast level. Stored feature effects,
+retrieved cases, event identifiers, drift components, and uncertainty values
+form the evidence record.}
+\label{fig:explanation_flow}
+\end{figure*}
+
+\subsubsection{Feature-Level Forecasting and Drift Gate}
+For horizon $h$, the direct model input and prediction are
+\begin{equation}
+u_{t,h}=[q_t\,\|\,\rho(G_t)\,\|\,d_t\,\|\,c_{t+h}],
+\qquad \hat{y}^{X}_{t+h}=f_h(u_{t,h}),
+\label{eq:direct_heads}
+\end{equation}
+where $u_{t,h}\in\mathbb{R}^{152}$ for the full M09 model and each $f_h$ is an
+XGBoost regressor trained with squared-error objective. This design gives each
+forecast horizon a separate supervised function while retaining a common
+origin representation.
+Equation~(\ref{eq:direct_heads}) also accounts for the reported 152 features:
+86 context, 51 retrieval, six drift, and nine future-calendar values.
 
 The tabular fusion stage includes a lightweight drift-conditioned selector. It compares
 the strongest validation candidates separately on drift and non-drift validation
@@ -187,8 +300,11 @@ origins, then applies the selected source to the corresponding test origins:
 \end{equation}
 where $a$ and $b$ are chosen only from validation errors. This gate does not
 train a new model; it tests whether a transparent drift-specific selection rule
-can avoid applying the same forecaster in all regimes.
+can avoid applying the same forecaster in all regimes. Equation
+(\ref{eq:drift_gate}) describes the corrected notebook procedure. The reported
+M12 artifact must remain labeled post hoc until that procedure is rerun.
 
+\subsubsection{Frozen-TSFM Forecast Fusion}
 The Chronos-Bolt retrieval variant uses forecast-level fusion rather than internal
 Channel Prompting. Let $\hat{Y}^{C}_t$ be the frozen Chronos forecast and
 $\hat{Y}^{R}_t$ be the retrieved historical forecast. The fused prediction is
@@ -198,10 +314,17 @@ $\hat{Y}^{R}_t$ be the retrieved historical forecast. The fused prediction is
     \label{eq:chronos_fusion}
 \end{equation}
 where $\omega \in \{0,0.25,0.5,0.75,1.0\}$ is selected on the validation split.
-Validation selected $\omega=0.75$.
+Validation selected $\omega=0.75$. Because fusion occurs after both forecasts
+are produced, this branch does not modify Chronos-Bolt embeddings or weights.
+Equation~(\ref{eq:chronos_fusion}) is therefore an output-space interpolation,
+not an internal TSFM prompting operation.
 
-\subsection{Concept Drift Detection}
-The implementation represents operational distribution shift using transparent indicators rather than claiming perfect concept-drift identification. The indicators are recent mean shift, recent variance shift, retrieval similarity drop, weather-pattern shift, and event-burst ratio. A simple drift score can be defined as
+\subsubsection{Concept-Drift Evidence}
+The implementation represents distribution shift using transparent indicators
+rather than claiming perfect concept-drift identification. The indicators are
+recent mean shift, recent variance shift, retrieval similarity drop,
+weather-pattern shift, and event-burst ratio. A simple drift score can be
+defined as
 \begin{equation}
     D_t =
     \lambda_1 z_{\mu,t} +
@@ -209,93 +332,74 @@ The implementation represents operational distribution shift using transparent i
     \lambda_3 (1-\bar{s}_{ts,t}) +
     \lambda_4 z_{w,t} +
     \lambda_5 b_{event,t},
+    \label{eq:drift_score}
 \end{equation}
-where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts, $\bar{s}_{ts,t}$ is average retrieval similarity, $z_{w,t}$ is weather-pattern shift, and $b_{event,t}$ is an event-burst score. The implemented components are robustly scaled against training data and averaged with equal weight; the alert threshold is selected from validation scores.
+where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts,
+$\bar{s}_{ts,t}$ is average retrieval similarity, $z_{w,t}$ is
+weather-pattern shift, and $b_{event,t}$ is an event-burst score. Each raw
+component is centered by the training median, scaled by $1.4826$ times the
+training median absolute deviation, clipped to $[0,6]$, and divided by six.
+The five scaled components are averaged with equal weight. The continuous score
+in (\ref{eq:drift_score}) is thresholded at the validation 0.90 quantile to
+obtain the binary $D_t$ used in (\ref{eq:drift_gate}).
 
-\subsection{Explanation Generation}
-The explanation module generates evidence-based explanations. It uses signed local XGBoost contributions averaged across the 24 direct horizon models, weather flags, retrieved historical windows, retrieved event records, calendar context, forecast direction, component-level drift evidence, and an uncertainty proxy combining retrieved-trajectory spread with validation residual error. It does not generate explanations from an unrestricted language model. Each explanation is traceable to stored machine-readable evidence.
+\subsubsection{Evidence Record and Uncertainty Proxy}
+The explanation module uses signed local XGBoost contributions averaged across
+the 24 direct models, weather flags, the top three retrieved windows, recent
+event records, calendar context, forecast direction, and component-level drift
+evidence. Its uncertainty proxy is
+\begin{equation}
+u_t^{\mathrm{proxy}}=
+\sqrt{\bar{\sigma}_{R,t}^{,2}+\bar{e}_{val}^{,2}},
+\label{eq:uncertainty_proxy}
+\end{equation}
+where $\bar{\sigma}_{R,t}$ is the mean horizon-wise spread of the retrieved
+trajectories and $\bar{e}_{val}$ is the mean absolute validation residual. The
+result is a diagnostic scale, not a calibrated prediction interval. Each
+explanation is generated from stored fields rather than an unrestricted
+language model, and each event statement remains contextual rather than causal.
+Equation~(\ref{eq:uncertainty_proxy}) is retained only as an evidence-field
+definition and is not used to construct confidence intervals.
 
-\begin{figure}[!t]
-\centering
-\resizebox{\columnwidth}{!}{%
-\begin{tikzpicture}[
-    node distance=4mm,
-    block/.style={rectangle, rounded corners, draw=black, align=center, minimum width=28mm, minimum height=6mm, font=\scriptsize},
-    evidence/.style={rectangle, draw=black, align=center, minimum width=22mm, minimum height=6mm, font=\scriptsize, fill=gray!10},
-    arrow/.style={-Latex, thick}
-]
-\node[evidence] (features) {feature\\effects};
-\node[evidence, below=of features] (retrieved) {retrieved\\windows};
-\node[evidence, below=of retrieved] (events) {event\\IDs};
-\node[evidence, below=of events] (drift) {drift\\components};
-\node[evidence, below=of drift] (uncertainty) {uncertainty\\proxy};
-\node[block, right=12mm of events] (record) {machine-readable\\evidence record};
-\node[block, right=12mm of record] (text) {forecast\\explanation};
-
-\draw[arrow] (features.east) -- (record.west);
-\draw[arrow] (retrieved.east) -- (record.west);
-\draw[arrow] (events.east) -- (record.west);
-\draw[arrow] (drift.east) -- (record.west);
-\draw[arrow] (uncertainty.east) -- (record.west);
-\draw[arrow] (record) -- (text);
-\end{tikzpicture}
-}
-\caption{Evidence-grounded explanation flow used by Event-TimeRAF.}
-\label{fig:explanation_flow}
-\end{figure}
-
-Table~\ref{tab:timeraf_comparison} also clarifies which parts of TimeRAF were
-implemented directly and which parts were adapted for the environmental setting.
+\subsection{Relationship to TimeRAF}
+TimeRAF retrieves top-$k$ time-series windows using a learned MLP dual encoder
+and integrates candidate embeddings into a frozen TSFM through Channel
+Prompting \cite{zhang2025timeraf}. Table~\ref{tab:timeraf_comparison} identifies
+which principles are retained and which mechanisms differ. The comparison is
+methodological rather than a performance ranking because the studies use
+different datasets, horizons, and protocols.
 
 \begin{table*}[!t]
 \centering
-\caption{TimeRAF Versus Event-TimeRAF}
+\caption{Methodological Comparison of TimeRAF and Event-TimeRAF}
 \label{tab:timeraf_comparison}
 \begin{tabular}{p{0.15\textwidth}p{0.38\textwidth}p{0.39\textwidth}}
 \toprule
 Aspect & TimeRAF & Event-TimeRAF \\
 \midrule
-Primary objective & Improve zero-shot time-series forecasting by augmenting a
-frozen TSFM with retrieved external time-series knowledge. & Test whether the
-TimeRAF retrieval idea helps an official-source, event-sensitive PM2.5
-forecasting task under drift and availability constraints. \\
-Forecasting domain & Multi-domain time-series benchmarks, with zero-shot
-generalization as the main setting. & Los Angeles County hourly PM2.5
-forecasting for 2019--2024. \\
-Knowledge base & Curated time-series windows built from multi-domain or
-domain-specific datasets, normalized consistently with the query. & Hybrid
-official-source knowledge base containing PM2.5 windows, NOAA weather summaries,
-calendar signatures, and NOAA Storm Events context. \\
-Retriever & Learnable MLP-based dual encoder with dot-product scores and
-forecaster-guided retriever learning. & Random, cosine, and transparent hybrid
-similarity retrievers; no learned dual encoder is used. \\
-Candidate count & Uses top-$k$ retrieval; the TimeRAF study uses $k=8$ as the
-default and studies candidate-count sensitivity. & Uses $k=8$ as the default
-and reports sensitivity for $k \in \{1,4,8,16\}$. \\
-Knowledge integration & Channel Prompting integrates retrieved candidates into
-the frozen TSFM representation. & Feature-level fusion for XGBoost models,
-validation-selected drift gating, and validation-weighted forecast-level fusion
-for frozen Chronos-Bolt. \\
-Backbone & Frozen TSFM backbone, with TTM-Base reported as the principal
-backbone. & Direct XGBoost horizon models and frozen
-\texttt{amazon/chronos-bolt-small}. \\
-Leakage control & Uses non-overlapping knowledge-base windows and retrieval
-constraints, including avoiding same-dataset retrieval during training. & Requires
-each candidate's target window to end before the query lookback begins; validation
-and test retrieval are restricted to training-history windows. \\
-Event handling & Not an explicit component of the base method. & Adds
-availability-tagged storm-event features and source-record evidence; event
-results are labeled retrospective when strict publication timestamps are absent.
-\\
-Drift handling & Not a central module in the base method. & Adds explicit mean,
-variance, retrieval-similarity, weather, and event-burst drift indicators. \\
-Explainability & Provides retrieved-case visualizations to inspect how retrieved
-knowledge supports forecasting. & Stores evidence-grounded explanations using
-feature effects, retrieved windows, event IDs, drift components, and uncertainty
-proxies. \\
-Implementation status & Full proposed neural architecture with learnable
-retrieval and Channel Prompting. & TimeRAF-inspired domain implementation;
-learnable retriever and internal Channel Prompting remain future work. \\
+Primary objective & Improve zero-shot forecasting by augmenting a frozen TSFM
+with external time-series knowledge. & Evaluate source-audited, event-context
+retrieval for local PM2.5 forecasting under temporal shift. \\
+Forecasting domain & Multi-domain benchmark datasets. & Los Angeles County
+hourly PM2.5, 2019--2024. \\
+Knowledge base & Curated, consistently normalized time-series windows. & 191
+non-overlapping training-history windows with PM2.5, weather, calendar, and
+retrospective event context. \\
+Retriever & Learned MLP dual encoder with forecaster-guided training. & Random,
+cosine, and transparent hybrid similarity; no learned retriever. \\
+Knowledge integration & Internal Channel Prompting of candidate embeddings. &
+Feature-level XGBoost inputs and forecast-level Chronos-Bolt fusion. \\
+Backbone & Frozen TSFM, principally TTM-Base. & Direct XGBoost horizon models
+and frozen \texttt{amazon/chronos-bolt-small}. \\
+Leakage control & Non-overlapping knowledge windows and cross-dataset training
+constraints. & Candidate target must end before query lookback; validation and
+test retrieval use training history only. \\
+Event handling & Not an explicit module. & Availability-tagged NOAA Storm
+Events features and source-record evidence, reported retrospectively. \\
+Drift and explanation & Retrieved-case inspection. & Five-component drift
+audit, signed feature effects, retrieved IDs, event IDs, and uncertainty proxy. \\
+Implementation scope & Learned retriever and Channel Prompting are implemented.
+& Those mechanisms are not implemented and remain future extensions. \\
 \bottomrule
 \end{tabular}
 \end{table*}

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-label="Drift-Aware Forecast and Evidence Head internals">
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#263238"/></marker>
+<style><![CDATA[
+.label{font-family:Arial,Helvetica,sans-serif;font-size:18px;fill:#263238}
+.small{font-family:Arial,Helvetica,sans-serif;font-size:15px;fill:#5F6B73}
+.mono{font-family:Consolas,'Courier New',monospace;font-size:14px;fill:#263238}
+.group{font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:700;fill:#263238}
+.title{font-family:Arial,Helvetica,sans-serif;font-size:21px;font-weight:700;fill:#263238}
+]]></style>
+</defs>
+<rect x="0" y="0" width="1200" height="640" fill="#FFFFFF"/>
+<rect x="24" y="48" width="294" height="538" rx="12" fill="none" stroke="#5F6B73" stroke-width="1.7" stroke-dasharray="8 6"/>
+<rect x="38" y="36" width="200" height="24" fill="#FFFFFF"/>
+<text x="46" y="53" class="group" text-anchor="start" dominant-baseline="middle">Conditioning tensors</text>
+<rect x="54" y="80" width="234" height="64" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="171.0" y="102.0" class="label" text-anchor="middle" dominant-baseline="middle">Historical PM2.5</text>
+<text x="171.0" y="130" class="mono" text-anchor="middle" dominant-baseline="middle">X_t: B x 168</text>
+<rect x="54" y="180" width="234" height="64" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="171.0" y="202.0" class="label" text-anchor="middle" dominant-baseline="middle">Origin context</text>
+<text x="171.0" y="230" class="mono" text-anchor="middle" dominant-baseline="middle">q_t: B x 86</text>
+<rect x="54" y="280" width="234" height="64" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
+<text x="171.0" y="302.0" class="label" text-anchor="middle" dominant-baseline="middle">Retrieval summary</text>
+<text x="171.0" y="330" class="mono" text-anchor="middle" dominant-baseline="middle">rho(G_t): B x 51</text>
+<rect x="54" y="380" width="234" height="64" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
+<text x="171.0" y="402.0" class="label" text-anchor="middle" dominant-baseline="middle">Drift components + score</text>
+<text x="171.0" y="430" class="mono" text-anchor="middle" dominant-baseline="middle">d_t: B x 6</text>
+<rect x="54" y="480" width="234" height="64" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="171.0" y="502.0" class="label" text-anchor="middle" dominant-baseline="middle">Future calendar</text>
+<text x="171.0" y="530" class="mono" text-anchor="middle" dominant-baseline="middle">c_t+h: B x 9</text>
+<rect x="350" y="48" width="504" height="538" rx="12" fill="none" stroke="#B55C7A" stroke-width="1.7" stroke-dasharray="8 6"/>
+<rect x="364" y="36" width="150" height="24" fill="#FFFFFF"/>
+<text x="372" y="53" class="group" text-anchor="start" dominant-baseline="middle">Forecast paths</text>
+<rect x="394" y="92" width="218" height="88" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
+<text x="503.0" y="115.0" class="label" text-anchor="middle" dominant-baseline="middle">24 direct XGBoost</text>
+<text x="503.0" y="137.0" class="label" text-anchor="middle" dominant-baseline="middle">regressors (M09)</text>
+<text x="503.0" y="166" class="mono" text-anchor="middle" dominant-baseline="middle">B x 152 -&gt; B x 24</text>
+<rect x="636" y="92" width="186" height="88" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="729.0" y="115.0" class="label" text-anchor="middle" dominant-baseline="middle">Exploratory selector</text>
+<text x="729.0" y="137.0" class="label" text-anchor="middle" dominant-baseline="middle">M04 / A01</text>
+<text x="729.0" y="166" class="mono" text-anchor="middle" dominant-baseline="middle">D_t in {0,1}</text>
+<rect x="394" y="286" width="218" height="82" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="503.0" y="317.0" class="label" text-anchor="middle" dominant-baseline="middle">Frozen Chronos-Bolt</text>
+<text x="503.0" y="354" class="mono" text-anchor="middle" dominant-baseline="middle">B x 168 -&gt; B x 24</text>
+<rect x="636" y="286" width="186" height="82" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
+<text x="729.0" y="317.0" class="label" text-anchor="middle" dominant-baseline="middle">Forecast-level fusion</text>
+<text x="729.0" y="354" class="mono" text-anchor="middle" dominant-baseline="middle">omega=0.75</text>
+<polyline points="288,212 364,212 364,122 394,122" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="288,312 374,312 374,146 394,146" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="288,412 384,412 384,168 394,168" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="288,512 350,512 350,176 394,176" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="288,112 336,112 336,327 394,327" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="312.0" y="252" width="48" height="24" fill="#FFFFFF" opacity="0.94"/>
+<text x="336" y="264" class="mono" text-anchor="middle" dominant-baseline="middle">X_t</text>
+<polyline points="288,312 344,312 344,454 626,454 626,348 636,348" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="490.5" y="442" width="51.0" height="24" fill="#FFFFFF" opacity="0.94"/>
+<text x="516" y="454" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat_R</text>
+<polyline points="612,327 636,327" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="288,412 624,412 624,156 636,156" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="581.5" y="218" width="85.0" height="24" fill="#FFFFFF" opacity="0.94"/>
+<text x="624" y="230" class="mono" text-anchor="middle" dominant-baseline="middle">drift flag</text>
+<circle cx="730" cy="492" r="27" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="730" y="492" class="label" text-anchor="middle" dominant-baseline="middle">Yhat</text>
+<polyline points="612,136 624,136 624,458 703,458 703,484" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="822,136 840,136 840,472 757,472 757,492" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="729,368 760,368 760,465 746,484" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="604" y="552" class="small" text-anchor="middle" dominant-baseline="middle">Three reported prediction variants; M12 remains exploratory</text>
+<rect x="886" y="48" width="290" height="538" rx="12" fill="none" stroke="#4E7D57" stroke-width="1.7" stroke-dasharray="8 6"/>
+<rect x="900" y="36" width="150" height="24" fill="#FFFFFF"/>
+<text x="908" y="53" class="group" text-anchor="start" dominant-baseline="middle">Evidence output</text>
+<rect x="916" y="96" width="230" height="66" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="1031.0" y="119.0" class="label" text-anchor="middle" dominant-baseline="middle">Signed XGBoost effects</text>
+<text x="1031.0" y="148" class="mono" text-anchor="middle" dominant-baseline="middle">top 3 fields</text>
+<rect x="916" y="202" width="230" height="66" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="1031.0" y="225.0" class="label" text-anchor="middle" dominant-baseline="middle">Retrieved window IDs</text>
+<text x="1031.0" y="254" class="mono" text-anchor="middle" dominant-baseline="middle">top 3 cases</text>
+<rect x="916" y="308" width="230" height="66" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
+<text x="1031.0" y="331.0" class="label" text-anchor="middle" dominant-baseline="middle">Recent event IDs</text>
+<text x="1031.0" y="360" class="mono" text-anchor="middle" dominant-baseline="middle">prior 72 h</text>
+<rect x="916" y="414" width="230" height="66" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
+<text x="1031.0" y="437.0" class="label" text-anchor="middle" dominant-baseline="middle">Drift + uncertainty proxy</text>
+<text x="1031.0" y="466" class="mono" text-anchor="middle" dominant-baseline="middle">machine-readable</text>
+<polyline points="612,176 624,176 624,252 870,252 870,129 916,129" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="896,235 916,235" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="896,341 916,341" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="896,447 916,447" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<line x1="896" y1="129" x2="896" y2="447" stroke="#263238" stroke-width="1.7"/>
+<text x="1031" y="536" class="mono" text-anchor="middle" dominant-baseline="middle">7,199 evidence records</text>
+</svg>

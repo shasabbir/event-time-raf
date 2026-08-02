@@ -1,11 +1,13 @@
 \section{Experimental Setup}
 
-This section describes the reported experiment. All model-selection choices
-were fixed using the training and validation partitions before the test results
-were examined. Artifact consistency was verified using run identifier
+This section describes the reported experiment. Model-selection choices for
+M00--M11 were fixed using the training and validation partitions before the
+test results were examined. M12 is reported separately as a post-hoc
+exploratory selector and is not used to support a confirmatory claim. Artifact
+consistency was verified using run identifier
 \texttt{20260723T112033170131Z}.
 
-\subsection{Data Sources and Audit}
+\subsection{Dataset Description and Audit}
 The study period is 2019--2024. PM2.5 observations were taken from US EPA
 AirData/AQS parameter 88101 for Los Angeles County \cite{epaairdata2026}. No
 single monitoring site was used as the target series; the audited target is the
@@ -31,6 +33,8 @@ days, 2,192 source-overlap days, and three qualifying event categories. NOAA
 Storm Events does not expose machine-readable publication timestamps; therefore,
 event-aware outputs use the recorded event start time as a retrospective
 availability assumption. They are not strict real-time event forecasts.
+Figure~\ref{fig:data_audit_flow} traces these sources through the audit gates,
+and Table~\ref{tab:data_audit} reports the resulting readiness status.
 
 \begin{figure*}[!t]
 \centering
@@ -105,13 +109,21 @@ hourly calendar & Hour, weekday, weekend, month, season, and holiday features \\
 \end{tabular}
 \end{table*}
 
+Table~\ref{tab:dataset_summary} consolidates the evaluated scope and the role
+of each source in the forecasting pipeline.
+
 \subsection{Data and Code Availability}
-The raw public records are available from EPA AirData, NOAA Global Hourly/ISD,
-and NOAA Storm Events \cite{epaairdata2026,noaaisd2026,noaastormevents2026}.
+The raw public records and download pages are available from EPA AirData, NOAA
+Global Hourly/ISD, and NOAA Storm Events
+\cite{epaairdata2026,noaaisd2026,noaastormevents2026}.
 The experiment used a locally staged NOAA Storm Events cache because direct
 NCEI access was unavailable in the execution environment; every
 cached NOAA file was verified against the generated source manifest. Source code
-is available at \url{https://github.com/shasabbir/event-time-raf}.
+is available at \url{https://github.com/shasabbir/event-time-raf}. The
+implementation uses Python 3.12.13, NumPy, pandas, scikit-learn, XGBoost,
+PyTorch, and the \texttt{chronos-forecasting} package; the repository contains
+the configuration, notebooks, source modules, and tests needed to reproduce the
+pipeline when the public source files are accessible.
 
 \subsection{Forecasting Task and Split}
 The forecasting task predicts PM2.5 from one to 24 hours ahead using a 168-hour
@@ -126,8 +138,14 @@ naive, a direct XGBoost model using PM2.5 features, a direct XGBoost context
 model using PM2.5, weather, and calendar features, random retrieval, cosine
 retrieval, XGBoost with cosine retrieval features, Event-TimeRAF without drift
 features, full Event-TimeRAF with event and drift features, frozen Chronos-Bolt,
-and retrieval-augmented Chronos-Bolt forecast fusion. The foundation-model
-evaluation uses the \texttt{amazon/chronos-bolt-small} checkpoint.
+and retrieval-augmented Chronos-Bolt forecast fusion. M12 is retained as an
+exploratory drift-state selector over M04 and the auxiliary random-retrieval
+XGBoost model A01. The saved M12 artifact was assembled post hoc from test
+predictions and is not treated as a confirmatory model result. The
+foundation-model evaluation uses the
+\texttt{amazon/chronos-bolt-small} checkpoint.
+Table~\ref{tab:model_families} groups the evaluated configurations by their
+forecasting and retrieval roles.
 
 \begin{table}[!t]
 \centering
@@ -143,6 +161,7 @@ M05--M06 & Random and cosine retrieval-only baselines \\
 M07 & XGBoost with cosine retrieval features \\
 M08--M09 & Event-TimeRAF without/with drift indicators \\
 M10--M11 & Frozen Chronos-Bolt and retrieval fusion \\
+M12 & Exploratory post-hoc drift-state selector \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -158,6 +177,7 @@ run manifest include NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost
 \centering
 \caption{Experimental Hyperparameters and Runtime Settings}
 \label{tab:hyperparameters}
+\renewcommand{\arraystretch}{0.94}
 \begin{tabular}{ll}
 \toprule
 Component & Setting \\
@@ -165,30 +185,54 @@ Component & Setting \\
 Study period & 2019--2024 \\
 Lookback and horizon & $L=168$ hours, $H=24$ hours \\
 Split & 70\% train, 15\% validation, 15\% test, chronological \\
-Retrieval & $k=8$, sensitivity for $k \in \{1,4,8,16\}$ \\
-Knowledge-base stride & 192 hours \\
-Hybrid retrieval weights & time-series 0.5, weather 0.2, calendar 0.1, event 0.2 \\
-XGBoost & 350 estimators, max depth 6, learning rate 0.05, subsample 0.85,
+SACB feature groups & 23 PM2.5, 14 weather, 9 calendar, 40 event features \\
+SACB missing-data rule & Past-only filling for gaps up to 3 hours; no target interpolation \\
+LSER retrieval & $k=8$, sensitivity for $k \in \{1,4,8,16\}$ \\
+LSER knowledge base & 191 windows; 192-hour stride; training history only \\
+LSER similarity weights & time series 0.5, weather 0.2, calendar 0.1, event 0.2 \\
+DFEH direct input & 152 features for each of 24 horizon regressors \\
+DFEH XGBoost & 350 estimators, max depth 6, learning rate 0.05, subsample 0.85,
 colsample 0.85, $\lambda=1.0$ \\
-Drift detector & 24-hour recent window, 168-hour reference window,
+DFEH drift detector & 5 components; 24-hour recent window, 168-hour reference window,
 0.90 validation quantile threshold \\
-Chronos checkpoint & \texttt{amazon/chronos-bolt-small}, batch size 64 \\
-Chronos fusion weights tested & $\{0,0.25,0.5,0.75,1.0\}$; selected 0.75 \\
+DFEH Chronos path & \texttt{amazon/chronos-bolt-small}, batch size 64 \\
+DFEH fusion weights & $\{0,0.25,0.5,0.75,1.0\}$; selected $\omega=0.75$ \\
+Explanation record & Top 3 feature effects, windows, and recent event IDs \\
 Bootstrap & 500 paired block-bootstrap resamples, 24-hour blocks \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-\subsection{Metrics and Statistical Checks}
+\subsection{Evaluation Metrics and Statistical Checks}
 The primary metrics are MSE, MAE, RMSE, MAPE, sMAPE, and $R^2$. MSE is retained
 for comparability with the TimeRAF evaluation, while MAE and RMSE provide more
-interpretable PM2.5 error scales. Subset metrics are reported only when at least
+interpretable PM2.5 error scales. For $n$ observed forecast values $y_j$ and
+predictions $\hat{y}_j$, the principal error metrics are
+\begin{equation}
+\begin{aligned}
+\operatorname{MSE}&=\frac{1}{n}\sum_{j=1}^{n}(y_j-\hat{y}_j)^2,\\
+\operatorname{MAE}&=\frac{1}{n}\sum_{j=1}^{n}|y_j-\hat{y}_j|,\\
+\operatorname{RMSE}&=\sqrt{\operatorname{MSE}},
+\end{aligned}
+\label{eq:error_metrics}
+\end{equation}
+and explained variance is summarized by
+\begin{equation}
+R^2=1-\frac{\sum_{j=1}^{n}(y_j-\hat{y}_j)^2}
+{\sum_{j=1}^{n}(y_j-\bar{y})^2}.
+\label{eq:r2_metric}
+\end{equation}
+Equation~(\ref{eq:error_metrics}) is aggregated across all forecast origins and
+horizons for the overall result, while (\ref{eq:r2_metric}) uses the same set of
+points. MAPE and sMAPE are retained in machine-readable outputs but are not used
+for the main ranking because low PM2.5 values can make percentage errors
+unstable. Subset metrics are reported only when at least
 50 forecast origins are available. The event subset contains 532 origins, the
 active-event subset contains 293 origins, and the drift subset contains 560
 origins, so all pre-specified subsets satisfy the minimum sample-size criterion. Pairwise comparisons
 use paired block bootstrap intervals with 24-hour blocks and 500 resamples.
 
-\subsection{Position Relative to Existing Studies}
+\subsection{Comparison with Existing Studies}
 Direct numerical comparison with existing TSFM and air-quality papers is not
 valid because they use different datasets, forecast horizons, variables, and
 evaluation protocols. Table~\ref{tab:literature_positioning} therefore compares
@@ -196,7 +240,7 @@ methodological coverage rather than claiming cross-paper performance dominance.
 
 \begin{table*}[!t]
 \centering
-\caption{Methodological Positioning Against Related Forecasting Work}
+\caption{Methodological Comparison with Related Forecasting Work}
 \label{tab:literature_positioning}
 \begin{tabular}{p{0.18\linewidth}ccccp{0.27\linewidth}}
 \toprule

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-label="Leakage-Safe Event-Context Retriever internals">
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#263238"/></marker>
+<style><![CDATA[
+.label{font-family:Arial,Helvetica,sans-serif;font-size:18px;fill:#263238}
+.small{font-family:Arial,Helvetica,sans-serif;font-size:15px;fill:#5F6B73}
+.mono{font-family:Consolas,'Courier New',monospace;font-size:14px;fill:#263238}
+.group{font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:700;fill:#263238}
+.title{font-family:Arial,Helvetica,sans-serif;font-size:21px;font-weight:700;fill:#263238}
+]]></style>
+</defs>
+<rect x="0" y="0" width="1200" height="640" fill="#FFFFFF"/>
+<rect x="24" y="48" width="344" height="538" rx="12" fill="none" stroke="#5F6B73" stroke-width="1.7" stroke-dasharray="8 6"/>
+<rect x="38" y="36" width="200" height="24" fill="#FFFFFF"/>
+<text x="46" y="53" class="group" text-anchor="start" dominant-baseline="middle">Temporal eligibility</text>
+<text x="48" y="92" class="small" text-anchor="start" dominant-baseline="middle">past</text>
+<text x="340" y="92" class="small" text-anchor="end" dominant-baseline="middle">query time</text>
+<line x1="52" y1="116" x2="338" y2="116" stroke="#263238" stroke-width="1.7"/>
+<polyline points="52,116 338,116" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="58" y="154" width="118" height="60" rx="5" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="117.0" y="163.0" class="label" text-anchor="middle" dominant-baseline="middle">candidate</text>
+<text x="117.0" y="185.0" class="label" text-anchor="middle" dominant-baseline="middle">input</text>
+<text x="117.0" y="200" class="mono" text-anchor="middle" dominant-baseline="middle">168 h</text>
+<rect x="176" y="154" width="68" height="60" rx="5" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
+<text x="210.0" y="174.0" class="label" text-anchor="middle" dominant-baseline="middle">target</text>
+<text x="210.0" y="200" class="mono" text-anchor="middle" dominant-baseline="middle">24 h</text>
+<rect x="274" y="154" width="68" height="60" rx="5" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="308.0" y="174.0" class="label" text-anchor="middle" dominant-baseline="middle">query</text>
+<text x="308.0" y="200" class="mono" text-anchor="middle" dominant-baseline="middle">168 h</text>
+<line x1="244" y1="132" x2="244" y2="232" stroke="#5F6B73" stroke-width="1.7" stroke-dasharray="7 6"/>
+<line x1="274" y1="132" x2="274" y2="232" stroke="#5F6B73" stroke-width="1.7" stroke-dasharray="7 6"/>
+<text x="259" y="250" class="mono" text-anchor="middle" dominant-baseline="middle">strict gap</text>
+<rect x="58" y="316" width="284" height="94" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
+<text x="200.0" y="353.0" class="label" text-anchor="middle" dominant-baseline="middle">Eligibility set A_t</text>
+<text x="200.0" y="396" class="mono" text-anchor="middle" dominant-baseline="middle">candidate_end &lt; query_start</text>
+<polyline points="200,214 200,316" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="58" y="466" width="284" height="72" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="200.0" y="492.0" class="label" text-anchor="middle" dominant-baseline="middle">Training-history restriction</text>
+<text x="200.0" y="524" class="mono" text-anchor="middle" dominant-baseline="middle">validation/test queries</text>
+<polyline points="200,410 200,466" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="398" y="48" width="470" height="538" rx="12" fill="none" stroke="#B8860B" stroke-width="1.7" stroke-dasharray="8 6"/>
+<rect x="412" y="36" width="270" height="24" fill="#FFFFFF"/>
+<text x="420" y="53" class="group" text-anchor="start" dominant-baseline="middle">Hybrid similarity and top-k</text>
+<rect x="430" y="98" width="186" height="72" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="523.0" y="124.0" class="label" text-anchor="middle" dominant-baseline="middle">PM2.5 shape</text>
+<text x="523.0" y="156" class="mono" text-anchor="middle" dominant-baseline="middle">s_ts</text>
+<rect x="650" y="98" width="186" height="72" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
+<text x="743.0" y="124.0" class="label" text-anchor="middle" dominant-baseline="middle">Weather context</text>
+<text x="743.0" y="156" class="mono" text-anchor="middle" dominant-baseline="middle">s_w</text>
+<rect x="430" y="218" width="186" height="72" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="523.0" y="244.0" class="label" text-anchor="middle" dominant-baseline="middle">Calendar context</text>
+<text x="523.0" y="276" class="mono" text-anchor="middle" dominant-baseline="middle">s_c</text>
+<rect x="650" y="218" width="186" height="72" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
+<text x="743.0" y="244.0" class="label" text-anchor="middle" dominant-baseline="middle">Event context</text>
+<text x="743.0" y="276" class="mono" text-anchor="middle" dominant-baseline="middle">s_e</text>
+<circle cx="633" cy="350" r="34" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="633" y="350" class="label" text-anchor="middle" dominant-baseline="middle">sum</text>
+<polyline points="523,170 523,318 599,318 599,350" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="743,170 743,318 667,318 667,350" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="523,290 523,336 599,336" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="743,290 743,336 667,336" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="633" y="402" class="mono" text-anchor="middle" dominant-baseline="middle">0.5 s_ts + 0.2 s_w + 0.1 s_c + 0.2 s_e</text>
+<rect x="474" y="454" width="318" height="76" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="633.0" y="482.0" class="label" text-anchor="middle" dominant-baseline="middle">TopK over eligible candidates</text>
+<text x="633.0" y="516" class="mono" text-anchor="middle" dominant-baseline="middle">G_t: B x 8</text>
+<polyline points="633,384 633,454" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="898" y="48" width="278" height="538" rx="12" fill="none" stroke="#4E7D57" stroke-width="1.7" stroke-dasharray="8 6"/>
+<rect x="912" y="36" width="180" height="24" fill="#FFFFFF"/>
+<text x="920" y="53" class="group" text-anchor="start" dominant-baseline="middle">Retrieved evidence</text>
+<rect x="928" y="104" width="218" height="82" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="1037.0" y="124.0" class="label" text-anchor="middle" dominant-baseline="middle">Aligned candidate</text>
+<text x="1037.0" y="146.0" class="label" text-anchor="middle" dominant-baseline="middle">future trajectories</text>
+<text x="1037.0" y="172" class="mono" text-anchor="middle" dominant-baseline="middle">B x 8 x 24</text>
+<rect x="928" y="252" width="218" height="94" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
+<text x="1037.0" y="278.0" class="label" text-anchor="middle" dominant-baseline="middle">Uniform / score-weighted</text>
+<text x="1037.0" y="300.0" class="label" text-anchor="middle" dominant-baseline="middle">forecast</text>
+<text x="1037.0" y="332" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat_R: B x 24</text>
+<rect x="928" y="412" width="218" height="98" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
+<text x="1037.0" y="440.0" class="label" text-anchor="middle" dominant-baseline="middle">Trajectory, spread,</text>
+<text x="1037.0" y="462.0" class="label" text-anchor="middle" dominant-baseline="middle">similarity, count</text>
+<text x="1037.0" y="496" class="mono" text-anchor="middle" dominant-baseline="middle">rho(G_t): B x 51</text>
+<polyline points="792,492 884,492 884,145 928,145" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="828.75" y="368" width="110.5" height="24" fill="#FFFFFF" opacity="0.94"/>
+<text x="884" y="380" class="mono" text-anchor="middle" dominant-baseline="middle">candidate IDs</text>
+<polyline points="1037,186 1037,252" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="1037,346 1037,412" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+</svg>

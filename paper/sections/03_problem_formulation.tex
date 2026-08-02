@@ -3,12 +3,19 @@
 Let $x_t$ denote the PM2.5 measurement at time $t$. For a forecast time $t$, the historical air-quality lookback window is
 \begin{equation}
     X_t = [x_{t-L+1}, x_{t-L+2}, \ldots, x_t],
+    \label{eq:lookback}
 \end{equation}
-where $L$ is the lookback length. Let $W_t$ denote weather covariates aligned with the lookback window, $C_t$ denote calendar features, and $E_t$ denote event context obtained from the NOAA Storm Events knowledge base. The target is the future PM2.5 sequence
+where $L$ is the lookback length. Let $W_t$ denote weather covariates aligned
+with the lookback window, $C_t$ denote calendar features, and $E_t$ denote event
+context available under the recorded source assumption at the forecast origin.
+The target associated with the input in (\ref{eq:lookback}) is
 \begin{equation}
     Y_{t+1:t+H} = [x_{t+1}, x_{t+2}, \ldots, x_{t+H}],
+    \label{eq:target}
 \end{equation}
 where $H$ is the forecasting horizon.
+Equation~(\ref{eq:target}) therefore defines the 24-step vector evaluated at
+every valid origin.
 
 The forecasting goal is to learn a function
 \begin{equation}
@@ -17,12 +24,19 @@ The forecasting goal is to learn a function
     \label{eq:forecast}
 \end{equation}
 where $R^{ts}_t$ is retrieved time-series knowledge, $R^{ev}_t$ is retrieved event knowledge, and $D_t$ contains concept-drift indicators. The implemented target setting is $L=168$ hours and $H=24$ hours.
+Equation~(\ref{eq:forecast}) states the full information interface; the
+implemented modules that construct these arguments are specified in the next
+section.
 
 The evaluation uses a time-based split:
 \begin{equation}
     \mathcal{T}_{train} < \mathcal{T}_{val} < \mathcal{T}_{test},
+    \label{eq:chronological_split}
 \end{equation}
-where the earliest 70\% of observations are used for training, the next 15\% for validation, and the latest 15\% for testing. Random splitting is not used because it would leak future temporal information into training.
+where the earliest 70\% of observations are used for training, the next 15\%
+for validation, and the latest 15\% for testing. The ordering in
+(\ref{eq:chronological_split}) is retained for feature fitting, retrieval
+eligibility, model selection, and final evaluation.
 
 Table~\ref{tab:symbols} summarizes the essential notation.
 
@@ -43,6 +57,10 @@ $E_t$ & Event context available at the forecast origin \\
 $R^{ts}_t$ & Retrieved time-series knowledge \\
 $R^{ev}_t$ & Retrieved event knowledge \\
 $D_t$ & Drift indicators \\
+$q_t$ & SACB context vector in $\mathbb{R}^{86}$ \\
+$G_t$ & LSER top-$k$ retrieved set \\
+$\rho(G_t)$ & Retrieval summary in $\mathbb{R}^{51}$ \\
+$\mathcal{O}_t$ & Machine-readable DFEH evidence record \\
 $\hat{Y}_{t+1:t+H}$ & Predicted future PM2.5 values \\
 \bottomrule
 \end{tabular}

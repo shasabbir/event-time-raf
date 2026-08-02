@@ -1,20 +1,17 @@
 \section{Conclusion}
 
-This paper presented Event-TimeRAF, an event-aware retrieval-augmented framework
-for explainable Los Angeles County PM2.5 forecasting under distribution shift.
-The implemented pipeline combines official EPA PM2.5 observations, NOAA weather,
-hash-verified NOAA Storm Events records, leakage-safe time-series retrieval,
-direct XGBoost forecasters, drift indicators, evidence-based explanations, and a
-frozen Chronos-Bolt evaluation. In the 2019--2024 experiment, the drift-gated
-Event-TimeRAF variant obtains the best numerical
-all-origin result with MSE 26.111, MAE 3.116, RMSE 5.110, and $R^2$ 0.381. The
-strongest ungated supervised context model obtains MSE 26.185, while the full
-feature-level Event-TimeRAF XGBoost variant obtains MSE 26.712. Retrieval
-improves the standalone cosine baseline over random retrieval and gives a small
-favorable MSE change when fused with frozen Chronos-Bolt. The M12 drift gate
-also improves MAE over the context baseline with a negative bootstrap interval,
-although its MSE improvement is not statistically conclusive. The study
-therefore positions Event-TimeRAF as an auditable event-aware retrieval
-framework with selective empirical gains. Stricter event availability, external
-validation, and deeper foundation-model integration remain priorities for future
-research.
+This study presented Event-TimeRAF for 24-hour Los Angeles County PM2.5
+forecasting. Its Source-Audited Context Builder aligns official environmental
+records, its Leakage-Safe Event-Context Retriever enforces a strict historical
+embargo, and its Drift-Aware Forecast and Evidence Head compares direct and
+frozen-TSFM paths while retaining traceable evidence. On the 2019--2024 test
+period, the strongest pre-specified supervised context model obtains MSE 26.185,
+MAE 3.125, RMSE 5.117, and $R^2$ 0.379; the full feature-level Event-TimeRAF
+model obtains MSE 26.712. Retrieval changes frozen Chronos-Bolt MSE from 28.941
+to 28.709, but the paired interval crosses zero. The archived post-hoc M12
+selector records MSE 26.111, MAE 3.116, RMSE 5.110, and $R^2$ 0.381 and remains
+exploratory pending a clean validation-selected rerun. The study therefore
+supports source-audited retrieval as a transparent analysis framework with
+selective gains, not as a uniformly superior forecaster. Strict event issue
+times, external geographic validation, and deeper retrieval integration remain
+necessary before operational or general cross-domain claims are made.

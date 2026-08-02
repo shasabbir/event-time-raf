@@ -1,18 +1,90 @@
 \section{Literature Review and Related Work}
 
-\subsection{Time-Series Forecasting}
-Time-series forecasting has traditionally been studied through statistical models, machine-learning regressors, and deep neural networks. Autoregressive and seasonal models remain useful baselines because they are interpretable and efficient. Gradient-boosted tree models such as XGBoost and LightGBM are widely used for tabular forecasting with lagged and rolling features \cite{chen2016xgboost,ke2017lightgbm}. Recurrent models such as LSTM and GRU can capture sequential dependence \cite{hochreiter1997lstm,cho2014gru}. Transformer-based models then expanded the long-sequence forecasting literature. Informer reduces attention cost for long inputs \cite{zhou2021informer}, Autoformer and FEDformer combine decomposition with long-range dependency modeling \cite{wu2021autoformer,zhou2022fedformer}, Crossformer and iTransformer focus on multivariate channel structure \cite{zhang2023crossformer,liu2024itransformer}, and TimesNet models temporal variation through 2D transformations \cite{wu2023timesnet}. At the same time, DLinear showed that simple linear decomposition models can outperform more complex Transformer variants on some long-term forecasting benchmarks \cite{zeng2023dlinear}. PatchTST later used patching and channel-independent designs to improve long-lookback efficiency \cite{nie2023patchtst}. For air-quality forecasting, these approaches are helpful, but they may still be sensitive to distribution shifts and unobserved external events.
+\subsection{Statistical, Machine-Learning, and Deep Forecasters}
+Forecasting methods differ in how they trade inductive bias, data demand, and
+computational cost. Autoregressive and seasonal models remain informative
+baselines because their failure modes are easy to inspect. Tree ensembles such
+as XGBoost and LightGBM extend this setting to nonlinear lag, rolling, weather,
+and calendar interactions without requiring a sequence encoder
+\cite{chen2016xgboost,ke2017lightgbm}. Recurrent LSTM and GRU models instead
+learn stateful temporal representations \cite{hochreiter1997lstm,cho2014gru}.
+Large benchmark archives, including the Monash Forecasting Repository, further
+support reproducible comparison across heterogeneous time-series domains
+\cite{godahewa2021monash}.
+Transformer families emphasize longer dependencies: Informer reduces attention
+cost, Autoformer and FEDformer use decomposition, Crossformer and iTransformer
+model cross-variable structure, and TimesNet reorganizes temporal variation
+into two-dimensional patterns
+\cite{zhou2021informer,wu2021autoformer,zhou2022fedformer,zhang2023crossformer,liu2024itransformer,wu2023timesnet}.
+These gains do not imply that greater architectural complexity is always
+necessary. DLinear and PatchTST show that simple decomposition or patch-based
+inductive biases can remain highly competitive \cite{zeng2023dlinear,nie2023patchtst},
+whereas TimeMixer uses explicit multiscale decomposition and mixing
+\cite{wang2024timemixer}. Event-TimeRAF therefore retains seasonal and boosted
+tree baselines instead of treating a deep backbone as the default winner.
 
 \subsection{Time-Series Foundation Models}
-TSFMs aim to provide transferable forecasting ability across datasets and domains. TimesFM uses a decoder-only architecture for time-series forecasting \cite{das2024timesfm}. Moirai proposes a universal forecasting Transformer trained on a large-scale open time-series archive \cite{woo2024moirai,godahewa2021monash}. MOMENT provides a family of open time-series foundation models for general-purpose time-series tasks \cite{goswami2024moment}. Chronos converts time-series values into tokens and trains language-model architectures for probabilistic forecasting \cite{ansari2024chronos}. TTM proposes compact pre-trained models for efficient zero/few-shot forecasting \cite{ekambaram2024ttm}. Timer and Timer-XL study generative pre-training and long-context Transformer scaling for unified time-series forecasting \cite{liu2024timer,liu2025timerxl}. UniTime and Time-LLM connect language-model ideas with cross-domain or reprogrammed time-series forecasting \cite{liu2024unitime,jin2024timellm}. These models motivate the use of pre-trained forecasting backbones, but practical domain adaptation is still difficult when the downstream series responds strongly to local events and environmental conditions.
+Time-series foundation models (TSFMs) seek transfer across datasets rather than
+training a separate representation from scratch for each series. TimesFM uses a
+decoder-only forecasting design; Moirai trains a universal forecasting
+Transformer; MOMENT supports several time-series tasks; Chronos represents
+values as tokens; and Tiny Time Mixers emphasizes compact zero- and few-shot
+transfer
+\cite{das2024timesfm,woo2024moirai,goswami2024moment,ansari2024chronos,ekambaram2024ttm}.
+Timer, Timer-XL, UniTime, and Time-LLM explore generative pretraining,
+long-context scaling, cross-domain unification, or language-model reprogramming
+\cite{liu2024timer,liu2025timerxl,liu2024unitime,jin2024timellm}. Frozen
+pretrained models have also been evaluated as general computation engines for
+time-series analysis \cite{zhou2023onefitsall}. Collectively, these studies
+motivate zero-shot evaluation, but they also show that transfer performance
+depends on input representation and domain shift. The present study therefore
+compares frozen Chronos-Bolt against locally supervised models on identical
+forecast origins rather than assuming foundation-model superiority.
 
 \subsection{Retrieval-Augmented Forecasting}
-Retrieval-augmented generation first became popular in NLP by combining parametric models with non-parametric memory \cite{lewis2020rag}. Dense Passage Retrieval (DPR) introduced dense dual-encoder retrieval for open-domain question answering \cite{karpukhin2020dpr}. Retrieval ideas have also been adapted to time-series settings through retrieval-augmented diffusion forecasting and RAG-assisted time-series generation workflows \cite{liu2024ratd,ang2024tsgassist}. TimeRAF adapts the retrieval-augmentation idea to zero-shot time-series forecasting \cite{zhang2025timeraf}. The TimeRAF study frames retrieval-augmented forecasting around three design questions: what knowledge base should support the forecaster, how relevant time-series knowledge should be retrieved, and how retrieved candidates should be integrated into a frozen TSFM. Its solution constructs a time-series knowledge base, retrieves top-$k$ candidate windows using a learnable MLP-based dual-encoder retriever, and combines retrieved candidates through Channel Prompting. TimeRAF reports TTM-Base as its main backbone, a context length of 512, a forecast horizon of 96 in most experiments, and $k=8$ as the default number of retrieved candidates. Its ablations compare random retrieval, cosine retrieval, learnable retrieval, alternative integration mechanisms, candidate counts, knowledge-base choices, and backbone choices.
+Retrieval augmentation separates parametric knowledge from an external memory.
+In natural-language processing, RAG and Dense Passage Retrieval established the
+retrieve-then-condition pattern \cite{lewis2020rag,karpukhin2020dpr}. In time
+series, retrieval has been studied through diffusion forecasting and assisted
+generation workflows \cite{liu2024ratd,ang2024tsgassist}. TimeRAF provides the
+closest methodological reference: it constructs a time-series knowledge base,
+trains an MLP dual-encoder retriever, selects top-$k$ candidates, and integrates
+candidate embeddings into a frozen TSFM through Channel Prompting
+\cite{zhang2025timeraf}. Its ablations separate retrieval quality, integration,
+candidate count, knowledge-base composition, and backbone choice.
 
-Event-TimeRAF follows the TimeRAF principle but changes both the knowledge source and the target domain. Instead of relying only on numerical time-series retrieval, it uses a hybrid knowledge base containing historical PM2.5 windows, weather summaries, calendar context, and event evidence. The implemented system is TimeRAF-inspired rather than a full reproduction: it evaluates random retrieval, cosine retrieval, event-aware hybrid retrieval, drift-aware feature fusion, frozen Chronos-Bolt, and retrieval-augmented Chronos-Bolt forecast fusion, while a learnable dual-encoder retriever and full Channel-Prompting neural integration remain future extensions.
+Event-TimeRAF retains the external-memory principle but addresses a different
+experimental question. It uses transparent random, cosine, and event-context
+similarity instead of a learned dual encoder, and it uses feature- or
+forecast-level fusion instead of internal Channel Prompting. This distinction
+prevents the current implementation from being described as a reproduction of
+TimeRAF; it is an audited environmental adaptation designed to test whether
+contextual historical analogues help a local PM2.5 task.
 
-\subsection{Air-Quality Forecasting and Data Sources}
-PM2.5 forecasting often uses historical pollutant measurements together with meteorological factors such as temperature, humidity, wind speed, precipitation, and pressure. Recent PM2.5 studies and reviews show a shift from single-station recurrent models toward deep learning, attention mechanisms, and hybrid spatiotemporal workflows \cite{zhou2024pm25review,zhang2023sparsepm25}. These studies motivate the use of meteorology, temporal context, and spatial/event structure, but they usually evaluate learned forecasters rather than source-audited retrieval evidence. The US Environmental Protection Agency publishes quality-controlled hourly observations through AirData and the Air Quality System \cite{epaairdata2026}. NOAA's Integrated Surface Database provides hourly meteorological observations from surface stations \cite{noaaisd2026}. NOAA also publishes structured Storm Events records and historical Hazard Mapping System fire and smoke products \cite{noaastormevents2026,noaahms2026}. These official sources support a source-preserving Los Angeles County forecasting pipeline without requiring manually authored event records.
+\subsection{Air-Quality Forecasting and Official Context}
+PM2.5 forecasting commonly combines pollutant history with temperature,
+humidity, wind, precipitation, and pressure. Recent reviews describe a shift
+from single-station recurrent models toward attention-based, hybrid, and
+spatiotemporal systems \cite{zhou2024pm25review,zhang2023sparsepm25}. AirFormer,
+for example, separates deterministic spatiotemporal modeling from stochastic
+uncertainty estimation at nationwide scale \cite{liang2023airformer}. Such
+multi-station designs address spatial dependence, whereas the present study
+examines a county-level aggregate and the provenance of contextual evidence.
+EPA AirData supplies regulated PM2.5 observations, NOAA Integrated Surface
+Database supplies hourly meteorology, and NOAA Storm Events supplies structured
+hazard records \cite{epaairdata2026,noaaisd2026,noaastormevents2026}. NOAA
+Hazard Mapping System products could add smoke evidence but were not included in
+the reported run \cite{noaahms2026}.
 
-\subsection{Explainable and Event-Aware Forecasting}
-Explainability is important in environmental forecasting because users need to understand why a model predicts a rise or fall in pollution. SHAP values provide a model-agnostic framework for estimating feature contributions \cite{lundberg2017shap}. However, explanations based only on feature importance may miss temporal and contextual cues. Event-TimeRAF therefore generates explanations from structured evidence: recent PM2.5 persistence, weather flags, retrieved similar historical windows, retrieved event records, calendar context, and drift indicators. The explanation module uses templates grounded in stored evidence, not unrestricted language-model generation.
+\subsection{Distribution Shift and Forecast Explanations}
+Temporal nonstationarity can alter means, variances, and relationships between
+inputs and future values. Adaptive normalization methods address this problem by
+estimating statistics at local temporal scales \cite{liu2023san}; Event-TimeRAF
+instead uses interpretable shift indicators to audit regimes without claiming
+that shift has been eliminated. Explanation methods also differ in scope. SHAP
+attributes predictions to model inputs \cite{lundberg2017shap}, while
+information-theoretic saliency supports counterfactual inspection of
+probabilistic forecasts \cite{raman2023forecast}. The implemented explanation
+layer is narrower: it records signed XGBoost effects, retrieved cases, event
+identifiers, drift components, and an uncertainty proxy. These records support
+traceability, but they do not establish causal effects of weather or events.

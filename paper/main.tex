@@ -18,9 +18,35 @@
 \begin{document}
 
 \maketitle
+\pagestyle{plain}
+\thispagestyle{plain}
 
 \begin{abstract}
-Urban air-quality forecasting is important for public-health warnings, environmental management, and city-scale decision support. Time-series foundation models have recently shown promising zero-shot forecasting capability, and TimeRAF demonstrates that retrieval augmentation can supplement a frozen forecasting backbone with useful historical knowledge. However, PM2.5 variation is strongly affected by local context such as meteorology, holidays, high-wind events, heavy rain, wildfire activity, and other environmental disturbances. This paper introduces Event-TimeRAF, an event-aware retrieval-augmented framework for Los Angeles County PM2.5 forecasting. Event-TimeRAF builds a source-preserving knowledge base from official air-quality, weather, calendar, and storm-event records; retrieves causally eligible historical windows; fuses retrieved evidence with tabular forecasters and a frozen Chronos-Bolt foundation model; and generates evidence-grounded explanations under an explicit drift audit. We evaluate the framework on EPA AirData PM2.5, NOAA Global Hourly weather, and hash-verified NOAA Storm Events records for 2019--2024. A lightweight drift-gated Event-TimeRAF variant obtains the strongest numerical result with MSE 26.111, MAE 3.116, RMSE 5.110, and $R^2$ 0.381. The strongest ungated supervised context baseline obtains MSE 26.185, while the full feature-level Event-TimeRAF XGBoost variant obtains MSE 26.712. The frozen Chronos-Bolt baseline obtains MSE 28.941, and retrieval-augmented Chronos reduces it to MSE 28.709. These results show that retrieval is beneficial in selected settings, especially for the frozen foundation-model fusion and drift-gated selection, but the MSE gain over the strongest context baseline is small and not statistically conclusive. Because NOAA Storm Events lacks machine-readable publication timestamps, event-aware results are reported as retrospective event-start sensitivity results rather than strict real-time event forecasts.
+Short-horizon PM2.5 forecasting is complicated by meteorological variation,
+calendar effects, environmental events, and distribution shift. Although
+time-series foundation models provide transferable forecasting capability and
+TimeRAF shows how historical retrieval can augment a frozen forecaster,
+numerically similar windows need not share the local conditions that govern
+urban air quality. This study presents Event-TimeRAF, an event-aware retrieval
+framework comprising a Source-Audited Context Builder, a Leakage-Safe
+Event-Context Retriever, and a Drift-Aware Forecast and Evidence Head. The
+framework aligns official air-quality, weather, calendar, and storm-event
+records; restricts retrieval to training-history windows whose targets precede
+the query lookback; evaluates feature-level XGBoost and forecast-level frozen
+Chronos-Bolt fusion; and stores traceable explanation evidence. Evaluation uses
+EPA AirData PM2.5, NOAA Global Hourly weather, and hash-verified NOAA Storm
+Events records for Los Angeles County from 2019 through 2024, with a 168-hour
+lookback and a 24-hour horizon. The strongest pre-specified supervised context
+baseline obtains MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$ 0.379, whereas the
+full feature-level Event-TimeRAF model obtains MSE 26.712. Frozen Chronos-Bolt
+obtains MSE 28.941, and retrieval fusion reduces it to 28.709, although the
+paired confidence interval crosses zero. A post-hoc exploratory drift selector
+records the lowest numerical MSE of 26.111, with MAE 3.116, RMSE 5.110, and
+$R^2$ 0.381; a clean validation-selected rerun is required before treating this
+value as confirmatory. The evidence supports selective rather than uniform
+retrieval gains. Because Storm Events lacks machine-readable publication
+timestamps, event-conditioned findings are retrospective sensitivity results,
+not strict real-time forecasts.
 \end{abstract}
 
 \begin{IEEEkeywords}

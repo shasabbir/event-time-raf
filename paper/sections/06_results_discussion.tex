@@ -1,21 +1,21 @@
 \section{Results and Discussion}
 
+\subsection{Overall Comparison with Baselines}
 Table~\ref{tab:main_results} reports the test-set results. The strongest
-numerical model is the drift-gated Event-TimeRAF variant M12, which obtains MSE
-26.111, MAE 3.116, RMSE 5.110, and $R^2$ 0.381. M12 is a prediction-level
-selector over already trained forecasters: outside drift it follows the
-validation-selected non-drift source, and during drift it follows the
-validation-selected drift source. The strongest ungated supervised context model
-is M04, which uses PM2.5 history, weather, and calendar features and obtains MSE
-26.185 and MAE 3.125. The full feature-level Event-TimeRAF XGBoost variant M09
-obtains MSE 26.712 and MAE 3.149. Therefore, the results support a modest
-drift-gated improvement, but it does not support a claim that the full
-feature-level Event-TimeRAF model uniformly dominates the strongest context
-baseline.
+pre-specified supervised result is M04, which uses PM2.5 history, weather, and
+calendar features and obtains MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$
+0.379. The full feature-level Event-TimeRAF model M09 obtains MSE 26.712 and MAE
+3.149; event-context retrieval and drift features therefore do not improve the
+all-origin error over M04 in this run. M12 records the lowest numerical values,
+with MSE 26.111, MAE 3.116, RMSE 5.110, and $R^2$ 0.381, but its saved selection
+log states that the rule was derived post hoc from test predictions. M12 is
+therefore an exploratory upper-bound analysis. A clean rerun of the
+validation-selection procedure in (\ref{eq:drift_gate}) is required before M12
+can be treated as a primary result.
 
 \begin{table*}[!t]
 \centering
-\caption{Overall Test Results for 24-Hour PM2.5 Forecasting}
+\caption{Overall Test Results for 24-Hour PM2.5 Forecasting. M12 is a Post-Hoc Exploratory Selector}
 \label{tab:main_results}
 \begin{tabular}{lrrrr}
 \toprule
@@ -46,19 +46,21 @@ comparison gives an MSE difference of -0.233 with a 95\% interval from -0.665 to
 0.152, so the direction is favorable but not conclusive under this uncertainty
 estimate. MAE changes from 3.205 to 3.209, which is practically flat.
 
-Table~\ref{tab:ablation_results} summarizes the main ablation comparisons. The
+\subsection{Ablation Study}
+Table~\ref{tab:ablation_results} summarizes the component-wise ablation comparisons. The
 clearest supported gain is from adding weather and calendar context to the
 PM2.5-only XGBoost model: MSE decreases by 3.764 and the confidence interval is
 fully below zero. Cosine retrieval improves over random retrieval in the
 retrieval-only setting. In contrast, adding cosine retrieval features to the
 already strong XGBoost context model does not improve the all-origin result in
 this run. Event-hybrid retrieval and drift indicators also do not show a clear
-overall improvement beyond the context baseline. The M12 drift gate improves
-MAE relative to M04 with a fully negative confidence interval
-($-0.0097$, 95\% CI $[-0.0185,-0.0013]$), but its MSE interval crosses zero.
+overall improvement beyond the context baseline. The exploratory M12 selector
+has lower MAE than M04 with a fully negative interval
+($-0.0097$, 95\% CI $[-0.0185,-0.0013]$), but its MSE interval crosses zero and
+the post-hoc selection prevents confirmatory interpretation.
 The auxiliary A01 source is an XGBoost random-retrieval variant used only for
 the drift-gate selection analysis. The M12 result should therefore be described
-as the best numerical model rather than a statistically decisive MSE win.
+as an exploratory numerical bound rather than a statistically decisive win.
 
 \begin{table*}[!t]
 \centering
@@ -68,18 +70,24 @@ as the best numerical model rather than a statistically decisive MSE win.
 \toprule
 Comparison & MSE diff. & 95\% CI low & 95\% CI high \\
 \midrule
-M04 minus M03, weather/calendar & -3.764 & -5.856 & -2.071 \\
-M06 minus M05, cosine/random retrieval & -4.284 & -5.862 & -2.759 \\
-M07 minus M04, retrieval features & 0.487 & 0.015 & 1.028 \\
-M08 minus M07, event hybrid & 0.005 & -0.292 & 0.275 \\
-M09 minus M08, drift indicators & 0.035 & -0.101 & 0.161 \\
-M09 minus M04, full Event-TimeRAF & 0.528 & -0.026 & 1.182 \\
-M11 minus M10, Chronos retrieval & -0.233 & -0.665 & 0.152 \\
-M12 minus M04, drift gate & -0.073 & -0.244 & 0.107 \\
+M04 minus M03, SACB weather/calendar & -3.764 & -5.856 & -2.071 \\
+M06 minus M05, LSER cosine/random ranking & -4.284 & -5.862 & -2.759 \\
+M07 minus M04, LSER retrieval summary & 0.487 & 0.015 & 1.028 \\
+M08 minus M07, LSER event-hybrid ranking & 0.005 & -0.292 & 0.275 \\
+M09 minus M08, DFEH drift indicators & 0.035 & -0.101 & 0.161 \\
+M09 minus M04, SACB+LSER+DFEH & 0.528 & -0.026 & 1.182 \\
+M11 minus M10, DFEH Chronos fusion & -0.233 & -0.665 & 0.152 \\
+M12 minus M04, DFEH drift gate & -0.073 & -0.244 & 0.107 \\
 M12 minus A01, auxiliary gate source & -0.062 & -0.182 & 0.031 \\
 \bottomrule
 \end{tabular}
 \end{table*}
+
+The ablation does not form a monotone accuracy progression: weather-calendar
+context earns its place, cosine retrieval is useful relative to random retrieval
+in the retrieval-only path, and the measured event and drift additions do not
+improve the strongest context model. This non-monotonic pattern is retained
+rather than implying that every named component increases accuracy.
 
 The $k$ sensitivity results in Table~\ref{tab:k_sensitivity} show that the
 retrieval-only cosine baseline improves as more neighbors are used within the
@@ -103,15 +111,17 @@ $k$ & MSE & MAE & RMSE \\
 \end{tabular}
 \end{table}
 
+\subsection{Event and Drift Subsets}
 Table~\ref{tab:event_drift_results} reports representative event and drift
 subsets for the strongest context model, the full Event-TimeRAF model, the
 drift-gated Event-TimeRAF variant, and the two Chronos variants. All subsets
 satisfy the pre-specified minimum sample-size criterion. The event subset has lower MSE than the non-event
 subset for these models, which should not be interpreted as events being easier
 in general; it reflects the particular 2024 test-period event hours retained by
-the audit. On drift-flagged origins, M12 matches the M04 MSE because the gate
-selects the context model for that regime, while M12 improves the non-drift and
-event subsets slightly through its non-drift source.
+the audit. On drift-flagged origins, the exploratory M12 output matches M04
+because its post-hoc rule selects the context model for that regime, while it
+follows A01 on non-drift origins. These values describe the archived exploratory
+rule and are not an independent validation of the gate.
 
 \begin{table*}[!t]
 \centering
@@ -139,50 +149,54 @@ Drift & M11 Chronos + retrieval & 560 & 28.198 & 3.580 \\
 \end{tabular}
 \end{table*}
 
+\subsection{Horizon-Wise and Retrieval Diagnostics}
 Fig.~\ref{fig:mse_horizon} and Fig.~\ref{fig:mae_horizon} show horizon-wise
 test errors. Fig.~\ref{fig:retrieval_diagnostics} summarizes retrieval behavior,
 and Fig.~\ref{fig:drift_scores} shows the drift-score distribution across the
-test period. These plots are generated directly from a consistent set of saved
-artifacts identified by \texttt{20260723T112033170131Z}.
+test period. Figure~\ref{fig:forecast_case} shows a representative test-origin
+forecast, allowing M04 and M09 to be compared with the observed target. These
+plots are generated from saved artifacts identified by
+\texttt{20260723T112033170131Z}; M12 was added after the manifest-recorded run
+and is treated separately as described above.
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\columnwidth]{figures/mse_by_horizon.png}
-\caption{MSE by forecast horizon on the test set.}
+\includegraphics[width=0.95\columnwidth]{figures/mse_by_horizon.png}
+\caption{MSE by forecast horizon on the Los Angeles County test set.}
 \label{fig:mse_horizon}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\columnwidth]{figures/mae_by_horizon.png}
-\caption{MAE by forecast horizon on the test set.}
+\includegraphics[width=0.95\columnwidth]{figures/mae_by_horizon.png}
+\caption{MAE by forecast horizon on the Los Angeles County test set.}
 \label{fig:mae_horizon}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\columnwidth]{figures/retrieval_diagnostics.png}
-\caption{Retrieval diagnostics on the test set.}
+\includegraphics[width=0.95\columnwidth]{figures/retrieval_diagnostics.png}
+\caption{Similarity and candidate diagnostics for test-set retrieval.}
 \label{fig:retrieval_diagnostics}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\columnwidth]{figures/drift_scores.png}
-\caption{Drift-score diagnostics on the test set.}
+\includegraphics[width=0.95\columnwidth]{figures/drift_scores.png}
+\caption{Composite drift-score diagnostics on the test set.}
 \label{fig:drift_scores}
 \end{figure}
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\columnwidth]{figures/forecast_case.png}
-\caption{Representative forecast case from the test set.}
+\includegraphics[width=0.95\columnwidth]{figures/forecast_case.png}
+\caption{Representative 24-hour forecast case from the test set.}
 \label{fig:forecast_case}
 \end{figure}
 
-\subsection{Explainability Analysis}
+\subsection{Explainability and Evidence Analysis}
 
-Explainability is implemented as a source-grounded evidence record rather than
+Within the DFEH, explainability is implemented as a source-grounded evidence record rather than
 as a post-hoc free-text interpretation. For each evaluated forecast origin, the
 pipeline stores the run identifier, window identifier, origin timestamp,
 retrieved historical evidence identifiers, event evidence identifiers, leading
@@ -228,6 +242,8 @@ NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost 3.2.0, PyTorch
 the configuration SHA-256 hash and artifact checksums. The CPU, GPU, and RAM
 model identifiers were not saved in the manifest; therefore this paper reports
 runtime and software versions but does not claim hardware-normalized efficiency.
+Table~\ref{tab:compute_summary} lists the reproducibility fields retained by
+the archived run.
 
 \begin{table}[!t]
 \centering
@@ -253,12 +269,13 @@ Code availability & \url{https://github.com/shasabbir/event-time-raf} \\
 The main interpretation is that conventional supervised context features are
 very strong for this Los Angeles County 24-hour PM2.5 task. Retrieval is useful
 as a standalone historical-pattern baseline, gives a small favorable MSE change
-when fused with frozen Chronos-Bolt, and improves the best numerical result when
-used through a drift-gated selector. However, the present feature-level
+when fused with frozen Chronos-Bolt, and participates in an exploratory
+drift-gated result. However, the present feature-level
 Event-TimeRAF design does not beat the best XGBoost context baseline overall.
 Event-TimeRAF should therefore be presented as an implemented and audited
 event-aware retrieval framework with selective gains, not as a uniformly
-superior forecasting model.
+superior forecasting model. The archived M12 result does not alter that primary
+conclusion because its selection used test predictions post hoc.
 
 Finally, all event-aware interpretations must be read with the availability
 caveat. NOAA Storm Events records are official and hash-verified, but the source

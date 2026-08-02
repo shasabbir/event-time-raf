@@ -1,26 +1,37 @@
-\section{Limitations and Future Work}
+\section{Limitations}
 
-The most important limitation is event availability. NOAA Storm Events records
-are official and source-verified, but the public detail files do not provide
-machine-readable publication timestamps. The event-aware component therefore
-uses event start time as the availability proxy. This makes the reported
-event-aware results retrospective sensitivity results rather than strict
-operational nowcasts. A production deployment would require sources with
-auditable issue times, such as alert archives, smoke products, or an HMS cache
-with verified timestamps.
+The first limitation is event availability. NOAA Storm Events records are
+official and hash-verified, but the public detail files do not provide
+machine-readable publication timestamps. The SACB therefore uses event start as
+an availability proxy, making event-conditioned results retrospective
+sensitivity analyses rather than operational forecasts.
 
-The second limitation is external validation. The experiment evaluates one
-carefully audited setting: Los Angeles County PM2.5 from 2019--2024. This is
-appropriate for an initial site-specific evaluation, but it does not establish
-geographic generalization. Future work should repeat the same protocol on
-another U.S. county or city with different meteorology, emissions, and event
-profiles.
+The second limitation is geographic validation. The experiment covers one
+county-level PM2.5 aggregate from 2019 through 2024. It does not establish
+transfer to another county, monitoring topology, climate, or emissions regime,
+and therefore does not satisfy the external-validation standard for a mature
+generalization claim.
 
-The third limitation concerns model integration. Event-TimeRAF currently uses
-retrieved trajectories and event context as feature-level evidence, a lightweight
-validation-selected drift gate, and a frozen Chronos-Bolt evaluation. This
-provides less expressive retrieval integration than a learnable
-retrieval-and-prompting architecture that directly conditions the foundation
-model. Future work should test a learnable retriever, richer event-type
-embeddings, calibrated uncertainty estimation, and a closer adaptation of
-TimeRAF-style Channel Prompting for environmental forecasting.
+The third limitation concerns model integration. The LSER uses transparent
+similarity functions rather than a learned retriever, and the DFEH combines
+Chronos-Bolt and retrieval only at forecast level. Event-TimeRAF therefore does
+not reproduce TimeRAF's learned dual encoder or internal Channel Prompting.
+
+The fourth limitation is the archived M12 analysis. Its source-selection log is
+explicitly post hoc with respect to saved test predictions, even though the
+current notebook implements validation-only selection for a future rerun. The
+M12 value is consequently exploratory. Hardware model identifiers and peak
+memory were also absent from the run manifest, so runtime cannot be interpreted
+as a hardware-normalized efficiency result.
+
+\section{Future Work}
+
+The immediate priority is a clean rerun that records validation-selected M12
+sources and all downstream artifacts in one manifest. Operational event studies
+should then replace event-start proxies with archives that expose genuine issue
+or publication times. External validation should apply the unchanged protocol
+to a second US county with distinct meteorology and emissions. Longer-term work
+may evaluate a learned event-context retriever, richer event embeddings,
+calibrated probabilistic uncertainty, and internal TSFM conditioning. Those
+extensions should be introduced only with component-wise ablations and without
+changing the source audit or temporal embargo.
