@@ -18,7 +18,7 @@
 {\small Verified against run \texttt{20260723T112033170131Z}}
 
 \vspace{3pt}
-\textbf{Evidence contract.} The executed verification notebook checks all 69
+\textbf{Evidence contract.} The executed verification notebook checks all 43
 manifest artifacts by SHA-256, reruns saved predictors, reconstructs metrics
 from 172,776 test forecast points, reruns paired block-bootstrap ablations, and
 regenerates the manuscript figures. The immutable file
@@ -31,7 +31,7 @@ regenerates the manuscript figures. The immutable file
 \toprule
 \textbf{Claim} & \textbf{Checked how} & \textbf{Result} \\
 \midrule
-Run artifacts are unchanged and attributable & Recomputed SHA-256 for all 69 files listed in the archived manifest & \C \\
+Run artifacts are unchanged and attributable & Recomputed SHA-256 for all 43 files listed in the archived manifest & \C \\
 48,332 windows; 34,020/7,113/7,199 chronological split & Reconstructed saved NPZ arrays and joined window metadata; asserted shapes and split counts & \C \\
 Context/model dimensions are 86 and 152 & Counted saved feature names and inspected the M09 model: 23+14+9+39=85; 85+51+6+9=151 & \R \\
 M04 reports MSE/MAE/RMSE/$R^2$ of 26.185/3.125/5.117/0.379 & Executed archived M04 on the reconstructed test matrix and recomputed all four metrics & \C \\

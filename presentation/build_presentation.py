@@ -255,7 +255,7 @@ def build():
     add_panel(slide, 6.78, 1.45, 5.93, 5.35, BLUE_LIGHT, TEAL)
     add_text(slide, "Evidence contract", 7.10, 1.76, 4.9, 0.35, 17, True, TEAL)
     add_rich_lines(slide, [
-        ("69/69  ", "manifest SHA-256 checks pass", TEAL),
+        ("43/43  ", "manifest SHA-256 checks pass", TEAL),
         ("M00-M11  ", "saved predictions reproduced", TEAL),
         ("M12  ", "excluded; created after the manifest", ROSE),
         ("Events  ", "retrospective, not strict real time", ROSE),
@@ -407,7 +407,7 @@ def build():
     add_panel(slide, 8.10, 1.42, 4.58, 4.95, TEAL_LIGHT, TEAL)
     add_text(slide, "Live run order", 8.46, 1.78, 3.7, 0.34, 18, True, TEAL)
     add_rich_lines(slide, [
-        ("1  ", "Verify 69 hashes", TEAL),
+        ("1  ", "Verify 43 hashes", TEAL),
         ("2  ", "Rebuild data and retrieval", TEAL),
         ("3  ", "Rerun M00-M11", TEAL),
         ("4  ", "Recompute metrics + ablations", TEAL),

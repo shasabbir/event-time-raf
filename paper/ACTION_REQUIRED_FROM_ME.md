@@ -10,7 +10,7 @@
    An authenticated Overleaf link cannot be created locally.
 3. Rehearse the live run of
    `notebooks/03_paper_claim_verification.ipynb` in the presentation environment
-   with `event_timeraf_final_run.zip` available. Show the 69/69 hash table,
+   with `event_timeraf_final_run.zip` available. Show the 43/43 hash table,
    prediction reconciliation, metrics, ablations, and final pass message.
 4. Read and approve every sentence, verify the bibliography against the cited
    sources, and run the institution's originality/AI-use check. The verification

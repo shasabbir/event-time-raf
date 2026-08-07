@@ -22,7 +22,7 @@ must print:
 FINAL VERIFICATION STATUS: PASS WITH EXPLICIT LIMITATIONS
 ```
 
-The notebook checks all 69 manifest hashes, reconstructs the saved dataset and
+The notebook checks all 43 manifest hashes, reconstructs the saved dataset and
 retrieval evidence, reruns M00--M11, recomputes every manuscript metric and
 ablation, regenerates all nine figures, and applies source-level claim gates.
 It uses archived trained models so that a live run is short. The full original

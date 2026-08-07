@@ -3,7 +3,7 @@
 ## Claim verification
 
 - Added `notebooks/03_paper_claim_verification.ipynb`, an executed top-to-bottom
-  companion that verifies all 69 manifest hashes, reconstructs the test data and
+  companion that verifies all 43 manifest hashes, reconstructs the test data and
   retrieval knowledge base, reruns M00--M11, recomputes metrics and ablations,
   regenerates all nine manuscript figures, and ends with a claim gate.
 - Corrected the SACB origin vector from 86 to 85 features and the M09

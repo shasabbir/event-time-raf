@@ -73,6 +73,6 @@ archived models rather than retraining. Full training remains the Kaggle job.
 1. Place `event_timeraf_final_run.zip` in the repository root.
 2. Open `notebooks/03_paper_claim_verification.ipynb`.
 3. Restart the kernel and run all cells.
-4. Show the 69/69 manifest check, model reconciliation table, main metrics,
+4. Show the 43/43 manifest check, model reconciliation table, main metrics,
    ablation table, and final `PASS WITH EXPLICIT LIMITATIONS` message.
 5. Keep `paper/verification_log.pdf` open for claim-level questions.
