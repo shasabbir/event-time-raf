@@ -6,8 +6,6 @@
 \usepackage{cite}
 \usepackage{graphicx}
 \usepackage{multirow}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 
@@ -40,11 +38,10 @@ lookback and a 24-hour horizon. The strongest pre-specified supervised context
 baseline obtains MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$ 0.379, whereas the
 full feature-level Event-TimeRAF model obtains MSE 26.712. Frozen Chronos-Bolt
 obtains MSE 28.941, and retrieval fusion reduces it to 28.709, although the
-paired confidence interval crosses zero. A post-hoc exploratory drift selector
-records the lowest numerical MSE of 26.111, with MAE 3.116, RMSE 5.110, and
-$R^2$ 0.381; a clean validation-selected rerun is required before treating this
-value as confirmatory. The evidence supports selective rather than uniform
-retrieval gains. Because Storm Events lacks machine-readable publication
+paired confidence interval crosses zero. These values are recomputed from
+7,199 test origins and manifest-backed prediction artifacts. The evidence
+supports selective rather than uniform retrieval gains. Because Storm Events
+lacks machine-readable publication
 timestamps, event-conditioned findings are retrospective sensitivity results,
 not strict real-time forecasts.
 \end{abstract}

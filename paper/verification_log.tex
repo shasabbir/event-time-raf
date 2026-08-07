@@ -1,0 +1,61 @@
+\documentclass[9pt]{article}
+\usepackage[letterpaper,landscape,margin=0.42in]{geometry}
+\usepackage{array,booktabs,colortbl,tabularx,xcolor}
+\usepackage[hidelinks]{hyperref}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.08}
+\definecolor{confirmed}{HTML}{E8F3EC}
+\definecolor{corrected}{HTML}{FFF2D6}
+\definecolor{flagged}{HTML}{F9E3E3}
+\newcommand{\C}{\cellcolor{confirmed}\textbf{Confirmed}}
+\newcommand{\R}{\cellcolor{corrected}\textbf{Corrected}}
+\newcommand{\F}{\cellcolor{flagged}\textbf{Flagged unverified}}
+
+\begin{document}
+{\Large\bfseries Event-TimeRAF: AI Claim Verification Log}\hfill
+{\small Verified against run \texttt{20260723T112033170131Z}}
+
+\vspace{3pt}
+\textbf{Evidence contract.} The executed verification notebook checks all 69
+manifest artifacts by SHA-256, reruns saved predictors, reconstructs metrics
+from 172,776 test forecast points, reruns paired block-bootstrap ablations, and
+regenerates the manuscript figures. The immutable file
+\texttt{event\_timeraf\_final\_run.zip} is the numerical source of truth.
+
+\vspace{3pt}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.27\textwidth}
+>{\raggedright\arraybackslash}X
+>{\raggedright\arraybackslash}p{0.18\textwidth}}
+\toprule
+\textbf{Claim} & \textbf{Checked how} & \textbf{Result} \\
+\midrule
+Run artifacts are unchanged and attributable & Recomputed SHA-256 for all 69 files listed in the archived manifest & \C \\
+48,332 windows; 34,020/7,113/7,199 chronological split & Reconstructed saved NPZ arrays and joined window metadata; asserted shapes and split counts & \C \\
+Context/model dimensions are 86 and 152 & Counted saved feature names and inspected the M09 model: 23+14+9+39=85; 85+51+6+9=151 & \R \\
+M04 reports MSE/MAE/RMSE/$R^2$ of 26.185/3.125/5.117/0.379 & Executed archived M04 on the reconstructed test matrix and recomputed all four metrics & \C \\
+Full M09 improves on M04 & Executed M09; MSE is 26.712 versus 26.185 for M04; paired M09--M04 interval is $[-0.026,1.182]$ & \R \\
+Retrieval improves frozen Chronos-Bolt conclusively & Rebuilt validation-selected fusion; MSE changes 28.941 to 28.709, but paired interval $[-0.665,0.152]$ crosses zero & \R \\
+Component-ablation values are measured & Reran eight prediction-level comparisons with 500-resample, 24-hour paired block bootstrap & \C \\
+M12 drift gating is a verified final result & Checked manifest membership and hashes; M12 appears only in post-manifest edited artifacts and was removed from the paper & \R \\
+Seeded random retrieval is bitwise portable & Compared a NumPy 2.4.1 replay with NumPy 2.0.2 evidence; M05/A01 are reconstructed from checksum-verified evidence & \F \\
+Storm-event context is available in strict real time & Inspected NOAA audit fields; publication timestamps are absent, so event results are retrospective sensitivity analyses & \F \\
+Findings generalize geographically and runtime is hardware-normalized & Checked dataset inventory and manifest hardware fields; only Los Angeles County is evaluated and hardware identifiers are absent & \F \\
+\bottomrule
+\end{tabularx}
+
+\vspace{4pt}
+\textbf{AI writing removed or corrected (before $\rightarrow$ after).}\par
+\vspace{1pt}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{0.09\textwidth}X X}
+Dimensions & ``86-dimensional context; 40 event features; 152 inputs'' & ``85-dimensional context; 39 event features; 151 per-horizon inputs'' \\
+Headline result & ``M12 is the best final model'' & M12 result removed; M04 is the strongest manifest-backed model \\
+Drift method & Generic weighted drift-score equation & Five implemented raw statistics, validation median/MAD scaling, clipping, and the 0.90 validation quantile \\
+Claim scope & Event-aware findings phrased as operational evidence & Retrospective event sensitivity, one-county validation, and non-normalized runtime stated explicitly \\
+\end{tabularx}
+
+\vfill
+{\footnotesize Executable evidence: \texttt{notebooks/03\_paper\_claim\_verification.ipynb}. Repository:
+\url{https://github.com/shasabbir/event-time-raf}. No unsupported M12, real-time-event, external-validation, or hardware-efficiency claim remains in the corrected manuscript.}
+\end{document}

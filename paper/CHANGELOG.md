@@ -1,32 +1,51 @@
-# Manuscript Upgrade Changelog
+# Verified Manuscript Changelog
+
+## Claim verification
+
+- Added `notebooks/03_paper_claim_verification.ipynb`, an executed top-to-bottom
+  companion that verifies all 69 manifest hashes, reconstructs the test data and
+  retrieval knowledge base, reruns M00--M11, recomputes metrics and ablations,
+  regenerates all nine manuscript figures, and ends with a claim gate.
+- Corrected the SACB origin vector from 86 to 85 features and the M09
+  per-horizon input from 152 to 151. The saved composition is 23 PM2.5, 14
+  weather, nine calendar, and 39 event features; M09 adds 51 retrieval, six
+  drift, and nine future-calendar fields.
+- Removed M12 from the abstract, results, tables, discussion, and conclusion.
+  M12 is absent from the immutable manifest and appears only in post-manifest
+  edited artifacts.
+- Replaced the generic drift formulation with the implemented five raw
+  statistics, training median/MAD scaling, clipping, and validation 0.90
+  quantile threshold.
+- Added the cross-version random-retrieval limitation. M05 and A01 are
+  reconstructed from checksum-verified evidence because NumPy 2.4.1 does not
+  reproduce the NumPy 2.0.2 selection stream.
 
 ## Manuscript
 
-- `main.tex`: rewrote the abstract around SACB, LSER, and DFEH; retained every reported value; marked M12 post hoc; enabled page numbers.
-- `sections/01_introduction.tex`: clarified motivation, objectives, and mechanism-based contributions.
-- `sections/02_related_work.tex`: replaced list-like summaries with thematic, comparative coverage of air-quality forecasting, foundation models, retrieval, event context, drift, and explainability.
-- `sections/03_critical_gaps_contributions.tex`: separated mandatory critical gaps from core contributions and made the mapping explicit.
-- `sections/03_problem_formulation.tex`: standardized notation, added tensor definitions, labels, and equation references.
-- `sections/04_methodology.tex`: rebuilt the section with an end-to-end tensor forward pass, detailed SACB/LSER/DFEH modules, figure walkthroughs, and implementation-level equations. Existing methodology equations were retained in their original relative order.
-- `sections/05_experimental_setup.tex`: expanded dataset audit, availability, model catalog, hyperparameters, metrics, statistical checks, and methodological comparison.
-- `sections/06_results_discussion.tex`: preserved all result and ablation values; identified M04 as the strongest pre-specified model; recast M12 as exploratory; expanded subset, explainability, diagnostic, and reproducibility interpretation.
-- `sections/07_limitations_future_work.tex`: separated limitations and future work and added the event-timing, external-validation, model-scope, hardware, and M12 caveats.
-- `sections/07_conclusion.tex`: synchronized the conclusion with the supported results and new module terminology.
-- `references.bib`: expanded and normalized the bibliography to 40 entries, including recent forecasting, TSFM, drift, retrieval, and explainability work.
+- Synchronized the abstract, contributions, methodology, experimental setup,
+  results, limitations, and conclusion with the verified model ladder.
+- Retained the verified headline: M04 MSE 26.185, MAE 3.125, RMSE 5.117, and
+  R-squared 0.379. M09 records MSE 26.712. M11 changes Chronos-Bolt MSE from
+  28.941 to 28.709, with a paired interval that crosses zero.
+- Added the direct M09-versus-A00 event-context ablation and kept all reported
+  confidence intervals tied to real prediction-level runs.
+- Regenerated the five empirical PNG figures from the verification notebook and
+  the four methodology figures from the shared vector builder.
+- Compiled `main.pdf` with IEEE journal formatting and no undefined references
+  or citations.
 
-## Figures
+## Submission support
 
-- Added `figures/event_timeraf_pipeline_overview.svg` and `.pdf`.
-- Added `figures/source_audited_context_builder.svg` and `.pdf`.
-- Added `figures/leakage_safe_event_context_retriever.svg` and `.pdf`.
-- Added `figures/drift_aware_forecast_evidence_head.svg` and `.pdf`.
-- Added `tools/build_methodology_figures.py`, a reusable SVG generator with vector PDF export.
-- Kept figure names and captions below each diagram in LaTeX; no figure number or caption is embedded inside the artwork.
+- Added `verification_log.tex` and the one-page `verification_log.pdf`.
+- Added `presentation/Event-TimeRAF_Verified_Presentation.pptx`, its PDF export,
+  source builder, and presenter Q&A notes.
+- Added a faculty-submission README and Overleaf-ready source ZIP. An actual
+  Overleaf share link must be created from the user's account after upload.
 
-## Integrity Corrections
+## Claim scope
 
-- Corrected the archived M12 characterization after inspecting `m12_gate_selection_posthoc.json`; its values were not changed.
-- Removed any implication that Event-TimeRAF beats every baseline or reproduces TimeRAF's learned retriever and Channel Prompting.
-- Kept NOAA Storm Events findings explicitly retrospective because publication timestamps are unavailable.
-- Did not modify datasets, notebooks, source-model code, result tables, ablation values, or artifact identifiers as part of this paper upgrade.
-
+No learned TimeRAF dual encoder, internal Channel Prompting, strict real-time
+event availability, external geographic validation, or hardware-normalized
+efficiency is claimed. SACB, LSER, and DFEH name behavior already present in the
+repository; the names and tensor presentation are manuscript enrichments, not
+unimplemented model modules.

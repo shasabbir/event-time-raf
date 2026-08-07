@@ -6,16 +6,13 @@ pre-specified supervised result is M04, which uses PM2.5 history, weather, and
 calendar features and obtains MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$
 0.379. The full feature-level Event-TimeRAF model M09 obtains MSE 26.712 and MAE
 3.149; event-context retrieval and drift features therefore do not improve the
-all-origin error over M04 in this run. M12 records the lowest numerical values,
-with MSE 26.111, MAE 3.116, RMSE 5.110, and $R^2$ 0.381, but its saved selection
-log states that the rule was derived post hoc from test predictions. M12 is
-therefore an exploratory upper-bound analysis. A clean rerun of the
-validation-selection procedure in (\ref{eq:drift_gate}) is required before M12
-can be treated as a primary result.
+all-origin error over M04 in this run. A selector appended after the archived
+run is omitted: its result tables and prediction file do not match the run
+manifest, so it is not part of the verified comparison.
 
 \begin{table*}[!t]
 \centering
-\caption{Overall Test Results for 24-Hour PM2.5 Forecasting. M12 is a Post-Hoc Exploratory Selector}
+\caption{Manifest-Backed Overall Test Results for 24-Hour PM2.5 Forecasting}
 \label{tab:main_results}
 \begin{tabular}{lrrrr}
 \toprule
@@ -25,7 +22,7 @@ M00 persistence & 47.649 & 4.137 & 6.903 & -0.130 \\
 M01 daily seasonal & 48.706 & 4.057 & 6.979 & -0.155 \\
 M02 weekly seasonal & 65.606 & 5.123 & 8.100 & -0.556 \\
 M03 XGBoost PM2.5 & 29.949 & 3.368 & 5.473 & 0.290 \\
-M04 XGBoost context & 26.185 & 3.125 & 5.117 & 0.379 \\
+M04 XGBoost context & \textbf{26.185} & \textbf{3.125} & \textbf{5.117} & \textbf{0.379} \\
 M05 random retrieval & 42.367 & 4.257 & 6.509 & -0.005 \\
 M06 cosine retrieval & 38.083 & 3.940 & 6.171 & 0.097 \\
 M07 XGBoost cosine & 26.672 & 3.151 & 5.164 & 0.367 \\
@@ -33,7 +30,6 @@ M08 Event-TimeRAF no drift & 26.677 & 3.145 & 5.165 & 0.367 \\
 M09 Event-TimeRAF full & 26.712 & 3.149 & 5.168 & 0.367 \\
 M10 frozen Chronos-Bolt & 28.941 & 3.205 & 5.380 & 0.314 \\
 M11 Chronos + retrieval & 28.709 & 3.209 & 5.358 & 0.319 \\
-M12 drift-gated Event-TimeRAF & \textbf{26.111} & \textbf{3.116} & \textbf{5.110} & \textbf{0.381} \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -54,13 +50,10 @@ fully below zero. Cosine retrieval improves over random retrieval in the
 retrieval-only setting. In contrast, adding cosine retrieval features to the
 already strong XGBoost context model does not improve the all-origin result in
 this run. Event-hybrid retrieval and drift indicators also do not show a clear
-overall improvement beyond the context baseline. The exploratory M12 selector
-has lower MAE than M04 with a fully negative interval
-($-0.0097$, 95\% CI $[-0.0185,-0.0013]$), but its MSE interval crosses zero and
-the post-hoc selection prevents confirmatory interpretation.
-The auxiliary A01 source is an XGBoost random-retrieval variant used only for
-the drift-gate selection analysis. The M12 result should therefore be described
-as an exploratory numerical bound rather than a statistically decisive win.
+overall improvement beyond the context baseline. Comparing M09 against the
+event-free A00 model also yields an interval that crosses zero, so the event
+component has no verified overall gain in this run. The auxiliary A00 and A01
+models are retained only to isolate event and random-retrieval effects.
 
 \begin{table*}[!t]
 \centering
@@ -75,10 +68,9 @@ M06 minus M05, LSER cosine/random ranking & -4.284 & -5.862 & -2.759 \\
 M07 minus M04, LSER retrieval summary & 0.487 & 0.015 & 1.028 \\
 M08 minus M07, LSER event-hybrid ranking & 0.005 & -0.292 & 0.275 \\
 M09 minus M08, DFEH drift indicators & 0.035 & -0.101 & 0.161 \\
+M09 minus A00, event context & 0.083 & -0.225 & 0.354 \\
 M09 minus M04, SACB+LSER+DFEH & 0.528 & -0.026 & 1.182 \\
 M11 minus M10, DFEH Chronos fusion & -0.233 & -0.665 & 0.152 \\
-M12 minus M04, DFEH drift gate & -0.073 & -0.244 & 0.107 \\
-M12 minus A01, auxiliary gate source & -0.062 & -0.182 & 0.031 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -118,10 +110,8 @@ drift-gated Event-TimeRAF variant, and the two Chronos variants. All subsets
 satisfy the pre-specified minimum sample-size criterion. The event subset has lower MSE than the non-event
 subset for these models, which should not be interpreted as events being easier
 in general; it reflects the particular 2024 test-period event hours retained by
-the audit. On drift-flagged origins, the exploratory M12 output matches M04
-because its post-hoc rule selects the context model for that regime, while it
-follows A01 on non-drift origins. These values describe the archived exploratory
-rule and are not an independent validation of the gate.
+the audit. The drift subset is defined by the validation-calibrated DFEH flag
+and is used only for stratified evaluation.
 
 \begin{table*}[!t]
 \centering
@@ -135,14 +125,10 @@ Non-event & M04 XGBoost context & 6,667 & 27.520 & 3.179 \\
 Event & M04 XGBoost context & 532 & 9.451 & 2.450 \\
 Non-event & M09 Event-TimeRAF full & 6,667 & 27.942 & 3.187 \\
 Event & M09 Event-TimeRAF full & 532 & 11.301 & 2.666 \\
-Non-event & M12 drift-gated Event-TimeRAF & 6,667 & 27.447 & 3.169 \\
-Event & M12 drift-gated Event-TimeRAF & 532 & 9.375 & 2.450 \\
 Non-drift & M04 XGBoost context & 6,639 & 26.107 & 3.088 \\
 Drift & M04 XGBoost context & 560 & 27.110 & 3.562 \\
 Non-drift & M09 Event-TimeRAF full & 6,639 & 26.330 & 3.088 \\
 Drift & M09 Event-TimeRAF full & 560 & 31.244 & 3.872 \\
-Non-drift & M12 drift-gated Event-TimeRAF & 6,639 & 26.027 & 3.078 \\
-Drift & M12 drift-gated Event-TimeRAF & 560 & 27.110 & 3.562 \\
 Drift & M10 frozen Chronos-Bolt & 560 & 28.333 & 3.476 \\
 Drift & M11 Chronos + retrieval & 560 & 28.198 & 3.580 \\
 \bottomrule
@@ -155,9 +141,8 @@ test errors. Fig.~\ref{fig:retrieval_diagnostics} summarizes retrieval behavior,
 and Fig.~\ref{fig:drift_scores} shows the drift-score distribution across the
 test period. Figure~\ref{fig:forecast_case} shows a representative test-origin
 forecast, allowing M04 and M09 to be compared with the observed target. These
-plots are generated from saved artifacts identified by
-\texttt{20260723T112033170131Z}; M12 was added after the manifest-recorded run
-and is treated separately as described above.
+plots are regenerated from predictions identified by
+\texttt{20260723T112033170131Z} and include only M00--M11.
 
 \begin{figure}[!t]
 \centering
@@ -268,14 +253,13 @@ Code availability & \url{https://github.com/shasabbir/event-time-raf} \\
 
 The main interpretation is that conventional supervised context features are
 very strong for this Los Angeles County 24-hour PM2.5 task. Retrieval is useful
-as a standalone historical-pattern baseline, gives a small favorable MSE change
-when fused with frozen Chronos-Bolt, and participates in an exploratory
-drift-gated result. However, the present feature-level
+as a standalone historical-pattern baseline and gives a small favorable MSE
+change when fused with frozen Chronos-Bolt. However, the present feature-level
 Event-TimeRAF design does not beat the best XGBoost context baseline overall.
 Event-TimeRAF should therefore be presented as an implemented and audited
 event-aware retrieval framework with selective gains, not as a uniformly
-superior forecasting model. The archived M12 result does not alter that primary
-conclusion because its selection used test predictions post hoc.
+superior forecasting model. Post-manifest artifacts are excluded from this
+interpretation.
 
 Finally, all event-aware interpretations must be read with the availability
 caveat. NOAA Storm Events records are official and hash-verified, but the source

@@ -39,7 +39,7 @@
 <rect x="320" y="254" width="194" height="88" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
 <text x="417.0" y="277.0" class="label" text-anchor="middle" dominant-baseline="middle">Causal feature</text>
 <text x="417.0" y="299.0" class="label" text-anchor="middle" dominant-baseline="middle">construction</text>
-<text x="417.0" y="328" class="mono" text-anchor="middle" dominant-baseline="middle">q_t in R^86</text>
+<text x="417.0" y="328" class="mono" text-anchor="middle" dominant-baseline="middle">q_t in R^85</text>
 <rect x="320" y="404" width="194" height="92" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
 <text x="417.0" y="429.0" class="label" text-anchor="middle" dominant-baseline="middle">Chronological</text>
 <text x="417.0" y="451.0" class="label" text-anchor="middle" dominant-baseline="middle">windowing</text>
@@ -79,15 +79,15 @@
 <rect x="898" y="102" width="248" height="88" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
 <text x="1022.0" y="125.0" class="label" text-anchor="middle" dominant-baseline="middle">Direct XGBoost</text>
 <text x="1022.0" y="147.0" class="label" text-anchor="middle" dominant-baseline="middle">24 horizon heads</text>
-<text x="1022.0" y="176" class="mono" text-anchor="middle" dominant-baseline="middle">B x 152 -&gt; B x 24</text>
+<text x="1022.0" y="176" class="mono" text-anchor="middle" dominant-baseline="middle">B x 151 -&gt; B x 24</text>
 <rect x="898" y="238" width="248" height="88" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
 <text x="1022.0" y="261.0" class="label" text-anchor="middle" dominant-baseline="middle">Frozen Chronos-Bolt</text>
 <text x="1022.0" y="283.0" class="label" text-anchor="middle" dominant-baseline="middle">+ forecast fusion</text>
 <text x="1022.0" y="312" class="mono" text-anchor="middle" dominant-baseline="middle">B x 168 -&gt; B x 24</text>
 <rect x="898" y="374" width="248" height="74" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
-<text x="1022.0" y="390.0" class="label" text-anchor="middle" dominant-baseline="middle">Exploratory drift</text>
-<text x="1022.0" y="412.0" class="label" text-anchor="middle" dominant-baseline="middle">selection audit</text>
-<text x="1022.0" y="434" class="mono" text-anchor="middle" dominant-baseline="middle">M04/A01 by D_t</text>
+<text x="1022.0" y="390.0" class="label" text-anchor="middle" dominant-baseline="middle">Unreported drift gate</text>
+<text x="1022.0" y="412.0" class="label" text-anchor="middle" dominant-baseline="middle">rerun required</text>
+<text x="1022.0" y="434" class="mono" text-anchor="middle" dominant-baseline="middle">validation-only selection</text>
 <rect x="898" y="490" width="248" height="58" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="1022.0" y="509.0" class="label" text-anchor="middle" dominant-baseline="middle">Forecast + evidence record</text>
 <text x="1022.0" y="534" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat: B x 24</text>

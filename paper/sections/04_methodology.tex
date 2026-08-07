@@ -52,10 +52,10 @@ For a batch of $B$ origins, the implemented forward pass can be expanded in
 tensor notation as
 \begin{equation}
 \begin{aligned}
-Q &= \operatorname{SACB}(X,W,C,E) &&\in \mathbb{R}^{B\times 86},\\
+Q &= \operatorname{SACB}(X,W,C,E) &&\in \mathbb{R}^{B\times 85},\\
 G &= \operatorname{LSER}(Q,\mathcal{K}) &&\in \mathbb{R}^{B\times 8\times 24},\\
 U_h &= [Q\,\|\,\rho(G)\,\|\,d\,\|\,C^{+}_{h}]
-&&\in \mathbb{R}^{B\times 152},\\
+&&\in \mathbb{R}^{B\times 151},\\
 \hat{Y}^{X} &= [f_1(U_1),\ldots,f_{24}(U_{24})]
 &&\in \mathbb{R}^{B\times 24},\\
 (\hat{Y},\mathcal{O}) &= \operatorname{DFEH}
@@ -64,7 +64,7 @@ U_h &= [Q\,\|\,\rho(G)\,\|\,d\,\|\,C^{+}_{h}]
 \end{aligned}
 \label{eq:forward_pass}
 \end{equation}
-where $Q$ is the 86-dimensional origin context, $\rho(G)\in
+where $Q$ is the 85-dimensional origin context, $\rho(G)\in
 \mathbb{R}^{B\times 51}$ contains the retrieved trajectory, spread, two
 similarity summaries, and candidate count, $d\in\mathbb{R}^{B\times 6}$
 contains five drift components and their mean score, and
@@ -88,7 +88,7 @@ then windowed and split chronologically; target values are never interpolated.
 \centering
 \includegraphics[width=\textwidth]{figures/source_audited_context_builder.pdf}
 \caption{Source-Audited Context Builder. Source checks feed four feature groups
-that form an 86-dimensional origin vector. The aligned panel is converted into
+that form an 85-dimensional origin vector. The aligned panel is converted into
 168-hour inputs and 24-hour targets before the chronological split.}
 \label{fig:context_builder}
 \end{figure*}
@@ -109,7 +109,7 @@ terms, weekend status, US federal holidays, and California holidays.
 At each origin, the feature groups are concatenated as
 \begin{equation}
 q_t=[p_t\,\|\,w_t\,\|\,c_t\,\|\,e_t]
-\in\mathbb{R}^{23+14+9+40}=\mathbb{R}^{86},
+\in\mathbb{R}^{23+14+9+39}=\mathbb{R}^{85},
 \label{eq:context_vector}
 \end{equation}
 where $p_t$, $w_t$, $c_t$, and $e_t$ are respectively the PM2.5, weather,
@@ -120,7 +120,7 @@ flag, derived condition flags, a stagnation proxy, and 24-hour rolling means.
 The event group contains one-hour and active counts, 24/72/168-hour counts,
 category-specific 72-hour counts, and an event-burst ratio.
 Thus, Equation~(\ref{eq:context_vector}) fixes both the feature ordering and
-the 86-dimensional SACB output used by downstream modules.
+the 85-dimensional SACB output used by downstream modules.
 
 All normalization statistics are fitted on the training split only. Query and
 candidate windows use identical normalization, following the TimeRAF principle
@@ -252,15 +252,14 @@ the candidate trajectory shape while restoring the query's local scale.
 
 \subsection{Drift-Aware Forecast and Evidence Head}
 
-The DFEH is the common output layer for three analysis paths. As shown in
+The DFEH is the common output layer for two verified forecasting paths and the
+evidence output. As shown in
 Figure~\ref{fig:explanation_flow}, the direct path concatenates context,
 retrieval, drift, and future-calendar features for 24 separately trained
 XGBoost regressors. A second path evaluates frozen Chronos-Bolt and combines its
 forecast with the retrieved forecast at a validation-selected weight. The
-drift-state selector is retained as an exploratory analysis because the saved
-M12 result was assembled post hoc from test predictions; the notebook now
-implements validation-only source selection, but that corrected path has not
-yet produced the archived results used in this manuscript.
+current code also defines a validation-only drift-state selector, but no
+manifest-backed run of that selector is reported in this manuscript.
 
 \begin{figure*}[!t]
 \centering
@@ -280,12 +279,12 @@ u_{t,h}=[q_t\,\|\,\rho(G_t)\,\|\,d_t\,\|\,c_{t+h}],
 \qquad \hat{y}^{X}_{t+h}=f_h(u_{t,h}),
 \label{eq:direct_heads}
 \end{equation}
-where $u_{t,h}\in\mathbb{R}^{152}$ for the full M09 model and each $f_h$ is an
+where $u_{t,h}\in\mathbb{R}^{151}$ for the full M09 model and each $f_h$ is an
 XGBoost regressor trained with squared-error objective. This design gives each
 forecast horizon a separate supervised function while retaining a common
 origin representation.
-Equation~(\ref{eq:direct_heads}) also accounts for the reported 152 features:
-86 context, 51 retrieval, six drift, and nine future-calendar values.
+Equation~(\ref{eq:direct_heads}) also accounts for the verified 151 features:
+85 context, 51 retrieval, six drift, and nine future-calendar values.
 
 The tabular fusion stage includes a lightweight drift-conditioned selector. It compares
 the strongest validation candidates separately on drift and non-drift validation
@@ -301,8 +300,9 @@ origins, then applies the selected source to the corresponding test origins:
 where $a$ and $b$ are chosen only from validation errors. This gate does not
 train a new model; it tests whether a transparent drift-specific selection rule
 can avoid applying the same forecaster in all regimes. Equation
-(\ref{eq:drift_gate}) describes the corrected notebook procedure. The reported
-M12 artifact must remain labeled post hoc until that procedure is rerun.
+(\ref{eq:drift_gate}) describes the current notebook procedure. It is excluded
+from the reported comparison until a complete rerun records its selection,
+predictions, metrics, and checksums in one manifest.
 
 \subsubsection{Frozen-TSFM Forecast Fusion}
 The Chronos-Bolt retrieval variant uses forecast-level fusion rather than internal
@@ -323,25 +323,39 @@ not an internal TSFM prompting operation.
 The implementation represents distribution shift using transparent indicators
 rather than claiming perfect concept-drift identification. The indicators are
 recent mean shift, recent variance shift, retrieval similarity drop,
-weather-pattern shift, and event-burst ratio. A simple drift score can be
-defined as
+weather-pattern shift, and event-burst ratio. The raw vector used by the code is
 \begin{equation}
-    D_t =
-    \lambda_1 z_{\mu,t} +
-    \lambda_2 z_{\sigma,t} +
-    \lambda_3 (1-\bar{s}_{ts,t}) +
-    \lambda_4 z_{w,t} +
-    \lambda_5 b_{event,t},
-    \label{eq:drift_score}
+\begin{aligned}
+r_t=\bigg[&|\mu_{24,t}-\mu_{168,t}|,
+\left|\log\frac{\sigma_{24,t}+\epsilon}{\sigma_{168,t}+\epsilon}\right|,
+1-\operatorname{clip}(\bar{s}_{ts,t},0,1),\\
+&\sqrt{\frac{1}{4}\sum_{\ell=1}^{4}
+\left(\frac{w_{t,\ell}-\widetilde{w}^{tr}_{\ell}}
+{s^{tr}_{w,\ell}}\right)^2},\ \max(b_{event,t},0)\bigg],
+\end{aligned}
+\label{eq:drift_raw}
 \end{equation}
-where $z_{\mu,t}$ and $z_{\sigma,t}$ are normalized mean and variance shifts,
-$\bar{s}_{ts,t}$ is average retrieval similarity, $z_{w,t}$ is
-weather-pattern shift, and $b_{event,t}$ is an event-burst score. Each raw
-component is centered by the training median, scaled by $1.4826$ times the
-training median absolute deviation, clipped to $[0,6]$, and divided by six.
-The five scaled components are averaged with equal weight. The continuous score
-in (\ref{eq:drift_score}) is thresholded at the validation 0.90 quantile to
-obtain the binary $D_t$ used in (\ref{eq:drift_gate}).
+where the weather term uses temperature, relative humidity, pressure, and wind
+speed standardized by training medians and standard deviations. Each component
+$r_{t,j}$ is then robustly scaled using the training median and median absolute
+deviation (MAD):
+\begin{equation}
+d_{t,j}=\frac{1}{6}\operatorname{clip}\left(
+\frac{r_{t,j}-\operatorname{med}_{tr}(r_j)}
+{\max(1.4826\operatorname{MAD}_{tr}(r_j),\epsilon)},0,6\right).
+\label{eq:drift_scale}
+\end{equation}
+Finally, the continuous score and binary flag are
+\begin{equation}
+S_t=\frac{1}{5}\sum_{j=1}^{5}d_{t,j},\qquad
+D_t=\mathbb{I}\!\left[S_t\geq
+Q_{0.90}\!\left(\{S_v:v\in\mathcal{T}_{val}\}\right)\right].
+\label{eq:drift_score}
+\end{equation}
+Equations~(\ref{eq:drift_raw})--(\ref{eq:drift_score}) match the implemented
+detector: training data set the reference statistics, validation data set the
+0.90-quantile threshold, and test data are transformed without refitting. The
+binary $D_t$ is the state used in Equation~(\ref{eq:drift_gate}).
 
 \subsubsection{Evidence Record and Uncertainty Proxy}
 The explanation module uses signed local XGBoost contributions averaged across
@@ -350,7 +364,7 @@ event records, calendar context, forecast direction, and component-level drift
 evidence. Its uncertainty proxy is
 \begin{equation}
 u_t^{\mathrm{proxy}}=
-\sqrt{\bar{\sigma}_{R,t}^{,2}+\bar{e}_{val}^{,2}},
+\sqrt{\bar{\sigma}_{R,t}^{2}+\bar{e}_{val}^{2}},
 \label{eq:uncertainty_proxy}
 \end{equation}
 where $\bar{\sigma}_{R,t}$ is the mean horizon-wise spread of the retrieved

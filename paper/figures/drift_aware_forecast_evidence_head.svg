@@ -19,7 +19,7 @@
 <text x="171.0" y="130" class="mono" text-anchor="middle" dominant-baseline="middle">X_t: B x 168</text>
 <rect x="54" y="180" width="234" height="64" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
 <text x="171.0" y="202.0" class="label" text-anchor="middle" dominant-baseline="middle">Origin context</text>
-<text x="171.0" y="230" class="mono" text-anchor="middle" dominant-baseline="middle">q_t: B x 86</text>
+<text x="171.0" y="230" class="mono" text-anchor="middle" dominant-baseline="middle">q_t: B x 85</text>
 <rect x="54" y="280" width="234" height="64" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
 <text x="171.0" y="302.0" class="label" text-anchor="middle" dominant-baseline="middle">Retrieval summary</text>
 <text x="171.0" y="330" class="mono" text-anchor="middle" dominant-baseline="middle">rho(G_t): B x 51</text>
@@ -35,10 +35,10 @@
 <rect x="394" y="92" width="218" height="88" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
 <text x="503.0" y="115.0" class="label" text-anchor="middle" dominant-baseline="middle">24 direct XGBoost</text>
 <text x="503.0" y="137.0" class="label" text-anchor="middle" dominant-baseline="middle">regressors (M09)</text>
-<text x="503.0" y="166" class="mono" text-anchor="middle" dominant-baseline="middle">B x 152 -&gt; B x 24</text>
+<text x="503.0" y="166" class="mono" text-anchor="middle" dominant-baseline="middle">B x 151 -&gt; B x 24</text>
 <rect x="636" y="92" width="186" height="88" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
-<text x="729.0" y="115.0" class="label" text-anchor="middle" dominant-baseline="middle">Exploratory selector</text>
-<text x="729.0" y="137.0" class="label" text-anchor="middle" dominant-baseline="middle">M04 / A01</text>
+<text x="729.0" y="115.0" class="label" text-anchor="middle" dominant-baseline="middle">Unreported gate</text>
+<text x="729.0" y="137.0" class="label" text-anchor="middle" dominant-baseline="middle">rerun required</text>
 <text x="729.0" y="166" class="mono" text-anchor="middle" dominant-baseline="middle">D_t in {0,1}</text>
 <rect x="394" y="286" width="218" height="82" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
 <text x="503.0" y="317.0" class="label" text-anchor="middle" dominant-baseline="middle">Frozen Chronos-Bolt</text>
@@ -65,7 +65,7 @@
 <polyline points="612,136 624,136 624,458 703,458 703,484" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
 <polyline points="822,136 840,136 840,472 757,472 757,492" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
 <polyline points="729,368 760,368 760,465 746,484" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<text x="604" y="552" class="small" text-anchor="middle" dominant-baseline="middle">Three reported prediction variants; M12 remains exploratory</text>
+<text x="604" y="552" class="small" text-anchor="middle" dominant-baseline="middle">Two verified forecast variants; the drift gate awaits a complete rerun</text>
 <rect x="886" y="48" width="290" height="538" rx="12" fill="none" stroke="#4E7D57" stroke-width="1.7" stroke-dasharray="8 6"/>
 <rect x="900" y="36" width="150" height="24" fill="#FFFFFF"/>
 <text x="908" y="53" class="group" text-anchor="start" dominant-baseline="middle">Evidence output</text>

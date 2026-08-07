@@ -2,9 +2,9 @@
 
 This section describes the reported experiment. Model-selection choices for
 M00--M11 were fixed using the training and validation partitions before the
-test results were examined. M12 is reported separately as a post-hoc
-exploratory selector and is not used to support a confirmatory claim. Artifact
-consistency was verified using run identifier
+test results were examined. A later post-hoc selector is excluded from every
+reported comparison because it was added after the manifest was written.
+Artifact consistency was verified using run identifier
 \texttt{20260723T112033170131Z}.
 
 \subsection{Dataset Description and Audit}
@@ -33,41 +33,8 @@ days, 2,192 source-overlap days, and three qualifying event categories. NOAA
 Storm Events does not expose machine-readable publication timestamps; therefore,
 event-aware outputs use the recorded event start time as a retrospective
 availability assumption. They are not strict real-time event forecasts.
-Figure~\ref{fig:data_audit_flow} traces these sources through the audit gates,
-and Table~\ref{tab:data_audit} reports the resulting readiness status.
-
-\begin{figure*}[!t]
-\centering
-\resizebox{0.92\textwidth}{!}{%
-\begin{tikzpicture}[
-    node distance=7mm,
-    source/.style={rectangle, rounded corners, draw=black, align=center, minimum width=30mm, minimum height=9mm, font=\scriptsize, fill=gray!10},
-    process/.style={rectangle, rounded corners, draw=black, align=center, minimum width=34mm, minimum height=9mm, font=\scriptsize},
-    gate/.style={diamond, aspect=2.1, draw=black, align=center, minimum width=24mm, minimum height=9mm, font=\scriptsize},
-    arrow/.style={-Latex, thick}
-]
-\node[source] (epa) {EPA AirData\\PM2.5};
-\node[source, below=of epa] (weather) {NOAA Global\\Hourly weather};
-\node[source, below=of weather] (storm) {NOAA Storm\\Events cache};
-\node[process, right=16mm of weather] (audit) {source audit\\and hash checks};
-\node[gate, right=15mm of audit] (gates) {coverage\\gates};
-\node[process, right=15mm of gates] (panel) {hourly aligned\\analysis panel};
-\node[process, right=15mm of panel] (windows) {chronological\\train/val/test\\windows};
-\node[process, below=10mm of panel] (artifacts) {run manifest,\\tables, figures,\\evidence files};
-
-\draw[arrow] (epa.east) -- (audit.west);
-\draw[arrow] (weather.east) -- (audit.west);
-\draw[arrow] (storm.east) -- (audit.west);
-\draw[arrow] (audit) -- (gates);
-\draw[arrow] (gates) -- (panel);
-\draw[arrow] (panel) -- (windows);
-\draw[arrow] (panel) -- (artifacts);
-\draw[arrow] (windows) |- (artifacts);
-\end{tikzpicture}
-}
-\caption{Official-source data audit and experimental artifact flow.}
-\label{fig:data_audit_flow}
-\end{figure*}
+Table~\ref{tab:data_audit} reports the resulting readiness status. The source
+audit and window contract are visualized in Figure~\ref{fig:context_builder}.
 
 \begin{table}[!t]
 \centering
@@ -138,11 +105,10 @@ naive, a direct XGBoost model using PM2.5 features, a direct XGBoost context
 model using PM2.5, weather, and calendar features, random retrieval, cosine
 retrieval, XGBoost with cosine retrieval features, Event-TimeRAF without drift
 features, full Event-TimeRAF with event and drift features, frozen Chronos-Bolt,
-and retrieval-augmented Chronos-Bolt forecast fusion. M12 is retained as an
-exploratory drift-state selector over M04 and the auxiliary random-retrieval
-XGBoost model A01. The saved M12 artifact was assembled post hoc from test
-predictions and is not treated as a confirmatory model result. The
-foundation-model evaluation uses the
+and retrieval-augmented Chronos-Bolt forecast fusion. An auxiliary
+random-retrieval XGBoost model A01 and an event-free model A00 support the
+ablation analysis. A post-hoc M12 artifact is excluded because it is not part
+of the manifest-backed result set. The foundation-model evaluation uses the
 \texttt{amazon/chronos-bolt-small} checkpoint.
 Table~\ref{tab:model_families} groups the evaluated configurations by their
 forecasting and retrieval roles.
@@ -161,7 +127,6 @@ M05--M06 & Random and cosine retrieval-only baselines \\
 M07 & XGBoost with cosine retrieval features \\
 M08--M09 & Event-TimeRAF without/with drift indicators \\
 M10--M11 & Frozen Chronos-Bolt and retrieval fusion \\
-M12 & Exploratory post-hoc drift-state selector \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -185,12 +150,12 @@ Component & Setting \\
 Study period & 2019--2024 \\
 Lookback and horizon & $L=168$ hours, $H=24$ hours \\
 Split & 70\% train, 15\% validation, 15\% test, chronological \\
-SACB feature groups & 23 PM2.5, 14 weather, 9 calendar, 40 event features \\
+SACB feature groups & 23 PM2.5, 14 weather, 9 calendar, 39 event features \\
 SACB missing-data rule & Past-only filling for gaps up to 3 hours; no target interpolation \\
 LSER retrieval & $k=8$, sensitivity for $k \in \{1,4,8,16\}$ \\
 LSER knowledge base & 191 windows; 192-hour stride; training history only \\
 LSER similarity weights & time series 0.5, weather 0.2, calendar 0.1, event 0.2 \\
-DFEH direct input & 152 features for each of 24 horizon regressors \\
+DFEH direct input & 151 features for each of 24 horizon regressors \\
 DFEH XGBoost & 350 estimators, max depth 6, learning rate 0.05, subsample 0.85,
 colsample 0.85, $\lambda=1.0$ \\
 DFEH drift detector & 5 components; 24-hour recent window, 168-hour reference window,

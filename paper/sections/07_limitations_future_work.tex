@@ -17,17 +17,24 @@ similarity functions rather than a learned retriever, and the DFEH combines
 Chronos-Bolt and retrieval only at forecast level. Event-TimeRAF therefore does
 not reproduce TimeRAF's learned dual encoder or internal Channel Prompting.
 
-The fourth limitation is the archived M12 analysis. Its source-selection log is
-explicitly post hoc with respect to saved test predictions, even though the
-current notebook implements validation-only selection for a future rerun. The
-M12 value is consequently exploratory. Hardware model identifiers and peak
-memory were also absent from the run manifest, so runtime cannot be interpreted
-as a hardware-normalized efficiency result.
+The fourth limitation concerns artifact lineage. A drift-gated selector was
+added after the archived run, and the edited prediction and table files no
+longer match the original manifest checksums. That selector is therefore
+excluded from the reported results. Hardware model identifiers and peak memory
+were also absent from the run manifest, so runtime cannot be interpreted as a
+hardware-normalized efficiency result.
+
+The fifth limitation concerns cross-version replay of the random-retrieval
+baseline. Repeating the seeded selection under NumPy 2.4.1 does not reproduce
+the candidates generated under NumPy 2.0.2. The verification notebook therefore
+reconstructs M05 and A01 from the original, checksum-verified retrieval-evidence
+rows. This preserves the reported run but means that exact random-baseline
+retraining requires the archived software environment.
 
 \section{Future Work}
 
-The immediate priority is a clean rerun that records validation-selected M12
-sources and all downstream artifacts in one manifest. Operational event studies
+The immediate priority is a clean rerun that records any validation-selected
+drift gate and all downstream artifacts in one manifest. Operational event studies
 should then replace event-start proxies with archives that expose genuine issue
 or publication times. External validation should apply the unchanged protocol
 to a second US county with distinct meteorology and emissions. Longer-term work

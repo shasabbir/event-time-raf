@@ -51,7 +51,7 @@
 <rect x="546" y="222" width="170" height="74" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
 <text x="631.0" y="238.0" class="label" text-anchor="middle" dominant-baseline="middle">Event counts, active</text>
 <text x="631.0" y="260.0" class="label" text-anchor="middle" dominant-baseline="middle">states, burst ratio</text>
-<text x="631.0" y="282" class="mono" text-anchor="middle" dominant-baseline="middle">40 features</text>
+<text x="631.0" y="282" class="mono" text-anchor="middle" dominant-baseline="middle">39 features</text>
 <circle cx="531" cy="390" r="30" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="531" y="390" class="label" text-anchor="middle" dominant-baseline="middle">||</text>
 <polyline points="431,166 431,190 330,190 330,390 501,390" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
@@ -60,7 +60,7 @@
 <polyline points="631,296 631,350 561,350 561,390" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
 <rect x="406" y="444" width="250" height="76" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="531.0" y="472.0" class="label" text-anchor="middle" dominant-baseline="middle">Origin context vector</text>
-<text x="531.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle">q_t in R^86</text>
+<text x="531.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle">q_t in R^85</text>
 <polyline points="531,420 531,444" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
 <text x="531" y="548" class="small" text-anchor="middle" dominant-baseline="middle">Fitted and checked on chronological training history</text>
 <rect x="778" y="48" width="398" height="538" rx="12" fill="none" stroke="#4E7D57" stroke-width="1.7" stroke-dasharray="8 6"/>
@@ -68,7 +68,7 @@
 <text x="800" y="53" class="group" text-anchor="start" dominant-baseline="middle">Window and split contract</text>
 <rect x="812" y="94" width="330" height="76" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="977.0" y="122.0" class="label" text-anchor="middle" dominant-baseline="middle">Aligned hourly panel</text>
-<text x="977.0" y="156" class="mono" text-anchor="middle" dominant-baseline="middle">T x (1 + 86)</text>
+<text x="977.0" y="156" class="mono" text-anchor="middle" dominant-baseline="middle">T x (1 + 85)</text>
 <rect x="812" y="226" width="146" height="82" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="885.0" y="257.0" class="label" text-anchor="middle" dominant-baseline="middle">Lookback</text>
 <text x="885.0" y="294" class="mono" text-anchor="middle" dominant-baseline="middle">X_t: 168 x 1</text>
