@@ -46,25 +46,25 @@
 <rect x="636" y="286" width="186" height="82" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
 <text x="729.0" y="317.0" class="label" text-anchor="middle" dominant-baseline="middle">Forecast-level fusion</text>
 <text x="729.0" y="354" class="mono" text-anchor="middle" dominant-baseline="middle">omega=0.75</text>
-<polyline points="288,212 364,212 364,122 394,122" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="288,312 374,312 374,146 394,146" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="288,412 384,412 384,168 394,168" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="288,512 350,512 350,176 394,176" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="288,112 336,112 336,327 394,327" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="288,212 358,212 358,116 394,116" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="288,312 368,312 368,136 394,136" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="288,412 378,412 378,156 394,156" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="288,512 388,512 388,176 394,176" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="288,112 336,112 336,327 394,327" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="312.0" y="252" width="48" height="24" fill="#FFFFFF" opacity="0.94"/>
 <text x="336" y="264" class="mono" text-anchor="middle" dominant-baseline="middle">X_t</text>
-<polyline points="288,312 344,312 344,454 626,454 626,348 636,348" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<rect x="490.5" y="442" width="51.0" height="24" fill="#FFFFFF" opacity="0.94"/>
-<text x="516" y="454" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat_R</text>
-<polyline points="612,327 636,327" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="288,412 624,412 624,156 636,156" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<rect x="581.5" y="218" width="85.0" height="24" fill="#FFFFFF" opacity="0.94"/>
-<text x="624" y="230" class="mono" text-anchor="middle" dominant-baseline="middle">drift flag</text>
+<polyline points="288,312 344,312 344,438 628,438 628,348 636,348" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="490.5" y="426" width="51.0" height="24" fill="#FFFFFF" opacity="0.94"/>
+<text x="516" y="438" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat_R</text>
+<polyline points="612,327 636,327" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="288,412 628,412 628,156 636,156" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="585.5" y="218" width="85.0" height="24" fill="#FFFFFF" opacity="0.94"/>
+<text x="628" y="230" class="mono" text-anchor="middle" dominant-baseline="middle">drift flag</text>
 <circle cx="730" cy="492" r="27" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="730" y="492" class="label" text-anchor="middle" dominant-baseline="middle">Yhat</text>
-<polyline points="612,136 624,136 624,458 703,458 703,484" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="822,136 840,136 840,472 757,472 757,492" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="729,368 760,368 760,465 746,484" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="612,136 620,136 620,450 700,450 700,472 711,478" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="822,136 840,136 840,458 760,458 760,472 749,478" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="729,368 729,465" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <text x="604" y="552" class="small" text-anchor="middle" dominant-baseline="middle">Two verified forecast variants; the drift gate awaits a complete rerun</text>
 <rect x="886" y="48" width="290" height="538" rx="12" fill="none" stroke="#4E7D57" stroke-width="1.7" stroke-dasharray="8 6"/>
 <rect x="900" y="36" width="150" height="24" fill="#FFFFFF"/>
@@ -81,10 +81,10 @@
 <rect x="916" y="414" width="230" height="66" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
 <text x="1031.0" y="437.0" class="label" text-anchor="middle" dominant-baseline="middle">Drift + uncertainty proxy</text>
 <text x="1031.0" y="466" class="mono" text-anchor="middle" dominant-baseline="middle">machine-readable</text>
-<polyline points="612,176 624,176 624,252 870,252 870,129 916,129" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="896,235 916,235" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="896,341 916,341" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="896,447 916,447" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="612,176 624,176 624,252 870,252 870,129 916,129" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="896,235 916,235" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="896,341 916,341" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="896,447 916,447" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <line x1="896" y1="129" x2="896" y2="447" stroke="#263238" stroke-width="1.7"/>
 <text x="1031" y="536" class="mono" text-anchor="middle" dominant-baseline="middle">7,199 evidence records</text>
 </svg>

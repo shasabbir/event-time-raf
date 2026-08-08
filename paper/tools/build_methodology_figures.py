@@ -76,7 +76,7 @@ class Svg:
         dash = ' stroke-dasharray="7 6"' if dashed else ""
         self.parts.append(
             f'<polyline points="{coords}" fill="none" stroke="{color}" stroke-width="2.1" '
-            f'stroke-linejoin="round" marker-end="url(#arrow)"{dash}/>'
+            f'stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"{dash}/>'
         )
         if label and label_xy:
             x, y = label_xy
@@ -172,11 +172,15 @@ def context_figure(path: Path) -> None:
     s.rect(812, 94, 330, 76, GREEN, ["Aligned hourly panel"], "T x (1 + 85)")
     s.rect(812, 226, 146, 82, GREEN, ["Lookback"], "X_t: 168 x 1")
     s.rect(996, 226, 146, 82, PINK, ["Future target"], "Y_t: 24 x 1")
-    s.arrow([(977, 170), (977, 206), (885, 206), (885, 226)])
-    s.arrow([(977, 206), (1069, 206), (1069, 226)])
+    s.line(977, 170, 977, 206, color=INK)
+    s.line(885, 206, 1069, 206, color=INK)
+    s.arrow([(885, 206), (885, 226)])
+    s.arrow([(1069, 206), (1069, 226)])
     s.rect(812, 372, 330, 90, GRAY, ["Chronological partitions"], "70% train | 15% val | 15% test")
-    s.arrow([(885, 308), (885, 350), (977, 350), (977, 372)])
-    s.arrow([(1069, 308), (1069, 350), (977, 350)])
+    s.line(885, 308, 885, 342, color=INK)
+    s.line(1069, 308, 1069, 342, color=INK)
+    s.line(885, 342, 1069, 342, color=INK)
+    s.arrow([(977, 342), (977, 372)])
     s.text(977, 510, "48,332 valid input-target windows", "mono", anchor="middle")
     s.text(977, 542, "targets are never interpolated", "small", anchor="middle")
     s.finish(path)
@@ -210,10 +214,11 @@ def retrieval_figure(path: Path) -> None:
     for x, y, title, sub, fill in labels:
         s.rect(x, y, 186, 72, fill, [title], sub)
     s.circle(633, 350, 34, GREEN, text_value="sum")
-    s.arrow([(523, 170), (523, 318), (599, 318), (599, 350)])
-    s.arrow([(743, 170), (743, 318), (667, 318), (667, 350)])
-    s.arrow([(523, 290), (523, 336), (599, 336)])
-    s.arrow([(743, 290), (743, 336), (667, 336)])
+    # Top-row channels use the side gutters instead of crossing the lower blocks.
+    s.arrow([(523, 170), (523, 190), (414, 190), (414, 350), (599, 350)])
+    s.arrow([(743, 170), (743, 190), (852, 190), (852, 350), (667, 350)])
+    s.arrow([(523, 290), (523, 318), (609, 318), (609, 326)])
+    s.arrow([(743, 290), (743, 318), (657, 318), (657, 326)])
     s.text(633, 402, "0.5 s_ts + 0.2 s_w + 0.1 s_c + 0.2 s_e", "mono", anchor="middle")
     s.rect(474, 454, 318, 76, GREEN, ["TopK over eligible candidates"], "G_t: B x 8")
     s.arrow([(633, 384), (633, 454)])
@@ -242,18 +247,19 @@ def forecast_figure(path: Path) -> None:
     s.rect(636, 92, 186, 88, GREEN, ["Unreported gate", "rerun required"], "D_t in {0,1}")
     s.rect(394, 286, 218, 82, BLUE, ["Frozen Chronos-Bolt"], "B x 168 -> B x 24")
     s.rect(636, 286, 186, 82, GOLD, ["Forecast-level fusion"], "omega=0.75")
-    s.arrow([(288, 212), (364, 212), (364, 122), (394, 122)])
-    s.arrow([(288, 312), (374, 312), (374, 146), (394, 146)])
-    s.arrow([(288, 412), (384, 412), (384, 168), (394, 168)])
-    s.arrow([(288, 512), (350, 512), (350, 176), (394, 176)])
+    # Each direct-model feature family has its own lane in the left-side gutter.
+    s.arrow([(288, 212), (358, 212), (358, 116), (394, 116)])
+    s.arrow([(288, 312), (368, 312), (368, 136), (394, 136)])
+    s.arrow([(288, 412), (378, 412), (378, 156), (394, 156)])
+    s.arrow([(288, 512), (388, 512), (388, 176), (394, 176)])
     s.arrow([(288, 112), (336, 112), (336, 327), (394, 327)], "X_t", (336, 264))
-    s.arrow([(288, 312), (344, 312), (344, 454), (626, 454), (626, 348), (636, 348)], "Yhat_R", (516, 454))
+    s.arrow([(288, 312), (344, 312), (344, 438), (628, 438), (628, 348), (636, 348)], "Yhat_R", (516, 438))
     s.arrow([(612, 327), (636, 327)])
-    s.arrow([(288, 412), (624, 412), (624, 156), (636, 156)], "drift flag", (624, 230))
+    s.arrow([(288, 412), (628, 412), (628, 156), (636, 156)], "drift flag", (628, 230))
     s.circle(730, 492, 27, GREEN, text_value="Yhat")
-    s.arrow([(612, 136), (624, 136), (624, 458), (703, 458), (703, 484)])
-    s.arrow([(822, 136), (840, 136), (840, 472), (757, 472), (757, 492)])
-    s.arrow([(729, 368), (760, 368), (760, 465), (746, 484)])
+    s.arrow([(612, 136), (620, 136), (620, 450), (700, 450), (700, 472), (711, 478)])
+    s.arrow([(822, 136), (840, 136), (840, 458), (760, 458), (760, 472), (749, 478)])
+    s.arrow([(729, 368), (729, 465)])
     s.text(604, 552, "Two verified forecast variants; the drift gate awaits a complete rerun", "small", anchor="middle")
 
     s.group(886, 48, 290, 538, "Evidence output", stroke=GREEN_DARK)

@@ -17,7 +17,7 @@
 <text x="48" y="92" class="small" text-anchor="start" dominant-baseline="middle">past</text>
 <text x="340" y="92" class="small" text-anchor="end" dominant-baseline="middle">query time</text>
 <line x1="52" y1="116" x2="338" y2="116" stroke="#263238" stroke-width="1.7"/>
-<polyline points="52,116 338,116" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="52,116 338,116" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="58" y="154" width="118" height="60" rx="5" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
 <text x="117.0" y="163.0" class="label" text-anchor="middle" dominant-baseline="middle">candidate</text>
 <text x="117.0" y="185.0" class="label" text-anchor="middle" dominant-baseline="middle">input</text>
@@ -34,11 +34,11 @@
 <rect x="58" y="316" width="284" height="94" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
 <text x="200.0" y="353.0" class="label" text-anchor="middle" dominant-baseline="middle">Eligibility set A_t</text>
 <text x="200.0" y="396" class="mono" text-anchor="middle" dominant-baseline="middle">candidate_end &lt; query_start</text>
-<polyline points="200,214 200,316" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="200,214 200,316" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="58" y="466" width="284" height="72" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
 <text x="200.0" y="492.0" class="label" text-anchor="middle" dominant-baseline="middle">Training-history restriction</text>
 <text x="200.0" y="524" class="mono" text-anchor="middle" dominant-baseline="middle">validation/test queries</text>
-<polyline points="200,410 200,466" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="200,410 200,466" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="398" y="48" width="470" height="538" rx="12" fill="none" stroke="#B8860B" stroke-width="1.7" stroke-dasharray="8 6"/>
 <rect x="412" y="36" width="270" height="24" fill="#FFFFFF"/>
 <text x="420" y="53" class="group" text-anchor="start" dominant-baseline="middle">Hybrid similarity and top-k</text>
@@ -56,15 +56,15 @@
 <text x="743.0" y="276" class="mono" text-anchor="middle" dominant-baseline="middle">s_e</text>
 <circle cx="633" cy="350" r="34" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="633" y="350" class="label" text-anchor="middle" dominant-baseline="middle">sum</text>
-<polyline points="523,170 523,318 599,318 599,350" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="743,170 743,318 667,318 667,350" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="523,290 523,336 599,336" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="743,290 743,336 667,336" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="523,170 523,190 414,190 414,350 599,350" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="743,170 743,190 852,190 852,350 667,350" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="523,290 523,318 609,318 609,326" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="743,290 743,318 657,318 657,326" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <text x="633" y="402" class="mono" text-anchor="middle" dominant-baseline="middle">0.5 s_ts + 0.2 s_w + 0.1 s_c + 0.2 s_e</text>
 <rect x="474" y="454" width="318" height="76" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="633.0" y="482.0" class="label" text-anchor="middle" dominant-baseline="middle">TopK over eligible candidates</text>
 <text x="633.0" y="516" class="mono" text-anchor="middle" dominant-baseline="middle">G_t: B x 8</text>
-<polyline points="633,384 633,454" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="633,384 633,454" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="898" y="48" width="278" height="538" rx="12" fill="none" stroke="#4E7D57" stroke-width="1.7" stroke-dasharray="8 6"/>
 <rect x="912" y="36" width="180" height="24" fill="#FFFFFF"/>
 <text x="920" y="53" class="group" text-anchor="start" dominant-baseline="middle">Retrieved evidence</text>
@@ -80,9 +80,9 @@
 <text x="1037.0" y="440.0" class="label" text-anchor="middle" dominant-baseline="middle">Trajectory, spread,</text>
 <text x="1037.0" y="462.0" class="label" text-anchor="middle" dominant-baseline="middle">similarity, count</text>
 <text x="1037.0" y="496" class="mono" text-anchor="middle" dominant-baseline="middle">rho(G_t): B x 51</text>
-<polyline points="792,492 884,492 884,145 928,145" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="792,492 884,492 884,145 928,145" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="828.75" y="368" width="110.5" height="24" fill="#FFFFFF" opacity="0.94"/>
 <text x="884" y="380" class="mono" text-anchor="middle" dominant-baseline="middle">candidate IDs</text>
-<polyline points="1037,186 1037,252" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
-<polyline points="1037,346 1037,412" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="1037,186 1037,252" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="1037,346 1037,412" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 </svg>
