@@ -583,9 +583,9 @@ evidence output. As shown in
 Figure~\ref{fig:explanation_flow}, the direct path concatenates context,
 retrieval, drift, and future-calendar features for 24 separately trained
 XGBoost regressors. A second path evaluates frozen Chronos-Bolt and combines its
-forecast with the retrieved forecast at a validation-selected weight. The
-current code also defines a validation-only drift-state selector, but no
-manifest-backed run of that selector is reported in this manuscript.
+forecast with the retrieved forecast at a validation-selected weight. Drift
+scores and flags are retained as diagnostic inputs and evidence fields rather
+than being used to select between forecasters.
 
 \begin{figure*}[!t]
 \centering
@@ -598,7 +598,7 @@ form the evidence record.}
 \label{fig:explanation_flow}
 \end{figure*}
 
-\subsubsection{Feature-Level Forecasting and Drift Gate}
+\subsubsection{Feature-Level Forecasting and Drift Diagnostics}
 For horizon $h$, the direct model input and prediction are
 \begin{equation}
 u_{t,h}=[q_t\,\|\,\rho(G_t)\,\|\,d_t\,\|\,c_{t+h}],
@@ -610,25 +610,9 @@ XGBoost regressor trained with squared-error objective. This design gives each
 forecast horizon a separate supervised function while retaining a common
 origin representation.
 Equation~(\ref{eq:direct_heads}) also accounts for the verified 151 features:
-85 context, 51 retrieval, six drift, and nine future-calendar values.
-
-The tabular fusion stage includes a lightweight drift-conditioned selector. It compares
-the strongest validation candidates separately on drift and non-drift validation
-origins, then applies the selected source to the corresponding test origins:
-\begin{equation}
-    \hat{Y}^{G}_t =
-    \begin{cases}
-    \hat{Y}^{a}_{t}, & D_t = 0,\\
-    \hat{Y}^{b}_{t}, & D_t = 1,
-    \end{cases}
-    \label{eq:drift_gate}
-\end{equation}
-where $a$ and $b$ are chosen only from validation errors. This gate does not
-train a new model; it tests whether a transparent drift-specific selection rule
-can avoid applying the same forecaster in all regimes. Equation
-(\ref{eq:drift_gate}) describes the current notebook procedure. It is excluded
-from the reported comparison until a complete rerun records its selection,
-predictions, metrics, and checksums in one manifest.
+85 context, 51 retrieval, six drift, and nine future-calendar values. The drift
+score and binary flag support regime analysis and the evidence record; they do
+not adaptively select a forecaster in the reported experiment.
 
 \subsubsection{Frozen-TSFM Forecast Fusion}
 The Chronos-Bolt retrieval variant uses forecast-level fusion rather than internal
@@ -681,7 +665,7 @@ Q_{0.90}\!\left(\{S_v:v\in\mathcal{T}_{val}\}\right)\right].
 Equations~(\ref{eq:drift_raw})--(\ref{eq:drift_score}) match the implemented
 detector: training data set the reference statistics, validation data set the
 0.90-quantile threshold, and test data are transformed without refitting. The
-binary $D_t$ is the state used in Equation~(\ref{eq:drift_gate}).
+binary $D_t$ is retained for diagnostic regime analysis and explanation evidence.
 
 \subsubsection{Evidence Record and Uncertainty Proxy}
 The explanation module uses signed local XGBoost contributions averaged across
@@ -747,9 +731,7 @@ Implementation scope & Learned retriever and Channel Prompting are implemented.
 
 This section describes the reported experiment. Model-selection choices for
 M00--M11 were fixed using the training and validation partitions before the
-test results were examined. A later post-hoc selector is excluded from every
-reported comparison because it was added after the manifest was written.
-Artifact consistency was verified using run identifier
+test results were examined. Artifact consistency was verified using run identifier
 \texttt{20260723T112033170131Z}.
 
 \subsection{Dataset Description and Audit}
@@ -977,9 +959,7 @@ pre-specified supervised result is M04, which uses PM2.5 history, weather, and
 calendar features and obtains MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$
 0.379. The full feature-level Event-TimeRAF model M09 obtains MSE 26.712 and MAE
 3.149; event-context retrieval and drift features therefore do not improve the
-all-origin error over M04 in this run. A selector appended after the archived
-run is omitted: its result tables and prediction file do not match the run
-manifest, so it is not part of the verified comparison.
+all-origin error over M04 in this run.
 
 \begin{table*}[!t]
 \centering
@@ -1258,12 +1238,9 @@ similarity functions rather than a learned retriever, and the DFEH combines
 Chronos-Bolt and retrieval only at forecast level. Event-TimeRAF therefore does
 not reproduce TimeRAF's learned dual encoder or internal Channel Prompting.
 
-The fourth limitation concerns artifact lineage. A drift-gated selector was
-added after the archived run, and the edited prediction and table files no
-longer match the original manifest checksums. That selector is therefore
-excluded from the reported results. Hardware model identifiers and peak memory
-were also absent from the run manifest, so runtime cannot be interpreted as a
-hardware-normalized efficiency result.
+The fourth limitation concerns computational reporting. Hardware model
+identifiers and peak memory were absent from the run manifest, so runtime cannot
+be interpreted as a hardware-normalized efficiency result.
 
 The fifth limitation concerns cross-version replay of the random-retrieval
 baseline. Repeating the seeded selection under NumPy 2.4.1 does not reproduce

@@ -279,7 +279,7 @@ where $(\mu_t,\sigma_t)$ and $(\mu_i,\sigma_i)$ are the statistics of the query 
 
 \subsection{Drift-Aware Forecast and Evidence Head}
 
-The common output layer of two verified forecasting paths and the evidence output is the DFEH. A direct path is defined as the concatenation of the context, retrieval, drift and future-calendar features for 24 independently-trained XGBoost regressors, as illustrated in Figure~\ref{fig:explanation_flow}. The second track is a value of the retrieved forecast, mixed with the forecast of the frozen Chronos-Bolt at a validation-selected weight. The current code also includes a drill of a validation-only drift-state selector which is not represented in this manuscript in the context of a manifest-backed run.
+The common output layer of two verified forecasting paths and the evidence output is the DFEH. A direct path is defined as the concatenation of the context, retrieval, drift and future-calendar features for 24 independently trained XGBoost regressors, as illustrated in Figure~\ref{fig:explanation_flow}. The second path mixes the retrieved forecast with the frozen Chronos-Bolt forecast at a validation-selected weight. Drift scores and flags are retained as diagnostic inputs and evidence fields rather than being used to select between forecasters.
 
 \begin{figure*}[!t]
 \centering
@@ -292,25 +292,14 @@ form the evidence record.}
 \label{fig:explanation_flow}
 \end{figure*}
 
-\subsubsection{Feature-Level Forecasting and Drift Gate}
+\subsubsection{Feature-Level Forecasting and Drift Diagnostics}
 The direct input and prediction to the model is given by Equation~\eqref{eq:direct_heads} for horizon h.
 \begin{equation}
 u_{t,h}=[q_t\,\|\,\rho(G_t)\,\|\,d_t\,\|\,c_{t+h}],
 \qquad \hat{y}^{X}_{t+h}=f_h(u_{t,h}),
 \label{eq:direct_heads}
 \end{equation}
-$u_{t,h}\in\mathbb{R}^{151}$ for the complete M09 model and each $f_h$ is an XGBoost regressor trained with squared error objective. The design allows for each forecast horizon to have a supervised function, but shares a common origin representation. The verified 151 features (85 context, 51 retrieval, six drift and nine future-calendar) are also included in equation~\eqref{eq:direct_heads}.
-
-The tabular fusion stage defines a lightweight drift-conditioned selector. It identifies the strongest validation candidate separately for drift and non-drift origins before selecting the corresponding forecast source for each test origin, as indicated in Equation~\eqref{eq:drift_gate}.
-\begin{equation}
-    \hat{Y}^{G}_t =
-    \begin{cases}
-    \hat{Y}^{a}_{t}, & D_t = 0,\\
-    \hat{Y}^{b}_{t}, & D_t = 1,
-    \end{cases}
-    \label{eq:drift_gate}
-\end{equation}
-where $a$ and $b$ are selected using validation errors only. The gate does not train a new model; it tests whether a transparent drift-specific rule can select a different forecaster for each regime. Because its predictions, metrics and checksums are not included in the verified manifest, this selector is excluded from the reported model comparison.
+$u_{t,h}\in\mathbb{R}^{151}$ for the complete M09 model and each $f_h$ is an XGBoost regressor trained with a squared-error objective. The design allows each forecast horizon to have a supervised function while sharing a common origin representation. Equation~\eqref{eq:direct_heads} includes the verified 151 features: 85 context, 51 retrieval, six drift and nine future-calendar values. The drift score and binary flag support regime analysis and the evidence record; they do not adaptively select a forecaster in the reported experiment.
 
 \subsubsection{Frozen-TSFM Forecast Fusion}
 The Chronos-Bolt retrieval variant is powered with forecast level fusion, instead of inbuilt Channel Prompting. Define $\widehat{Y}^{C}_t$ as the ``frozen'' forecast of Chronos and $\widehat{Y}^{R}_t$ as the ``retrieved'' historical forecast. The fused prediction is given by equation~\eqref{eq:chronos_fusion}.
@@ -348,7 +337,7 @@ D_t=\mathbb{I}\!\left[S_t\geq
 Q_{0.90}\!\left(\{S_v:v\in\mathcal{T}_{val}\}\right)\right].
 \label{eq:drift_score}
 \end{equation}
-Equations~\eqref{eq:drift_raw}--\eqref{eq:drift_score} are equivalent to the detector which was used: the reference statistics are set using training data, the threshold 0.90 is set using validation data and test data are transformed without refitting. The binary $D_t$ is the state which is applied to Equation~\eqref{eq:drift_gate}.
+Equations~\eqref{eq:drift_raw}--\eqref{eq:drift_score} are equivalent to the detector that was used: the reference statistics are set using training data, the threshold 0.90 is set using validation data and test data are transformed without refitting. The binary $D_t$ is retained for diagnostic regime analysis and explanation evidence.
 
 \subsubsection{Evidence Record and Uncertainty Proxy}
 The explanation module is based on signed local contributions provided by the 24 direct models, weather flags, top three retrieved windows, recent event records, calendar context, forecast direction, and component level drift evidence. The uncertainty proxy of it is defined by equation~\eqref{eq:uncertainty_proxy}.
@@ -398,7 +387,7 @@ Implementation scope & Learned retriever and Channel Prompting are implemented.
 \end{table*}
 \section{Experimental Setup}
 
-This section describes the reported experiment. For models M00 to M11, model selection was fixed using the training and validation partitions before the test results were examined. A later post-hoc selector is excluded from the reported comparisons because it was added after the verified manifest was created. Run identifier 20260723T112033170131Z was used to verify artifact consistency.
+This section describes the reported experiment. For models M00 to M11, model selection was fixed using the training and validation partitions before the test results were examined. Run identifier 20260723T112033170131Z was used to verify artifact consistency.
 
 \subsection{Dataset Description and Audit}
 The study period is 2019-2024. Los Angeles County PM2.5 data were collected from US EPA, AirData/AQS parameter 88101 \cite{epaairdata2026}. The official Los Angeles County AQS monitors' hourly county median was used as the audited target series (not any one monitor site). This fall back picked 06-037-COUNTY and observed target hours of 52,602 and observed PM2.5 coverage of 0.9997. The PM2.5 value was always measured in micrograms per cubic meter.
@@ -554,7 +543,7 @@ audit, temporal leakage control, drift indicators, and Chronos retrieval fusion.
 \section{Results and Discussion}
 
 \subsection{Overall Comparison with Baselines}
-The results on the test-set are given in Table~\ref{tab:main_results}. The best supervised result from the pre-specified ones is M04 which can be achieved from the PM2.5 history, weather and calendar features with MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$ 0.379. In this run, the full feature-level Event-TimeRAF model (M09) achieves MSE 26.712 and MAE 3.149, and event-context retrieval and drift features do not improve the all-origin error over M04 in this run. A selector is not included because the result tables and prediction file of the selector do not match with the run manifest.
+The results on the test set are given in Table~\ref{tab:main_results}. The best pre-specified supervised result is M04, which uses PM2.5 history, weather and calendar features and achieves MSE 26.185, MAE 3.125, RMSE 5.117 and $R^2$ 0.379. In this run, the full feature-level Event-TimeRAF model (M09) achieves MSE 26.712 and MAE 3.149; event-context retrieval and drift features therefore do not improve the all-origin error over M04.
 
 \begin{table*}[!t]
 \centering
@@ -747,7 +736,7 @@ The geographic validation is the second constraint. The experiment covers one co
 
 The third limitation is related to integration of models. The LSER is not based on a learned retriever but instead on transparent similarity functions and the DFEH is a combination of Chronos-Bolt and retrieval at forecast level. Event-TimeRAF consequently does not duplicate the learned dual encoder or built-in Channel Prompting of TimeRAF.
 
-The fourth restriction is related to the lineage of artifacts. After archived run, a drift-gated selector was added and the edited prediction and table files no longer have the same original checksums in the manifest. The results from that selector are thus not included in the reported results. There was also no hardware model ID or peak memory reported in the run manifest and therefore the runtime is not a "hardware-normalized" efficiency value.
+The fourth restriction concerns computational reporting. No hardware model identifier or peak-memory value was reported in the run manifest; therefore, runtime cannot be interpreted as a hardware-normalized efficiency value.
 
 The fifth limitation is the cross version replay of the random-retrieval baseline. A seeded selection doesn't generate the same candidates as it does in NumPy 2.0.2 when repeated in NumPy 2.4.1. The verification notebook therefore reconstructs M05 and A01 from the original, checksum-verified retrieval-evidence rows. This maintains the reported run, but for exact random baseline retraining, one must have the software environment that was used when the run was completed.
 

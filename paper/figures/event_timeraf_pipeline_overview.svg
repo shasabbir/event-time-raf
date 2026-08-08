@@ -85,9 +85,9 @@
 <text x="1022.0" y="283.0" class="label" text-anchor="middle" dominant-baseline="middle">+ forecast fusion</text>
 <text x="1022.0" y="312" class="mono" text-anchor="middle" dominant-baseline="middle">B x 168 -&gt; B x 24</text>
 <rect x="898" y="374" width="248" height="74" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
-<text x="1022.0" y="390.0" class="label" text-anchor="middle" dominant-baseline="middle">Unreported drift gate</text>
-<text x="1022.0" y="412.0" class="label" text-anchor="middle" dominant-baseline="middle">rerun required</text>
-<text x="1022.0" y="434" class="mono" text-anchor="middle" dominant-baseline="middle">validation-only selection</text>
+<text x="1022.0" y="390.0" class="label" text-anchor="middle" dominant-baseline="middle">Drift diagnostics</text>
+<text x="1022.0" y="412.0" class="label" text-anchor="middle" dominant-baseline="middle">regime evidence</text>
+<text x="1022.0" y="434" class="mono" text-anchor="middle" dominant-baseline="middle">score + binary flag</text>
 <rect x="898" y="490" width="248" height="58" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="1022.0" y="509.0" class="label" text-anchor="middle" dominant-baseline="middle">Forecast + evidence record</text>
 <text x="1022.0" y="534" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat: B x 24</text>

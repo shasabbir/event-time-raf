@@ -131,7 +131,7 @@ def pipeline_figure(path: Path) -> None:
     s.group(868, 52, 308, 520, "DFEH: forecasting and evidence", stroke=PINK_DARK)
     s.rect(898, 102, 248, 88, PINK, ["Direct XGBoost", "24 horizon heads"], "B x 151 -> B x 24")
     s.rect(898, 238, 248, 88, PINK, ["Frozen Chronos-Bolt", "+ forecast fusion"], "B x 168 -> B x 24")
-    s.rect(898, 374, 248, 74, GREEN, ["Unreported drift gate", "rerun required"], "validation-only selection")
+    s.rect(898, 374, 248, 74, GREEN, ["Drift diagnostics", "regime evidence"], "score + binary flag")
     s.rect(898, 490, 248, 58, GREEN, ["Forecast + evidence record"], "Yhat: B x 24")
     s.arrow([(810, 440), (852, 440), (852, 146), (898, 146)], "rho(G)", (852, 212))
     s.arrow([(810, 470), (864, 470), (864, 282), (898, 282)], "Yhat_R", (864, 352))
@@ -244,7 +244,7 @@ def forecast_figure(path: Path) -> None:
 
     s.group(350, 48, 504, 538, "Forecast paths", stroke=PINK_DARK)
     s.rect(394, 92, 218, 88, PINK, ["24 direct XGBoost", "regressors (M09)"], "B x 151 -> B x 24")
-    s.rect(636, 92, 186, 88, GREEN, ["Unreported gate", "rerun required"], "D_t in {0,1}")
+    s.rect(636, 92, 186, 88, GREEN, ["Drift diagnostics", "score + regime flag"], "D_t in {0,1}")
     s.rect(394, 286, 218, 82, BLUE, ["Frozen Chronos-Bolt"], "B x 168 -> B x 24")
     s.rect(636, 286, 186, 82, GOLD, ["Forecast-level fusion"], "omega=0.75")
     # Each direct-model feature family has its own lane in the left-side gutter.
@@ -258,9 +258,9 @@ def forecast_figure(path: Path) -> None:
     s.arrow([(288, 412), (628, 412), (628, 156), (636, 156)], "drift flag", (628, 230))
     s.circle(730, 492, 27, GREEN, text_value="Yhat")
     s.arrow([(612, 136), (620, 136), (620, 450), (700, 450), (700, 472), (711, 478)])
-    s.arrow([(822, 136), (840, 136), (840, 458), (760, 458), (760, 472), (749, 478)])
+    s.arrow([(822, 136), (874, 136), (874, 447), (896, 447)])
     s.arrow([(729, 368), (729, 465)])
-    s.text(604, 552, "Two verified forecast variants; the drift gate awaits a complete rerun", "small", anchor="middle")
+    s.text(604, 552, "Two verified forecast variants with diagnostic drift evidence", "small", anchor="middle")
 
     s.group(886, 48, 290, 538, "Evidence output", stroke=GREEN_DARK)
     s.rect(916, 96, 230, 66, GRAY, ["Signed XGBoost effects"], "top 3 fields")

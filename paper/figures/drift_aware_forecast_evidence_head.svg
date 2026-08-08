@@ -37,8 +37,8 @@
 <text x="503.0" y="137.0" class="label" text-anchor="middle" dominant-baseline="middle">regressors (M09)</text>
 <text x="503.0" y="166" class="mono" text-anchor="middle" dominant-baseline="middle">B x 151 -&gt; B x 24</text>
 <rect x="636" y="92" width="186" height="88" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
-<text x="729.0" y="115.0" class="label" text-anchor="middle" dominant-baseline="middle">Unreported gate</text>
-<text x="729.0" y="137.0" class="label" text-anchor="middle" dominant-baseline="middle">rerun required</text>
+<text x="729.0" y="115.0" class="label" text-anchor="middle" dominant-baseline="middle">Drift diagnostics</text>
+<text x="729.0" y="137.0" class="label" text-anchor="middle" dominant-baseline="middle">score + regime flag</text>
 <text x="729.0" y="166" class="mono" text-anchor="middle" dominant-baseline="middle">D_t in {0,1}</text>
 <rect x="394" y="286" width="218" height="82" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
 <text x="503.0" y="317.0" class="label" text-anchor="middle" dominant-baseline="middle">Frozen Chronos-Bolt</text>
@@ -63,9 +63,9 @@
 <circle cx="730" cy="492" r="27" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <text x="730" y="492" class="label" text-anchor="middle" dominant-baseline="middle">Yhat</text>
 <polyline points="612,136 620,136 620,450 700,450 700,472 711,478" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="822,136 840,136 840,458 760,458 760,472 749,478" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="822,136 874,136 874,447 896,447" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <polyline points="729,368 729,465" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<text x="604" y="552" class="small" text-anchor="middle" dominant-baseline="middle">Two verified forecast variants; the drift gate awaits a complete rerun</text>
+<text x="604" y="552" class="small" text-anchor="middle" dominant-baseline="middle">Two verified forecast variants with diagnostic drift evidence</text>
 <rect x="886" y="48" width="290" height="538" rx="12" fill="none" stroke="#4E7D57" stroke-width="1.7" stroke-dasharray="8 6"/>
 <rect x="900" y="36" width="150" height="24" fill="#FFFFFF"/>
 <text x="908" y="53" class="group" text-anchor="start" dominant-baseline="middle">Evidence output</text>
