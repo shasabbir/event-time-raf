@@ -53,9 +53,10 @@ def test_explanations_save_semantic_effects_and_uncertainty():
         pd.DataFrame(),
         feature_contributions=np.array([[0.2, -0.5]], dtype=np.float32),
         contribution_names=["pm25_current", "hybrid_retrieval_mean_similarity"],
-        validation_residual_mae=np.full(24, 1.0),
+        validation_residual_rmse=np.full(24, 1.0),
     )
     effects = json.loads(result.loc[0, "top_feature_effects"])
     assert effects[0]["feature"] == "hybrid_retrieval_mean_similarity"
-    assert result.loc[0, "uncertainty_proxy"] > 1.0
-    assert "uncertainty proxy" in result.loc[0, "explanation"].lower()
+    assert result.loc[0, "diagnostic_uncertainty_scale"] > 1.0
+    assert result.loc[0, "validation_residual_rmse"] == 1.0
+    assert "not a calibrated interval" in result.loc[0, "explanation"].lower()

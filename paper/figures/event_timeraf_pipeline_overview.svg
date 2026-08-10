@@ -56,7 +56,7 @@
 <rect x="600" y="112" width="210" height="82" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
 <text x="705.0" y="132.0" class="label" text-anchor="middle" dominant-baseline="middle">Training-history</text>
 <text x="705.0" y="154.0" class="label" text-anchor="middle" dominant-baseline="middle">knowledge base</text>
-<text x="705.0" y="180" class="mono" text-anchor="middle" dominant-baseline="middle">N_K=191</text>
+<text x="705.0" y="180" class="mono" text-anchor="middle" dominant-baseline="middle">N_K: stride-dependent</text>
 <rect x="600" y="254" width="210" height="96" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
 <text x="705.0" y="281.0" class="label" text-anchor="middle" dominant-baseline="middle">Embargo filter +</text>
 <text x="705.0" y="303.0" class="label" text-anchor="middle" dominant-baseline="middle">hybrid ranking</text>

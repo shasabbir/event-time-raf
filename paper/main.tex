@@ -11,13 +11,13 @@
 
 \title{Event-TimeRAF: Event-Aware Retrieval-Augmented Foundation Model for Explainable Air Quality Forecasting Under Concept Drift}
 
-\author{Author Name}
+\author{Sabbir Hossain%
+\thanks{S. Hossain is with the Department of Computer Science and Engineering,
+American International University-Bangladesh, Dhaka, Bangladesh.}}
 
 \begin{document}
 
 \maketitle
-\pagestyle{plain}
-\thispagestyle{plain}
 
 \begin{abstract}
 Short-horizon PM2.5 forecasting is complicated by meteorological variation,
@@ -47,7 +47,7 @@ not strict real-time forecasts.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Air quality forecasting, PM2.5, retrieval-augmented forecasting, time-series foundation models, TimeRAF, concept drift, explainable forecasting.
+Air quality forecasting, PM2.5, retrieval-augmented forecasting, time-series foundation models, event context, distribution-shift diagnostics, forecast traceability.
 \end{IEEEkeywords}
 
 \section{Introduction}
@@ -204,7 +204,7 @@ attributes predictions to model inputs \cite{lundberg2017shap}, while
 information-theoretic saliency supports counterfactual inspection of
 probabilistic forecasts \cite{raman2023forecast}. The implemented explanation
 layer is narrower: it records signed XGBoost effects, retrieved cases, event
-identifiers, drift components, and an uncertainty proxy. These records support
+identifiers, drift components, and a diagnostic uncertainty scale. These records support
 traceability, but they do not establish causal effects of weather or events.
 \section{Critical Gaps and Limitations of Previous Studies}
 
@@ -568,7 +568,7 @@ $\mathcal{A}_t$. Candidate futures are restored to the query scale as
 \label{eq:future_alignment}
 \end{equation}
 where $(\mu_t,\sigma_t)$ and $(\mu_i,\sigma_i)$ are the query and candidate
-lookback statistics. Retrieval-only forecasts average
+lookback statistics, and $\epsilon=10^{-6}$ prevents division by zero. Retrieval-only forecasts average
 $\widetilde{Y}_{t,i}$ uniformly or by non-negative normalized scores. The
 feature-level path retains the mean trajectory, horizon-wise spread, mean and
 maximum time-series similarity, and candidate count, yielding
@@ -667,19 +667,20 @@ detector: training data set the reference statistics, validation data set the
 0.90-quantile threshold, and test data are transformed without refitting. The
 binary $D_t$ is retained for diagnostic regime analysis and explanation evidence.
 
-\subsubsection{Evidence Record and Uncertainty Proxy}
+\subsubsection{Evidence Record and Diagnostic Scale}
 The explanation module uses signed local XGBoost contributions averaged across
 the 24 direct models, weather flags, the top three retrieved windows, recent
 event records, calendar context, forecast direction, and component-level drift
-evidence. Its uncertainty proxy is
+evidence. Its diagnostic uncertainty scale is
 \begin{equation}
-u_t^{\mathrm{proxy}}=
-\sqrt{\bar{\sigma}_{R,t}^{2}+\bar{e}_{val}^{2}},
+u_t^{\mathrm{diag}}=
+\sqrt{\bar{\sigma}_{R,t}^{2}+\overline{\mathrm{RMSE}}_{val}^{2}},
 \label{eq:uncertainty_proxy}
 \end{equation}
 where $\bar{\sigma}_{R,t}$ is the mean horizon-wise spread of the retrieved
-trajectories and $\bar{e}_{val}$ is the mean absolute validation residual. The
-result is a diagnostic scale, not a calibrated prediction interval. Each
+trajectories and $\overline{\mathrm{RMSE}}_{val}$ is the mean of the 24
+horizon-specific validation RMSE values. The result is a diagnostic scale, not
+a calibrated prediction interval. Each
 explanation is generated from stored fields rather than an unrestricted
 language model, and each event statement remains contextual rather than causal.
 Equation~(\ref{eq:uncertainty_proxy}) is retained only as an evidence-field
@@ -721,7 +722,7 @@ test retrieval use training history only. \\
 Event handling & Not an explicit module. & Availability-tagged NOAA Storm
 Events features and source-record evidence, reported retrospectively. \\
 Drift and explanation & Retrieved-case inspection. & Five-component drift
-audit, signed feature effects, retrieved IDs, event IDs, and uncertainty proxy. \\
+audit, signed feature effects, retrieved IDs, event IDs, and diagnostic scale. \\
 Implementation scope & Learned retriever and Channel Prompting are implemented.
 & Those mechanisms are not implemented and remain future extensions. \\
 \bottomrule
@@ -824,7 +825,9 @@ The forecasting task predicts PM2.5 from one to 24 hours ahead using a 168-hour
 lookback window. The split is chronological: the earliest 70\% of valid windows
 are used for training, the next 15\% for validation, and the latest 15\% for
 testing. The final test set contains 7,199 forecast origins and 172,776
-forecasted hourly target points. Random splitting is not used.
+forecasted hourly target points. Test origins span 7 February through
+30 December 2024 UTC, and their targets end on 31 December 2024 UTC. Random
+splitting is not used.
 
 \subsection{Models}
 The evaluated models are persistence, daily seasonal naive, weekly seasonal
@@ -834,8 +837,10 @@ retrieval, XGBoost with cosine retrieval features, Event-TimeRAF without drift
 features, full Event-TimeRAF with event and drift features, frozen Chronos-Bolt,
 and retrieval-augmented Chronos-Bolt forecast fusion. An auxiliary
 random-retrieval XGBoost model A01 and an event-free model A00 support the
-ablation analysis. A post-hoc M12 artifact is excluded because it is not part
-of the manifest-backed result set. The foundation-model evaluation uses the
+ablation analysis. A01 replaces cosine retrieval features with seeded random
+retrieval features while retaining the context regressor. A00 omits event
+features and uses event-free hybrid retrieval and a four-component drift
+diagnostic. The foundation-model evaluation uses the
 \texttt{amazon/chronos-bolt-small} checkpoint.
 Table~\ref{tab:model_families} groups the evaluated configurations by their
 forecasting and retrieval roles.
@@ -1130,14 +1135,14 @@ plots are regenerated from predictions identified by
 \label{fig:forecast_case}
 \end{figure}
 
-\subsection{Explainability and Evidence Analysis}
+\subsection{Evidence and Traceability Analysis}
 
 Within the DFEH, explainability is implemented as a source-grounded evidence record rather than
 as a post-hoc free-text interpretation. For each evaluated forecast origin, the
 pipeline stores the run identifier, window identifier, origin timestamp,
 retrieved historical evidence identifiers, event evidence identifiers, leading
-feature effects, drift components, retrieval spread, validation residual MAE,
-uncertainty proxy, drift score, drift flag, and event-availability mode. The
+feature effects, drift components, retrieval spread, validation residual RMSE,
+diagnostic uncertainty scale, drift score, drift flag, and event-availability mode. The
 evaluation produced 7,199 explanation records in
 \texttt{explanations.parquet}. A representative record identifies the strongest
 local contribution fields as the current PM2.5 value and recent rolling PM2.5
@@ -1164,7 +1169,7 @@ Top feature effects & Local model drivers from the direct forecaster. \\
 Retrieved windows & Historical analogues used by the retrieval module. \\
 Event evidence IDs & Official storm-event context linked to the origin. \\
 Drift components & Mean, variance, weather, similarity, and event-burst shift signals. \\
-Uncertainty proxy & Combined retrieval spread and validation residual error. \\
+Diagnostic scale & Combined retrieval spread and validation residual RMSE; not a calibrated interval. \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1251,8 +1256,8 @@ retraining requires the archived software environment.
 
 \section{Future Work}
 
-The immediate priority is a clean rerun that records any validation-selected
-drift gate and all downstream artifacts in one manifest. Operational event studies
+The immediate priority is a clean rerun that records the revised retrieval
+sensitivity, drift diagnostics, and all downstream artifacts in one manifest. Operational event studies
 should then replace event-start proxies with archives that expose genuine issue
 or publication times. External validation should apply the unchanged protocol
 to a second US county with distinct meteorology and emissions. Longer-term work

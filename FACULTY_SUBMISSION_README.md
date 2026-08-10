@@ -44,8 +44,8 @@ os.environ["FINAL_RUN_ZIP_OVERRIDE"] = "/kaggle/input/<dataset>/event_timeraf_fi
 
 Upload `event_timeraf_verified_overleaf.zip` as a new project. The ZIP has
 `main.tex` at its root and uses forward-slash archive paths. Compile with
-pdfLaTeX/BibTeX. Replace `Author Name` before creating and submitting the
-Overleaf share link.
+pdfLaTeX/BibTeX. Confirm the author affiliation and add the required
+institutional email before creating and submitting the Overleaf share link.
 
 ## Presentation position
 

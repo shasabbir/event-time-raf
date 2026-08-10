@@ -105,23 +105,24 @@ class RetrievalResult:
         )
 
 
-def build_knowledge_base(dataset: WindowDataset, cfg: ProjectConfig) -> KnowledgeBase:
+def build_knowledge_base(
+    dataset: WindowDataset,
+    cfg: ProjectConfig,
+    stride_hours: int | None = None,
+) -> KnowledgeBase:
     train_indices = np.flatnonzero(dataset.metadata["split"].to_numpy() == "train")
     if train_indices.size == 0:
         raise ValueError("Training split is empty")
+    stride = int(stride_hours or cfg.retrieval.kb_stride_hours)
+    if stride <= 0:
+        raise ValueError("Knowledge-base stride must be positive")
     origin_rows = dataset.metadata.loc[train_indices, "origin_row"].to_numpy(dtype=int)
-    keep = origin_rows % cfg.retrieval.kb_stride_hours == 0
+    keep = origin_rows % stride == 0
     indices = train_indices[keep]
     if indices.size < cfg.retrieval.k:
         raise ValueError("Knowledge base has fewer candidates than configured k")
     metadata = dataset.metadata.loc[indices].reset_index(drop=True)
-    if len(metadata) > 1:
-        candidate_end = pd.to_datetime(metadata["target_end"], utc=True).to_numpy()
-        next_input_start = pd.to_datetime(metadata["input_start"], utc=True).to_numpy()[1:]
-        if not (candidate_end[:-1] < next_input_start).all():
-            raise AssertionError(
-                "Knowledge-base windows overlap; increase retrieval.kb_stride_hours"
-            )
+    metadata["kb_stride_hours"] = stride
     vectors, means, stds = normalize_windows(dataset.x[indices], cfg.retrieval.epsilon)
     return KnowledgeBase(
         x=dataset.x[indices],
@@ -145,6 +146,27 @@ class HistoricalRetriever:
             "calendar": [i for i, name in enumerate(kb.feature_names) if name.startswith("cal_")],
             "event": [i for i, name in enumerate(kb.feature_names) if name.startswith("event_")],
         }
+        self._context_reference: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+        for group, columns in self.groups.items():
+            if not columns:
+                continue
+            candidate = self.kb.features[:, columns]
+            center = np.nanmean(candidate, axis=0)
+            scale = np.maximum(np.nanstd(candidate, axis=0), self.cfg.retrieval.epsilon)
+            candidate_scaled = np.nan_to_num((candidate - center) / scale)
+            candidate_norm = np.linalg.norm(candidate_scaled, axis=1, keepdims=True)
+            candidate_unit = candidate_scaled / np.maximum(candidate_norm, self.cfg.retrieval.epsilon)
+            self._context_reference[group] = (
+                center.astype(np.float32),
+                scale.astype(np.float32),
+                candidate_unit.astype(np.float32),
+            )
+        event_columns = self.groups["event"]
+        self._candidate_has_event = (
+            np.linalg.norm(self.kb.features[:, event_columns], axis=1) > self.cfg.retrieval.epsilon
+            if event_columns
+            else np.zeros(len(self.kb.metadata), dtype=bool)
+        )
 
     def _context_similarity(self, query_features: np.ndarray, group: str) -> np.ndarray:
         columns = self.groups[group]
@@ -152,7 +174,10 @@ class HistoricalRetriever:
             return np.zeros((len(query_features), len(self.kb.metadata)), dtype=np.float32)
         candidate = self.kb.features[:, columns]
         query = query_features[:, columns]
-        candidate_unit, query_unit = _standardized_unit(candidate, query, self.cfg.retrieval.epsilon)
+        center, scale, candidate_unit = self._context_reference[group]
+        query_scaled = np.nan_to_num((query - center) / scale)
+        query_norm = np.linalg.norm(query_scaled, axis=1, keepdims=True)
+        query_unit = query_scaled / np.maximum(query_norm, self.cfg.retrieval.epsilon)
         similarity = query_unit @ candidate_unit.T
         if group == "event":
             candidate_zero = np.linalg.norm(candidate, axis=1) <= self.cfg.retrieval.epsilon
@@ -169,10 +194,18 @@ class HistoricalRetriever:
         queries: WindowDataset,
         method: str = "cosine",
         k: int | None = None,
+        event_weight: float | None = None,
     ) -> RetrievalResult:
-        if method not in {"random", "cosine", "hybrid", "hybrid_no_event"}:
-            raise ValueError("method must be random, cosine, hybrid, or hybrid_no_event")
+        allowed_methods = {
+            "random", "cosine", "calendar", "hybrid", "hybrid_no_event", "event_stratified"
+        }
+        if method not in allowed_methods:
+            raise ValueError(f"method must be one of {sorted(allowed_methods)}")
         k = k or self.cfg.retrieval.k
+        if k <= 0:
+            raise ValueError("k must be positive")
+        weights = event_weighted_channel_weights(self.cfg.retrieval.weights, event_weight)
+        rng = np.random.default_rng(self.cfg.seed)
         query_vectors, query_means, query_stds = normalize_windows(queries.x, self.cfg.retrieval.epsilon)
         n_queries = len(queries.metadata)
         horizon = queries.y.shape[1]
@@ -181,23 +214,26 @@ class HistoricalRetriever:
         spread = np.full_like(prediction, np.nan)
         mean_similarity = np.full(n_queries, np.nan, dtype=np.float32)
         max_similarity = np.full(n_queries, np.nan, dtype=np.float32)
-        candidate_count = np.zeros(n_queries, dtype=np.int16)
+        candidate_count = np.zeros(n_queries, dtype=np.int32)
         evidence_rows: list[dict] = []
 
         kb_target_end = pd.to_datetime(self.kb.metadata["target_end"], utc=True).to_numpy()
         query_input_starts = pd.to_datetime(queries.metadata["input_start"], utc=True).to_numpy()
-        weights = self.cfg.retrieval.weights
+        event_columns = self.groups["event"]
 
         for block_start in range(0, n_queries, self.cfg.retrieval.block_size):
             block_end = min(block_start + self.cfg.retrieval.block_size, n_queries)
             block_vectors = query_vectors[block_start:block_end]
             raw_ts = block_vectors @ self.kb.vectors.T
             ts_score = np.clip((raw_ts + 1.0) / 2.0, 0, 1)
-            if method in {"hybrid", "hybrid_no_event"}:
+            if method in {"calendar", "hybrid", "hybrid_no_event", "event_stratified"}:
                 block_features = queries.features[block_start:block_end]
                 weather = self._context_similarity(block_features, "weather")
                 calendar = self._context_similarity(block_features, "calendar")
-                if method == "hybrid":
+                if method == "calendar":
+                    event = np.zeros_like(ts_score)
+                    scores = calendar
+                elif method in {"hybrid", "event_stratified"}:
                     event = self._context_similarity(block_features, "event")
                     scores = (
                         weights["time_series"] * ts_score
@@ -224,9 +260,28 @@ class HistoricalRetriever:
                 eligible = np.flatnonzero(kb_target_end < query_input_starts[query_index])
                 if eligible.size == 0:
                     continue
+                stratified = False
+                stratified_fallback = False
+                query_has_event = bool(
+                    event_columns
+                    and np.linalg.norm(queries.features[query_index, event_columns])
+                    > self.cfg.retrieval.epsilon
+                )
+                if method == "event_stratified" and query_has_event:
+                    event_eligible = eligible[self._candidate_has_event[eligible]]
+                    if event_eligible.size >= k:
+                        eligible = event_eligible
+                        stratified = True
+                    elif self.cfg.retrieval.event_stratified_fallback == "skip":
+                        eligible = event_eligible
+                        stratified = True
+                    else:
+                        stratified_fallback = True
+                    if eligible.size == 0:
+                        continue
                 count = min(k, eligible.size)
                 if method == "random":
-                    selected = self.rng.choice(eligible, size=count, replace=False)
+                    selected = rng.choice(eligible, size=count, replace=False)
                     selected_scores = np.zeros(count, dtype=float)
                 else:
                     eligible_scores = scores[local_index, eligible]
@@ -274,6 +329,13 @@ class HistoricalRetriever:
                             "weather_score": float(weather[local_index, candidate_index]),
                             "calendar_score": float(calendar[local_index, candidate_index]),
                             "event_score": float(event[local_index, candidate_index]),
+                            "event_weight": float(weights["event"]),
+                            "query_has_event_context": query_has_event,
+                            "candidate_has_event_context": bool(self._candidate_has_event[candidate_index]),
+                            "event_stratified": stratified,
+                            "event_stratified_fallback": stratified_fallback,
+                            "eligible_candidate_count": int(eligible.size),
+                            "kb_stride_hours": int(candidate_row["kb_stride_hours"]),
                             "aligned_future": aligned[rank - 1].astype(float).tolist(),
                         }
                     )
@@ -301,3 +363,42 @@ def assert_retrieval_causality(evidence: pd.DataFrame) -> None:
     if not valid.all():
         invalid = evidence.loc[~valid].head()
         raise AssertionError(f"Retrieval leakage detected:\n{invalid}")
+
+
+def event_weighted_channel_weights(
+    base_weights: dict[str, float],
+    event_weight: float | None,
+) -> dict[str, float]:
+    """Set the event weight and proportionally renormalize the other channels."""
+    if event_weight is None:
+        return {name: float(value) for name, value in base_weights.items()}
+    event_weight = float(event_weight)
+    if not 0 <= event_weight <= 1:
+        raise ValueError("event_weight must be between 0 and 1")
+    non_event_names = ("time_series", "weather", "calendar")
+    denominator = sum(float(base_weights[name]) for name in non_event_names)
+    if denominator <= 0 and event_weight < 1:
+        raise ValueError("Non-event retrieval weights must have positive mass")
+    scale = (1.0 - event_weight) / denominator if denominator > 0 else 0.0
+    return {
+        **{name: float(base_weights[name]) * scale for name in non_event_names},
+        "event": event_weight,
+    }
+
+
+def topk_change_summary(
+    reference: RetrievalResult,
+    comparison: RetrievalResult,
+) -> dict[str, float | int]:
+    """Measure how often two retrieval configurations return different top-k IDs."""
+    reference_groups = reference.evidence.groupby("query_window_id")["candidate_window_id"].apply(tuple)
+    comparison_groups = comparison.evidence.groupby("query_window_id")["candidate_window_id"].apply(tuple)
+    common = reference_groups.index.intersection(comparison_groups.index)
+    if len(common) == 0:
+        return {"n_queries": 0, "changed_queries": 0, "changed_fraction": np.nan}
+    changed = sum(reference_groups.loc[key] != comparison_groups.loc[key] for key in common)
+    return {
+        "n_queries": int(len(common)),
+        "changed_queries": int(changed),
+        "changed_fraction": float(changed / len(common)),
+    }

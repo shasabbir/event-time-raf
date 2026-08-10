@@ -5,6 +5,7 @@ from pathlib import Path
 
 import joblib
 import numpy as np
+import pandas as pd
 
 from .config import ProjectConfig
 from .windows import WindowDataset
@@ -24,6 +25,51 @@ def weekly_seasonal_forecast(x: np.ndarray, horizon: int) -> np.ndarray:
     if x.shape[1] < 168 or horizon > 24:
         raise ValueError("Weekly seasonal baseline requires lookback >= 168 and horizon <= 24")
     return x[:, :horizon].astype(np.float32)
+
+
+@dataclass
+class HourlyMonthlyClimatology:
+    timezone: str
+
+    def __post_init__(self) -> None:
+        self.month_hour_mean: dict[tuple[int, int], float] = {}
+        self.hour_mean: dict[int, float] = {}
+        self.global_mean: float | None = None
+
+    @staticmethod
+    def _target_times(dataset: WindowDataset) -> pd.DatetimeIndex:
+        origins = pd.to_datetime(dataset.metadata["origin_time"], utc=True)
+        horizon = dataset.y.shape[1]
+        repeated = origins.repeat(horizon)
+        steps = np.tile(np.arange(1, horizon + 1), len(origins))
+        return pd.DatetimeIndex(repeated + pd.to_timedelta(steps, unit="h"))
+
+    def fit(self, dataset: WindowDataset) -> "HourlyMonthlyClimatology":
+        frame = pd.DataFrame(
+            {"target_time": self._target_times(dataset), "value": dataset.y.reshape(-1)}
+        ).dropna()
+        # Overlapping origins repeat target timestamps. Deduplicate before
+        # estimating climatology so each observed hour receives equal weight.
+        frame = frame.groupby("target_time", as_index=False)["value"].mean()
+        local = pd.DatetimeIndex(frame["target_time"]).tz_convert(self.timezone)
+        frame["month"] = local.month
+        frame["hour"] = local.hour
+        self.month_hour_mean = frame.groupby(["month", "hour"])["value"].mean().to_dict()
+        self.hour_mean = frame.groupby("hour")["value"].mean().to_dict()
+        self.global_mean = float(frame["value"].mean())
+        return self
+
+    def predict(self, dataset: WindowDataset) -> np.ndarray:
+        if self.global_mean is None:
+            raise RuntimeError("Climatology has not been fitted")
+        local = self._target_times(dataset).tz_convert(self.timezone)
+        values = [
+            self.month_hour_mean.get(
+                (int(month), int(hour)), self.hour_mean.get(int(hour), self.global_mean)
+            )
+            for month, hour in zip(local.month, local.hour)
+        ]
+        return np.asarray(values, dtype=np.float32).reshape(dataset.y.shape)
 
 
 def origin_feature_matrix(
@@ -101,6 +147,58 @@ class DirectXGBForecaster:
 
     def feature_importance(self, horizon: int = 0) -> np.ndarray:
         return np.asarray(self.models[horizon].feature_importances_, dtype=float)
+
+    def save(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(self, path)
+
+
+@dataclass
+class DirectRidgeForecaster:
+    cfg: ProjectConfig
+    alpha: float = 1.0
+    include_future_calendar: bool = True
+
+    def __post_init__(self) -> None:
+        self.models: list = []
+        self.feature_names: list[str] = []
+
+    def _matrix(self, origin_features: np.ndarray, future_calendar: np.ndarray, horizon: int) -> np.ndarray:
+        if self.include_future_calendar:
+            return np.column_stack([origin_features, future_calendar[:, horizon, :]]).astype(np.float32)
+        return origin_features.astype(np.float32)
+
+    def fit(
+        self,
+        origin_features: np.ndarray,
+        future_calendar: np.ndarray,
+        targets: np.ndarray,
+        feature_names: list[str] | None = None,
+        calendar_names: tuple[str, ...] | None = None,
+    ) -> "DirectRidgeForecaster":
+        from sklearn.linear_model import Ridge
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import StandardScaler
+
+        self.models = []
+        for horizon in range(targets.shape[1]):
+            model = make_pipeline(StandardScaler(), Ridge(alpha=self.alpha))
+            model.fit(self._matrix(origin_features, future_calendar, horizon), targets[:, horizon])
+            self.models.append(model)
+        self.feature_names = list(feature_names or [f"feature_{i}" for i in range(origin_features.shape[1])])
+        if self.include_future_calendar:
+            self.feature_names.extend(calendar_names or [f"calendar_{i}" for i in range(future_calendar.shape[2])])
+        return self
+
+    def predict(self, origin_features: np.ndarray, future_calendar: np.ndarray) -> np.ndarray:
+        if not self.models:
+            raise RuntimeError("Model has not been fitted")
+        return np.column_stack(
+            [
+                model.predict(self._matrix(origin_features, future_calendar, horizon))
+                for horizon, model in enumerate(self.models)
+            ]
+        ).astype(np.float32)
 
     def save(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

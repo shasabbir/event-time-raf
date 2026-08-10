@@ -2,9 +2,9 @@
 
 ## Required before submission
 
-1. Replace `Author Name` in `main.tex` with the final author names,
-   affiliations, institutional email addresses, and corresponding-author
-   details. Add the same identity to the title slide if required.
+1. Confirm the author name and AIUB affiliation now present in both manuscript
+   variants, then add the institutional email and corresponding-author details
+   required by the target journal. Add the same identity to the title slide.
 2. Upload the prepared Overleaf source ZIP to your Overleaf account, compile it,
    set link sharing as required by the course, and submit that link in Teams.
    An authenticated Overleaf link cannot be created locally.
@@ -22,8 +22,8 @@
   generalization.
 - An event source with genuine issue/publication timestamps is needed before
   claiming strict real-time event availability.
-- A new fully manifested run is needed before reporting a drift-gated selector
-  such as M12.
+- A new fully manifested run is required before replacing any manuscript value
+  with a result from the revised dense-retrieval experiment.
 - Recorded CPU/GPU/RAM and peak memory are needed before claiming
   hardware-normalized efficiency.
 
@@ -31,5 +31,5 @@
 
 No unimplemented neural module is presented as implemented. SACB, LSER, and
 DFEH name existing repository behavior. The compact tensor forward pass,
-terminology, and vector diagrams formalize that behavior. The excluded drift
-gate is visibly labeled as requiring a complete rerun.
+terminology, and vector diagrams formalize that behavior. No drift-gated
+selector is presented as part of the method.

@@ -79,7 +79,7 @@
 <text x="1031.0" y="331.0" class="label" text-anchor="middle" dominant-baseline="middle">Recent event IDs</text>
 <text x="1031.0" y="360" class="mono" text-anchor="middle" dominant-baseline="middle">prior 72 h</text>
 <rect x="916" y="414" width="230" height="66" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
-<text x="1031.0" y="437.0" class="label" text-anchor="middle" dominant-baseline="middle">Drift + uncertainty proxy</text>
+<text x="1031.0" y="437.0" class="label" text-anchor="middle" dominant-baseline="middle">Drift + diagnostic scale</text>
 <text x="1031.0" y="466" class="mono" text-anchor="middle" dominant-baseline="middle">machine-readable</text>
 <polyline points="612,176 624,176 624,252 870,252 870,129 916,129" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <polyline points="896,235 916,235" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>

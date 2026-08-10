@@ -28,8 +28,12 @@ def plot_forecast_case(
     for color, (name, values) in zip(colors, predictions.items()):
         axis.plot(future_x, values, label=name, color=color)
     axis.axvline(0, color="#666666", linestyle="--", linewidth=1)
-    axis.set(xlabel="Hours from forecast origin", ylabel="PM2.5", title="24-hour PM2.5 forecast case")
-    axis.legend(ncol=2)
+    axis.set(
+        xlabel="Hours from forecast origin",
+        ylabel=r"PM2.5 ($\mu$g/m$^3$)",
+        title="24-hour PM2.5 forecast case",
+    )
+    axis.legend(ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.18), frameon=False)
     figure.tight_layout()
     if destination:
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -51,9 +55,15 @@ def plot_horizon_metrics(
     if data.empty:
         raise ValueError(f"No horizon metrics found for subset {subset!r}")
     data["horizon"] = data["horizon"].astype(int)
-    figure, axis = plt.subplots(figsize=(10, 4.5))
-    sns.lineplot(data=data, x="horizon", y=metric, hue="model", marker="o", ax=axis)
+    figure, axis = plt.subplots(figsize=(11.5, 5.0))
+    model_order = list(dict.fromkeys(data["model"]))
+    palette = dict(zip(model_order, sns.color_palette("colorblind", n_colors=len(model_order))))
+    sns.lineplot(
+        data=data, x="horizon", y=metric, hue="model", marker="o",
+        palette=palette, hue_order=model_order, ax=axis,
+    )
     axis.set(title=f"{metric.upper()} by forecast horizon", xlabel="Forecast horizon (hours)")
+    axis.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0), frameon=False, fontsize=8)
     figure.tight_layout()
     if destination:
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -66,8 +76,9 @@ def plot_retrieval_diagnostics(evidence: pd.DataFrame, destination: Path | None 
     if evidence.empty:
         raise ValueError("Retrieval evidence is empty")
     figure, axes = plt.subplots(1, 2, figsize=(11, 4.2))
+    scored = evidence.loc[~evidence["method"].eq("random")].copy()
     sns.histplot(
-        data=evidence,
+        data=scored,
         x="total_score",
         hue="method",
         element="step",
@@ -75,7 +86,7 @@ def plot_retrieval_diagnostics(evidence: pd.DataFrame, destination: Path | None 
         common_norm=False,
         ax=axes[0],
     )
-    axes[0].set_title("Retrieved-candidate score distribution")
+    axes[0].set_title("Scored retrieval-candidate distribution")
     axes[1].scatter(
         pd.to_datetime(evidence["query_origin"], utc=True),
         evidence["time_series_score"],
@@ -83,6 +94,7 @@ def plot_retrieval_diagnostics(evidence: pd.DataFrame, destination: Path | None 
         alpha=0.35,
     )
     axes[1].set(title="Time-series similarity over origins", xlabel="Query origin", ylabel="Similarity")
+    axes[1].tick_params(axis="x", rotation=30)
     figure.tight_layout()
     if destination:
         destination.parent.mkdir(parents=True, exist_ok=True)

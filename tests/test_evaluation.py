@@ -5,10 +5,14 @@ import pandas as pd
 
 from event_timeraf.evaluation import (
     build_event_period_flags,
+    diebold_mariano_test,
+    holm_adjust,
+    interval_metrics,
     metric_values,
     metrics_table,
     paired_block_bootstrap_difference,
     predictions_long,
+    subset_target_summary,
 )
 
 
@@ -99,3 +103,34 @@ def test_event_period_flags_separate_recent_active_and_target_overlap():
     assert not flags.loc[0, "recent_event_flag"]
     assert not flags.loc[0, "active_event_flag"]
     assert flags.loc[0, "target_event_flag"]
+
+
+def test_diebold_mariano_test_reports_positive_loss_difference():
+    actual = np.ones((250, 24))
+    worse = np.zeros_like(actual)
+    better = np.full_like(actual, 0.9)
+    result = diebold_mariano_test(actual, worse, better, loss="mse", hac_lag=23)
+    assert result["mean_difference"] > 0
+    assert result["dm_statistic"] > 0
+    assert result["p_value"] < 0.05
+
+
+def test_holm_adjustment_is_monotone_and_not_smaller_than_raw_values():
+    raw = {"a": 0.01, "b": 0.03, "c": 0.2}
+    adjusted = holm_adjust(raw)
+    assert all(adjusted[name] >= value for name, value in raw.items())
+    assert adjusted["a"] <= adjusted["b"] <= adjusted["c"]
+
+
+def test_subset_target_summary_reports_variance_and_origin_count():
+    actual = np.arange(12, dtype=float).reshape(3, 4)
+    summary = subset_target_summary(actual, {"all": np.ones(3, dtype=bool), "last": [False, False, True]})
+    assert summary.loc[summary["subset"] == "all", "n_origins"].item() == 3
+    assert summary.loc[summary["subset"] == "last", "target_variance"].item() > 0
+
+
+def test_interval_metrics_reports_complete_coverage():
+    actual = np.ones((3, 2))
+    result = interval_metrics(actual, np.zeros_like(actual), np.full_like(actual, 2.0))
+    assert result["coverage"] == 1.0
+    assert result["mean_width"] == 2.0

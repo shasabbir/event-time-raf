@@ -713,8 +713,9 @@ Before declaring implementation complete:
 [ ] Target arrays have shape [N, 24].
 [ ] Chronological split and target boundaries are correct.
 [ ] No target interpolation or future feature access occurs.
-[ ] Retrieval candidates end before each query input begins, and KB records use
-    the non-overlapping 192-hour stride.
+[ ] Retrieval candidates end before each query input begins at every evaluated
+    stride; overlap among historical candidates is allowed and is not used as
+    a substitute for the query-specific embargo.
 [ ] Event records were published by each query origin, or the run is explicitly
     labeled as a retrospective availability sensitivity.
 [ ] Baseline, retrieval, full-MVP, and TSFM-gate predictions exist.

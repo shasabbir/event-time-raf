@@ -662,10 +662,11 @@ Leakage controls:
 - validation/test queries may retrieve only from training-history windows
 - every candidate's complete future window must end before the query lookback begins
 - candidate future windows must never overlap the forecast target being evaluated
-- self-matches and overlapping query/candidate windows are excluded with a
-  192-hour (`lookback + horizon`) knowledge-base stride
+- self-matches and any candidate whose target overlaps the query lookback are
+  excluded by a query-specific temporal embargo
 - retrieved windows should have the same lookback length as the query
-- avoid overlapping duplicate windows when building the knowledge base for a given evaluation fold
+- evaluate 192-, 24-, 6-, and 1-hour knowledge-base strides; historical
+  candidates may overlap one another when the query embargo remains satisfied
 - events are usable only when published_at is no later than the forecast origin
 ```
 

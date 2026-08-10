@@ -65,8 +65,14 @@ frozen-TSFM gate. Every result table carries a run ID and event-availability
 mode, and the results notebook rejects artifacts that do not match the saved
 manifest or do not satisfy final-run gates.
 
-Retrieval uses non-overlapping 192-hour knowledge-base records. A candidate's
-complete target must finish before the query's 168-hour lookback begins.
+Each execution writes to `outputs/<run_id>/` so an earlier run is never
+overwritten. On Kaggle, the final cell also creates
+`/kaggle/working/event_timeraf_final_run_<run_id>.zip` for download.
+
+Retrieval uses a 24-hour primary knowledge-base stride and evaluates 192-, 24-,
+6-, and 1-hour stride sensitivity. Candidate records may overlap each other,
+but every candidate's complete target must finish before the query's 168-hour
+lookback begins. This query-specific embargo is the leakage control.
 
 The notebook stops at a data-readiness gate when the official records do not
 satisfy the configured coverage requirements. It never substitutes synthetic

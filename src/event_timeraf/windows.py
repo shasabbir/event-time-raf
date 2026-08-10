@@ -132,6 +132,68 @@ def build_window_dataset(frame: pd.DataFrame, cfg: ProjectConfig) -> WindowDatas
     return dataset
 
 
+def window_attrition_table(
+    frame: pd.DataFrame,
+    dataset: WindowDataset,
+    cfg: ProjectConfig,
+) -> pd.DataFrame:
+    """Reconcile aligned hourly rows with accepted forecasting origins."""
+    data = frame.sort_values("timestamp_utc").reset_index(drop=True)
+    lookback = cfg.forecast.lookback
+    horizon = cfg.forecast.horizon
+    feature_names = tuple(model_feature_columns(data))
+    train_end, validation_end = _split_labels(len(data), cfg.forecast.split_ratios)
+    pm_input = data["pm25"].to_numpy(dtype=float)
+    pm_target = data["pm25_observed"].to_numpy(dtype=float)
+    feature_values = data.loc[:, feature_names].to_numpy(dtype=float)
+    calendar_values = data.loc[:, CALENDAR_FEATURES].to_numpy(dtype=float)
+    counts = {
+        "excluded_split_boundary": 0,
+        "missing_lookback": 0,
+        "missing_target": 0,
+        "missing_origin_features": 0,
+        "missing_future_calendar": 0,
+        "accepted": 0,
+    }
+    possible = range(lookback - 1, len(data) - horizon)
+    for origin in possible:
+        target_end = origin + horizon
+        split_valid = (
+            (origin < train_end and target_end < train_end)
+            or (train_end <= origin < validation_end and target_end < validation_end)
+            or origin >= validation_end
+        )
+        if not split_valid:
+            counts["excluded_split_boundary"] += 1
+        elif np.isnan(pm_input[origin - lookback + 1 : origin + 1]).any():
+            counts["missing_lookback"] += 1
+        elif np.isnan(pm_target[origin + 1 : target_end + 1]).any():
+            counts["missing_target"] += 1
+        elif np.isnan(feature_values[origin]).any():
+            counts["missing_origin_features"] += 1
+        elif np.isnan(calendar_values[origin + 1 : target_end + 1]).any():
+            counts["missing_future_calendar"] += 1
+        else:
+            counts["accepted"] += 1
+    rows = [
+        {"stage": "aligned_hourly_rows", "count": int(len(data))},
+        {"stage": "possible_forecast_origins", "count": int(len(possible))},
+    ]
+    rows.extend({"stage": name, "count": int(value)} for name, value in counts.items())
+    split_counts = dataset.metadata["split"].value_counts()
+    rows.extend(
+        {
+            "stage": f"accepted_{split}_origins",
+            "count": int(split_counts.get(split, 0)),
+        }
+        for split in ("train", "validation", "test")
+    )
+    result = pd.DataFrame(rows)
+    if counts["accepted"] != len(dataset.metadata):
+        raise AssertionError("Window attrition reconciliation does not match the dataset")
+    return result
+
+
 def assert_window_integrity(dataset: WindowDataset, cfg: ProjectConfig) -> None:
     if dataset.x.ndim != 2 or dataset.x.shape[1] != cfg.forecast.lookback:
         raise AssertionError("Input windows do not match configured lookback")
@@ -165,4 +227,3 @@ def design_matrix(
     if extra is not None:
         parts.append(extra)
     return np.column_stack(parts).astype(np.float32)
-

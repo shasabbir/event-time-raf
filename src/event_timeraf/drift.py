@@ -18,6 +18,7 @@ class DriftResult:
     score: np.ndarray
     flag: np.ndarray
     threshold: float
+    score_mode: str = "upper_tail"
 
 
 class DriftDetector:
@@ -105,6 +106,7 @@ class DriftDetector:
             score=score,
             flag=score >= self.threshold,
             threshold=self.threshold,
+            score_mode=self.cfg.drift.score_mode,
         )
 
     def save(self, path: Path) -> None:
@@ -124,4 +126,44 @@ def drift_evidence_frame(
     frame["drift_score"] = result.score
     frame["drift_flag"] = result.flag
     frame["drift_threshold"] = result.threshold
+    frame["drift_score_mode"] = result.score_mode
     return frame
+
+
+def drift_component_summary(result: DriftResult, split: str) -> pd.DataFrame:
+    rows = []
+    for index, name in enumerate(result.component_names):
+        values = np.asarray(result.components[:, index], dtype=float)
+        rows.append(
+            {
+                "split": split,
+                "component": name,
+                "score_mode": result.score_mode,
+                "n_origins": int(len(values)),
+                "zero_fraction": float(np.mean(values == 0)),
+                "mean": float(np.mean(values)),
+                "std": float(np.std(values)),
+                "p50": float(np.quantile(values, 0.50)),
+                "p90": float(np.quantile(values, 0.90)),
+                "p95": float(np.quantile(values, 0.95)),
+                "max": float(np.max(values)),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def drift_component_correlations(result: DriftResult, split: str) -> pd.DataFrame:
+    frame = pd.DataFrame(result.components, columns=result.component_names)
+    correlation = frame.corr()
+    rows = []
+    for left_index, left in enumerate(result.component_names):
+        for right in result.component_names[left_index + 1 :]:
+            rows.append(
+                {
+                    "split": split,
+                    "left_component": left,
+                    "right_component": right,
+                    "correlation": float(correlation.loc[left, right]),
+                }
+            )
+    return pd.DataFrame(rows)

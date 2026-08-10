@@ -120,7 +120,7 @@ def pipeline_figure(path: Path) -> None:
     s.arrow([(417, 342), (417, 404)])
 
     s.group(570, 52, 270, 520, "LSER: historical retrieval", stroke=GOLD_DARK)
-    s.rect(600, 112, 210, 82, GOLD, ["Training-history", "knowledge base"], "N_K=191")
+    s.rect(600, 112, 210, 82, GOLD, ["Training-history", "knowledge base"], "N_K: stride-dependent")
     s.rect(600, 254, 210, 96, GOLD, ["Embargo filter +", "hybrid ranking"], "k=8; alpha,beta,gamma,delta")
     s.rect(600, 414, 210, 82, GOLD, ["Retrieved futures", "and summaries"], "Bx8x24 -> Bx51")
     s.arrow([(514, 450), (564, 450), (564, 153), (600, 153)], "train only", (563, 224))
@@ -266,7 +266,7 @@ def forecast_figure(path: Path) -> None:
     s.rect(916, 96, 230, 66, GRAY, ["Signed XGBoost effects"], "top 3 fields")
     s.rect(916, 202, 230, 66, GRAY, ["Retrieved window IDs"], "top 3 cases")
     s.rect(916, 308, 230, 66, GOLD, ["Recent event IDs"], "prior 72 h")
-    s.rect(916, 414, 230, 66, PINK, ["Drift + uncertainty proxy"], "machine-readable")
+    s.rect(916, 414, 230, 66, PINK, ["Drift + diagnostic scale"], "machine-readable")
     s.arrow([(612, 176), (624, 176), (624, 252), (870, 252), (870, 129), (916, 129)])
     s.arrow([(896, 235), (916, 235)])
     s.arrow([(896, 341), (916, 341)])
