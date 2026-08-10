@@ -9,7 +9,7 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 
-\title{Event-TimeRAF: Event-Aware Retrieval-Augmented Foundation Model for Explainable Air Quality Forecasting Under Concept Drift}
+\title{An Audited Evaluation of Event-Aware Retrieval for 24-Hour PM2.5 Forecasting}
 
 \author{Sabbir Hossain%
 \thanks{S. Hossain is with the Department of Computer Science and Engineering,
@@ -20,30 +20,27 @@ American International University-Bangladesh, Dhaka, Bangladesh.}}
 \maketitle
 
 \begin{abstract}
-Short-horizon PM2.5 forecasting is complicated by meteorological variation,
-calendar effects, environmental events, and distribution shift. Although
-time-series foundation models provide transferable forecasting capability and
-TimeRAF shows how historical retrieval can augment a frozen forecaster,
-numerically similar windows need not share the local conditions that govern
-urban air quality. This study presents Event-TimeRAF, an event-aware retrieval
-framework comprising a Source-Audited Context Builder, a Leakage-Safe
-Event-Context Retriever, and a Drift-Aware Forecast and Evidence Head. The
-framework aligns official air-quality, weather, calendar, and storm-event
-records; restricts retrieval to training-history windows whose targets precede
-the query lookback; evaluates feature-level XGBoost and forecast-level frozen
-Chronos-Bolt fusion; and stores traceable explanation evidence. Evaluation uses
-EPA AirData PM2.5, NOAA Global Hourly weather, and hash-verified NOAA Storm
-Events records for Los Angeles County from 2019 through 2024, with a 168-hour
-lookback and a 24-hour horizon. The strongest pre-specified supervised context
-baseline obtains MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$ 0.379, whereas the
-full feature-level Event-TimeRAF model obtains MSE 26.712. Frozen Chronos-Bolt
-obtains MSE 28.941, and retrieval fusion reduces it to 28.709, although the
-paired confidence interval crosses zero. These values are recomputed from
-7,199 test origins and manifest-backed prediction artifacts. The evidence
-supports selective rather than uniform retrieval gains. Because Storm Events
-lacks machine-readable publication
-timestamps, event-conditioned findings are retrospective sensitivity results,
-not strict real-time forecasts.
+Retrieval augmentation offers a practical way to supply forecasting models with
+historical analogues, but its value can be overstated when the memory is sparse,
+the comparison baseline is weak, or contextual channels are not tested
+independently. This study audits Event-TimeRAF, a retrieval framework comprising
+a Source-Audited Context Builder, a Leakage-Safe Event-Context Retriever, and a
+Drift-Aware Forecast and Evidence Head. EPA AirData PM2.5, NOAA Global Hourly
+weather, calendar variables, and hash-verified NOAA Storm Events records are
+aligned for Los Angeles County from 2019 through 2024. Evaluation uses a
+168-hour lookback, a 24-hour horizon, 7,199 test origins, four knowledge-base
+strides, event-weight controls, retrieval placebos, and overlap-aware paired
+inference. The strongest model is the weather-calendar XGBoost baseline, with
+MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$ 0.379. The full Event-TimeRAF model
+obtains MSE 26.734, and its difference from the context baseline is unresolved.
+Frozen Chronos-Bolt obtains MSE 28.941; retrieval fusion obtains 28.733, but a
+climatology fusion control obtains 27.450 and significantly outperforms the
+retrieval fusion. A denser six-hour memory improves retrieval-only MSE to
+34.616, yet the corresponding feature model remains behind the context
+baseline. Increasing event weight changes 91.4\% of test top-$k$ sets but
+worsens retrieval error, indicating that the tested event representation does
+not add forecast value. Because Storm Events lacks machine-readable publication
+timestamps, event-conditioned findings remain retrospective sensitivity results.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -83,9 +80,9 @@ stagnation context. This motivates a retrieval framework that treats source
 records, weather, calendar information, and distribution-shift indicators as
 part of the forecasting evidence rather than as unrelated metadata.
 
-This study introduces Event-TimeRAF, an event-aware retrieval-augmented
-framework for explainable PM2.5 forecasting under distribution shift. The
-method adapts the retrieval principle of TimeRAF to an official-source
+This study evaluates Event-TimeRAF, an event-aware retrieval-augmented
+framework for PM2.5 forecasting under distribution shift. The method adapts
+the retrieval principle of TimeRAF to an official-source
 environmental setting without claiming to reproduce its learned retriever or
 Channel Prompting mechanism. Event-TimeRAF is organized into three named
 components: a Source-Audited Context Builder (SACB), a Leakage-Safe
@@ -102,20 +99,19 @@ The main contributions are as follows:
     Events records while preserving source identity, coverage checks, and the
     declared event-availability assumption.
     \item \textit{Leakage-Safe Event-Context Retriever:} a historical analogue
-    mechanism that combines PM2.5 shape, weather, calendar, and event
-    similarity after enforcing an embargo under which every candidate target
-    ends before the query lookback begins.
-    \item \textit{Drift-Aware Forecast and Evidence Head:} an evaluation layer
-    that exposes direct XGBoost forecasts, frozen Chronos-Bolt retrieval fusion,
-    transparent shift indicators, and machine-readable explanation evidence
-    under one chronological protocol.
+    mechanism that enforces a query--candidate embargo and is tested across
+    memory density, neighbor count, event weight, and event-stratified controls.
+    \item \textit{Drift-Aware Forecast and Evidence Head:} a controlled
+    evaluation layer that compares direct XGBoost, frozen Chronos-Bolt,
+    retrieval fusion, and non-retrieval fusion placebos while retaining
+    machine-readable shift and provenance evidence.
 \end{itemize}
 
-The evaluation is deliberately conservative. It restricts reported model
-comparisons to the manifest-backed run, reports uncertainty for paired
-comparisons, and does not interpret event association as causation. The findings
-therefore characterize where retrieval is useful and where additional evidence
-is required before operational event-aware forecasting can be claimed.
+The evaluation is deliberately conservative. It restricts claims to a single
+manifest-backed run, uses 2,000-resample paired block intervals and
+overlap-aware Diebold--Mariano tests, and does not interpret event association
+as causation. The resulting negative findings distinguish a functioning,
+auditable retrieval pipeline from evidence that retrieval improves forecasting.
 \section{Literature Review and Related Work}
 
 \subsection{Statistical, Machine-Learning, and Deep Forecasters}
@@ -479,9 +475,12 @@ The top eight candidates provide aligned future trajectories and a
 The time-series knowledge base contains historical PM2.5 windows. Each record
 stores a window identifier, start time, end time, input and future values,
 weather summary, calendar summary, normalized window vector, split, and
-normalization identifier. Knowledge-base origins are separated by 192 hours,
-equal to the 168-hour input and 24-hour future combined. The resulting reported
-knowledge base contains 191 non-overlapping training windows.
+normalization identifier. The primary configuration uses a 24-hour origin
+stride and contains 1,521 training-history candidates. Candidate windows may
+overlap one another; causality is instead enforced between every query and
+candidate by Equation~(\ref{eq:eligible_set}). Sensitivity experiments use
+192-, 24-, 6-, and 1-hour strides, producing 191, 1,521, 5,644, and 34,020
+candidates, respectively.
 
 Formally, the knowledge base is
 \begin{equation}
@@ -707,9 +706,9 @@ with external time-series knowledge. & Evaluate source-audited, event-context
 retrieval for local PM2.5 forecasting under temporal shift. \\
 Forecasting domain & Multi-domain benchmark datasets. & Los Angeles County
 hourly PM2.5, 2019--2024. \\
-Knowledge base & Curated, consistently normalized time-series windows. & 191
-non-overlapping training-history windows with PM2.5, weather, calendar, and
-retrospective event context. \\
+Knowledge base & Curated, consistently normalized time-series windows. & 1,521
+training-history windows at the primary 24-hour stride, with denser and sparser
+sensitivity settings, PM2.5, weather, calendar, and retrospective event context. \\
 Retriever & Learned MLP dual encoder with forecaster-guided training. & Random,
 cosine, and transparent hybrid similarity; no learned retriever. \\
 Knowledge integration & Internal Channel Prompting of candidate embeddings. &
@@ -717,8 +716,9 @@ Feature-level XGBoost inputs and forecast-level Chronos-Bolt fusion. \\
 Backbone & Frozen TSFM, principally TTM-Base. & Direct XGBoost horizon models
 and frozen \texttt{amazon/chronos-bolt-small}. \\
 Leakage control & Non-overlapping knowledge windows and cross-dataset training
-constraints. & Candidate target must end before query lookback; validation and
-test retrieval use training history only. \\
+constraints. & Candidate windows may overlap one another, but every candidate
+target must end before the query lookback; validation and test use training
+history only. \\
 Event handling & Not an explicit module. & Availability-tagged NOAA Storm
 Events features and source-record evidence, reported retrospectively. \\
 Drift and explanation & Retrieved-case inspection. & Five-component drift
@@ -730,10 +730,10 @@ Implementation scope & Learned retriever and Channel Prompting are implemented.
 \end{table*}
 \section{Experimental Setup}
 
-This section describes the reported experiment. Model-selection choices for
-M00--M11 were fixed using the training and validation partitions before the
-test results were examined. Artifact consistency was verified using run identifier
-\texttt{20260723T112033170131Z}.
+This section describes the final experiment. Model-selection choices were made
+using the training and validation partitions before test evaluation. Artifact
+consistency was verified using run identifier
+\texttt{20260810T103436161252Z}.
 
 \subsection{Dataset Description and Audit}
 The study period is 2019--2024. PM2.5 observations were taken from US EPA
@@ -831,11 +831,11 @@ splitting is not used.
 
 \subsection{Models}
 The evaluated models are persistence, daily seasonal naive, weekly seasonal
-naive, a direct XGBoost model using PM2.5 features, a direct XGBoost context
-model using PM2.5, weather, and calendar features, random retrieval, cosine
-retrieval, XGBoost with cosine retrieval features, Event-TimeRAF without drift
-features, full Event-TimeRAF with event and drift features, frozen Chronos-Bolt,
-and retrieval-augmented Chronos-Bolt forecast fusion. An auxiliary
+naive, hourly-by-month climatology, ridge regression, direct XGBoost models,
+random, cosine, calendar-only, and event-stratified retrieval, Event-TimeRAF
+without and with drift features, frozen Chronos-Bolt, and three validation-tuned
+Chronos fusion variants. The fusion controls replace retrieval with climatology
+or persistence while preserving the weight-selection procedure. An auxiliary
 random-retrieval XGBoost model A01 and an event-free model A00 support the
 ablation analysis. A01 replaces cosine retrieval features with seeded random
 retrieval features while retaining the context regressor. A00 omits event
@@ -859,13 +859,15 @@ M05--M06 & Random and cosine retrieval-only baselines \\
 M07 & XGBoost with cosine retrieval features \\
 M08--M09 & Event-TimeRAF without/with drift indicators \\
 M10--M11 & Frozen Chronos-Bolt and retrieval fusion \\
+C00--C03 & Climatology, ridge, calendar, and event-stratified controls \\
+C10--C11 & Chronos climatology and persistence fusion controls \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Implementation and Hyperparameters}
 The experiment was executed in a cloud-hosted Linux 6.12.90 environment using
-Python 3.12.13. The runtime was 1,576.87 seconds. Key package versions recorded in the
+Python 3.12.13. The runtime was 3,319.95 seconds. Key package versions recorded in the
 run manifest include NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost
 3.2.0, PyTorch 2.10.0+cu128, and chronos-forecasting 2.3.1. Table
 \ref{tab:hyperparameters} reports the principal hyperparameters.
@@ -885,8 +887,9 @@ Split & 70\% train, 15\% validation, 15\% test, chronological \\
 SACB feature groups & 23 PM2.5, 14 weather, 9 calendar, 39 event features \\
 SACB missing-data rule & Past-only filling for gaps up to 3 hours; no target interpolation \\
 LSER retrieval & $k=8$, sensitivity for $k \in \{1,4,8,16\}$ \\
-LSER knowledge base & 191 windows; 192-hour stride; training history only \\
+LSER knowledge base & 1,521 windows at 24-hour primary stride; sensitivity at 192, 24, 6, and 1 hours \\
 LSER similarity weights & time series 0.5, weather 0.2, calendar 0.1, event 0.2 \\
+LSER event-weight sensitivity & $\delta\in\{0,0.2,0.5,0.8,1.0\}$ with remaining weights renormalized \\
 DFEH direct input & 151 features for each of 24 horizon regressors \\
 DFEH XGBoost & 350 estimators, max depth 6, learning rate 0.05, subsample 0.85,
 colsample 0.85, $\lambda=1.0$ \\
@@ -895,7 +898,7 @@ DFEH drift detector & 5 components; 24-hour recent window, 168-hour reference wi
 DFEH Chronos path & \texttt{amazon/chronos-bolt-small}, batch size 64 \\
 DFEH fusion weights & $\{0,0.25,0.5,0.75,1.0\}$; selected $\omega=0.75$ \\
 Explanation record & Top 3 feature effects, windows, and recent event IDs \\
-Bootstrap & 500 paired block-bootstrap resamples, 24-hour blocks \\
+Inference & 2,000 paired block-bootstrap resamples, 168-origin blocks; DM HAC lag 167; Holm adjustment \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -925,9 +928,11 @@ points. MAPE and sMAPE are retained in machine-readable outputs but are not used
 for the main ranking because low PM2.5 values can make percentage errors
 unstable. Subset metrics are reported only when at least
 50 forecast origins are available. The event subset contains 532 origins, the
-active-event subset contains 293 origins, and the drift subset contains 560
-origins, so all pre-specified subsets satisfy the minimum sample-size criterion. Pairwise comparisons
-use paired block bootstrap intervals with 24-hour blocks and 500 resamples.
+active-event subset contains 293 origins, and the drift subset contains 566
+origins, so all pre-specified subsets satisfy the minimum sample-size criterion.
+Primary pairwise comparisons use 2,000 paired block-bootstrap resamples with
+168-origin blocks. Diebold--Mariano tests use a Newey--West/HAC variance estimate
+with lag 167, followed by Holm adjustment within each pre-specified metric family.
 
 \subsection{Comparison with Existing Studies}
 Direct numerical comparison with existing TSFM and air-quality papers is not
@@ -962,9 +967,9 @@ audit, temporal leakage control, drift indicators, and Chronos retrieval fusion.
 Table~\ref{tab:main_results} reports the test-set results. The strongest
 pre-specified supervised result is M04, which uses PM2.5 history, weather, and
 calendar features and obtains MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$
-0.379. The full feature-level Event-TimeRAF model M09 obtains MSE 26.712 and MAE
-3.149; event-context retrieval and drift features therefore do not improve the
-all-origin error over M04 in this run.
+0.379. The full feature-level Event-TimeRAF model M09 obtains MSE 26.734 and MAE
+3.144. Thus, the complete event, retrieval, and drift feature set does not
+improve all-origin error over the simpler context model.
 
 \begin{table*}[!t]
 \centering
@@ -974,73 +979,77 @@ all-origin error over M04 in this run.
 \toprule
 Model & MSE & MAE & RMSE & $R^2$ \\
 \midrule
+C00 hour--month climatology & 36.297 & 4.038 & 6.025 & 0.139 \\
+C01 ridge context & 28.448 & 3.226 & 5.334 & 0.325 \\
+C02 calendar retrieval & 45.534 & 4.429 & 6.748 & -0.080 \\
+C03 event-stratified retrieval & 38.428 & 3.924 & 6.199 & 0.089 \\
 M00 persistence & 47.649 & 4.137 & 6.903 & -0.130 \\
 M01 daily seasonal & 48.706 & 4.057 & 6.979 & -0.155 \\
 M02 weekly seasonal & 65.606 & 5.123 & 8.100 & -0.556 \\
 M03 XGBoost PM2.5 & 29.949 & 3.368 & 5.473 & 0.290 \\
 M04 XGBoost context & \textbf{26.185} & \textbf{3.125} & \textbf{5.117} & \textbf{0.379} \\
-M05 random retrieval & 42.367 & 4.257 & 6.509 & -0.005 \\
-M06 cosine retrieval & 38.083 & 3.940 & 6.171 & 0.097 \\
-M07 XGBoost cosine & 26.672 & 3.151 & 5.164 & 0.367 \\
-M08 Event-TimeRAF no drift & 26.677 & 3.145 & 5.165 & 0.367 \\
-M09 Event-TimeRAF full & 26.712 & 3.149 & 5.168 & 0.367 \\
+M05 random retrieval & 44.089 & 4.346 & 6.640 & -0.046 \\
+M06 cosine retrieval & 36.243 & 3.818 & 6.020 & 0.140 \\
+M07 XGBoost cosine & 26.442 & 3.132 & 5.142 & 0.373 \\
+M08 Event-TimeRAF no drift & 26.700 & 3.144 & 5.167 & 0.367 \\
+M09 Event-TimeRAF full & 26.734 & 3.144 & 5.171 & 0.366 \\
 M10 frozen Chronos-Bolt & 28.941 & 3.205 & 5.380 & 0.314 \\
-M11 Chronos + retrieval & 28.709 & 3.209 & 5.358 & 0.319 \\
+M11 Chronos + retrieval & 28.733 & 3.205 & 5.360 & 0.319 \\
+C10 Chronos + climatology & 27.450 & 3.137 & 5.239 & 0.349 \\
+C11 Chronos + persistence & 28.941 & 3.205 & 5.380 & 0.314 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
 The frozen Chronos-Bolt evaluation completed successfully. Validation selected
-a retrieval-fusion weight of 0.75. On the test set,
-retrieval-augmented Chronos reduces MSE from 28.941 to 28.709, an improvement of
-about 0.8\% relative to frozen Chronos-Bolt. The paired block-bootstrap
-comparison gives an MSE difference of -0.233 with a 95\% interval from -0.665 to
-0.152, so the direction is favorable but not conclusive under this uncertainty
-estimate. MAE changes from 3.205 to 3.209, which is practically flat.
+a retrieval-fusion weight of 0.75. On the test set, M11 changes MSE from 28.941
+to 28.733. The M11--M10 difference is -0.209 with a 95\% block-bootstrap
+interval $[-0.654,0.216]$ and Holm-adjusted DM $p=1.000$, so the change is
+unresolved. The matched climatology fusion C10 obtains MSE 27.450. M11 is worse
+than C10 by 1.283 MSE, with interval $[0.694,1.913]$ and adjusted
+$p<0.001$. The persistence control selects a TSFM weight of 1.0 and therefore
+equals M10. Consequently, this experiment does not isolate a retrieval-specific
+benefit; ordinary validation-tuned forecast combination performs better.
 
 \subsection{Ablation Study}
-Table~\ref{tab:ablation_results} summarizes the component-wise ablation comparisons. The
-clearest supported gain is from adding weather and calendar context to the
-PM2.5-only XGBoost model: MSE decreases by 3.764 and the confidence interval is
-fully below zero. Cosine retrieval improves over random retrieval in the
-retrieval-only setting. In contrast, adding cosine retrieval features to the
-already strong XGBoost context model does not improve the all-origin result in
-this run. Event-hybrid retrieval and drift indicators also do not show a clear
-overall improvement beyond the context baseline. Comparing M09 against the
-event-free A00 model also yields an interval that crosses zero, so the event
-component has no verified overall gain in this run. The auxiliary A00 and A01
-models are retained only to isolate event and random-retrieval effects.
+Table~\ref{tab:ablation_results} summarizes component-wise comparisons. Weather
+and calendar context reduces MSE by 3.764 relative to PM2.5-only XGBoost, and
+cosine retrieval improves substantially over random retrieval when retrieval is
+used alone. The remaining feature-level additions have intervals that cross
+zero. In particular, M09 is 0.550 MSE worse than M04, and its comparison with
+event-free A00 is also unresolved. Drift indicators change M08 by only 0.034
+MSE. These results do not support a monotone accuracy contribution from each
+named module.
 
 \begin{table*}[!t]
 \centering
 \caption{Selected Paired Block-Bootstrap Ablation Results}
 \label{tab:ablation_results}
-\begin{tabular}{lrrr}
+\begin{tabular}{lrrrr}
 \toprule
-Comparison & MSE diff. & 95\% CI low & 95\% CI high \\
+Comparison & MSE diff. & 95\% CI low & 95\% CI high & Holm DM $p$ \\
 \midrule
-M04 minus M03, SACB weather/calendar & -3.764 & -5.856 & -2.071 \\
-M06 minus M05, LSER cosine/random ranking & -4.284 & -5.862 & -2.759 \\
-M07 minus M04, LSER retrieval summary & 0.487 & 0.015 & 1.028 \\
-M08 minus M07, LSER event-hybrid ranking & 0.005 & -0.292 & 0.275 \\
-M09 minus M08, DFEH drift indicators & 0.035 & -0.101 & 0.161 \\
-M09 minus A00, event context & 0.083 & -0.225 & 0.354 \\
-M09 minus M04, SACB+LSER+DFEH & 0.528 & -0.026 & 1.182 \\
-M11 minus M10, DFEH Chronos fusion & -0.233 & -0.665 & 0.152 \\
+M04 minus M03, weather/calendar & -3.764 & -7.120 & -1.709 & 0.067 \\
+M06 minus M05, cosine/random retrieval & -7.846 & -11.333 & -4.849 & --- \\
+M07 minus M04, retrieval summary & 0.258 & -0.269 & 1.012 & --- \\
+M08 minus M07, event-hybrid ranking & 0.258 & -0.087 & 0.690 & --- \\
+M09 minus M08, drift indicators & 0.034 & -0.079 & 0.147 & --- \\
+M09 minus A00, event context & 0.216 & -0.114 & 0.635 & 1.000 \\
+M09 minus M04, complete feature path & 0.550 & -0.122 & 1.592 & 1.000 \\
+M11 minus M10, retrieval fusion & -0.209 & -0.654 & 0.216 & 1.000 \\
+M11 minus C10, climatology placebo & 1.283 & 0.694 & 1.913 & $<0.001$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-The ablation does not form a monotone accuracy progression: weather-calendar
-context earns its place, cosine retrieval is useful relative to random retrieval
-in the retrieval-only path, and the measured event and drift additions do not
-improve the strongest context model. This non-monotonic pattern is retained
-rather than implying that every named component increases accuracy.
+The intervals are paired block-bootstrap intervals. Holm-adjusted DM values are
+shown only for the pre-specified primary family; dashes denote secondary
+diagnostic comparisons rather than missing experiment runs.
 
 The $k$ sensitivity results in Table~\ref{tab:k_sensitivity} show that the
 retrieval-only cosine baseline improves as more neighbors are used within the
 tested range. The best retrieval-only configuration among $k \in \{1,4,8,16\}$
-is $k=16$, with MSE 36.488. The reported Event-TimeRAF feature models used the
+is $k=16$, with MSE 34.440. The reported Event-TimeRAF feature models used the
 pre-specified default $k=8$.
 
 \begin{table}[!t]
@@ -1051,23 +1060,76 @@ pre-specified default $k=8$.
 \toprule
 $k$ & MSE & MAE & RMSE \\
 \midrule
-1 & 65.129 & 5.133 & 8.070 \\
-4 & 41.237 & 4.134 & 6.422 \\
-8 & 38.083 & 3.940 & 6.171 \\
-16 & 36.488 & 3.851 & 6.040 \\
+1 & 60.555 & 4.886 & 7.782 \\
+4 & 40.004 & 4.010 & 6.325 \\
+8 & 36.243 & 3.818 & 6.020 \\
+16 & 34.440 & 3.711 & 5.869 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{Knowledge-Base Density and Event Sensitivity}
+Table~\ref{tab:stride_sensitivity} shows that the original sparse-memory concern
+is consequential for retrieval alone. Reducing the stride from 192 to six hours
+increases candidate count from 191 to 5,644 and lowers retrieval-only MSE from
+39.037 to 34.616. A one-hour stride is not better than six hours. The separately
+trained full feature model also reaches its lowest observed MSE at six hours
+(26.412), but it remains behind M04 (26.185). Dense retrieval therefore improves
+the historical analogue baseline without overturning the main model ranking.
+
+\begin{table*}[!t]
+\centering
+\caption{Knowledge-Base Stride Sensitivity on the Test Set}
+\label{tab:stride_sensitivity}
+\begin{tabular}{rrrrr}
+\toprule
+Stride (h) & Candidates & Retrieval MSE & Retrieval MAE & Full M09 MSE \\
+\midrule
+192 & 191 & 39.037 & 3.991 & 26.712 \\
+24 & 1,521 & 38.411 & 3.921 & 26.734 \\
+6 & 5,644 & \textbf{34.616} & \textbf{3.660} & \textbf{26.412} \\
+1 & 34,020 & 36.416 & 3.790 & 26.740 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The event channel is active but not beneficial under the tested representation.
+At weight 0.2 it changes at least one top-eight candidate for 91.4\% of test
+queries and raises the event-candidate fraction for event-context queries from
+32.9\% to 95.7\%. Nevertheless, Table~\ref{tab:event_weight_sensitivity} shows
+that all-origin and event-subset errors increase as event weight rises.
+Event-stratified retrieval is also worse than the event-free ranking. The
+supported conclusion is therefore that this count-based event representation
+and ranking rule are ineffective, not that environmental events contain no
+forecast signal.
+
+\begin{table*}[!t]
+\centering
+\caption{Event-Channel Sensitivity for Retrieval-Only Forecasts}
+\label{tab:event_weight_sensitivity}
+\begin{tabular}{lrrrr}
+\toprule
+Method & Event weight & Top-$k$ changed & All-origin MSE & Event-subset MSE \\
+\midrule
+Hybrid & 0.0 & 0.000 & \textbf{38.080} & \textbf{14.299} \\
+Hybrid & 0.2 & 0.914 & 38.411 & 16.401 \\
+Hybrid & 0.5 & 0.914 & 38.703 & 19.292 \\
+Hybrid & 0.8 & 0.914 & 38.969 & 21.201 \\
+Hybrid & 1.0 & 1.000 & 40.860 & 27.130 \\
+Event-stratified & 0.2 & 0.917 & 38.428 & 16.638 \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
 \subsection{Event and Drift Subsets}
 Table~\ref{tab:event_drift_results} reports representative event and drift
 subsets for the strongest context model, the full Event-TimeRAF model, and the
 two Chronos variants. All subsets
-satisfy the pre-specified minimum sample-size criterion. The event subset has lower MSE than the non-event
-subset for these models, which should not be interpreted as events being easier
-in general; it reflects the particular 2024 test-period event hours retained by
-the audit. The drift subset is defined by the validation-calibrated DFEH flag
-and is used only for stratified evaluation.
+satisfy the pre-specified minimum sample-size criterion. Event targets have
+variance 22.636, compared with 43.346 for non-event targets, while drift and
+non-drift target variances are 69.593 and 39.826. Raw subset MSE therefore
+reflects both model error and target difficulty. The drift subset is defined by
+the validation-calibrated DFEH flag and is used only for stratified evaluation.
 
 \begin{table*}[!t]
 \centering
@@ -1079,14 +1141,14 @@ Subset & Model & Origins & MSE & MAE \\
 \midrule
 Non-event & M04 XGBoost context & 6,667 & 27.520 & 3.179 \\
 Event & M04 XGBoost context & 532 & 9.451 & 2.450 \\
-Non-event & M09 Event-TimeRAF full & 6,667 & 27.942 & 3.187 \\
-Event & M09 Event-TimeRAF full & 532 & 11.301 & 2.666 \\
-Non-drift & M04 XGBoost context & 6,639 & 26.107 & 3.088 \\
-Drift & M04 XGBoost context & 560 & 27.110 & 3.562 \\
-Non-drift & M09 Event-TimeRAF full & 6,639 & 26.330 & 3.088 \\
-Drift & M09 Event-TimeRAF full & 560 & 31.244 & 3.872 \\
-Drift & M10 frozen Chronos-Bolt & 560 & 28.333 & 3.476 \\
-Drift & M11 Chronos + retrieval & 560 & 28.198 & 3.580 \\
+Non-event & M09 Event-TimeRAF full & 6,667 & 27.995 & 3.187 \\
+Event & M09 Event-TimeRAF full & 532 & 10.932 & 2.613 \\
+Non-drift & M04 XGBoost context & 6,633 & 26.060 & 3.086 \\
+Drift & M04 XGBoost context & 566 & 27.650 & 3.585 \\
+Non-drift & M09 Event-TimeRAF full & 6,633 & 26.282 & 3.085 \\
+Drift & M09 Event-TimeRAF full & 566 & 32.039 & 3.833 \\
+Drift & M10 frozen Chronos-Bolt & 566 & 29.539 & 3.524 \\
+Drift & M11 Chronos + retrieval & 566 & 29.210 & 3.610 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -1098,7 +1160,10 @@ and Fig.~\ref{fig:drift_scores} shows the drift-score distribution across the
 test period. Figure~\ref{fig:forecast_case} shows a representative test-origin
 forecast, allowing M04 and M09 to be compared with the observed target. These
 plots are regenerated from predictions identified by
-\texttt{20260723T112033170131Z} and include only M00--M11.
+\texttt{20260810T103436161252Z}. The validation-calibrated upper-tail drift
+threshold flags 712 of 7,113 validation origins (10.0\%) and 566 of 7,199 test
+origins (7.9\%). This difference is reported as a diagnostic property; the flag
+does not switch models or establish that concept drift occurred.
 
 \begin{figure}[!t]
 \centering
@@ -1137,7 +1202,7 @@ plots are regenerated from predictions identified by
 
 \subsection{Evidence and Traceability Analysis}
 
-Within the DFEH, explainability is implemented as a source-grounded evidence record rather than
+Within the DFEH, traceability is implemented as a source-grounded evidence record rather than
 as a post-hoc free-text interpretation. For each evaluated forecast origin, the
 pipeline stores the run identifier, window identifier, origin timestamp,
 retrieved historical evidence identifiers, event evidence identifiers, leading
@@ -1156,6 +1221,11 @@ back to a model feature, a retrieved time-series window, an official event
 record, or a drift component. It does not prove causality: event evidence is
 reported as contextual support, and the drift flag is treated as an uncertainty
 warning.
+
+Chronos-Bolt's nominal 80\% interval covers 78.2\% of test targets, with mean
+width 9.890 $\mu$g/m$^3$. This interval result is distinct from the
+\texttt{diagnostic\_uncertainty\_scale} in the evidence record, which combines
+retrieval spread and validation residual RMSE and is not a calibrated interval.
 
 \begin{table}[!t]
 \centering
@@ -1176,7 +1246,7 @@ Diagnostic scale & Combined retrieval spread and validation residual RMSE; not a
 
 \subsection{Computational Cost and Reproducibility}
 
-The complete experiment executed in 1,576.9 seconds in a cloud-hosted Linux
+The complete experiment executed in 3,319.95 seconds in a cloud-hosted Linux
 environment using Python 3.12.13. The recorded package versions include
 NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost 3.2.0, PyTorch
 2.10.0+cu128, and \texttt{chronos-forecasting} 2.3.1. The run manifest records
@@ -1194,13 +1264,13 @@ the archived run.
 \toprule
 Item & Recorded value \\
 \midrule
-Run identifier & \texttt{20260723T112033170131Z} \\
-Runtime & 1,576.9 seconds \\
+Run identifier & \texttt{20260810T103436161252Z} \\
+Runtime & 3,319.95 seconds \\
 Platform & Cloud-hosted Linux environment \\
 Python & 3.12.13 \\
 Forecast horizon & 24 hours \\
 Lookback window & 168 hours \\
-Bootstrap resamples & 500 \\
+Bootstrap resamples & 2,000; block length 168 origins \\
 Chronos checkpoint & \texttt{amazon/chronos-bolt-small} \\
 Code availability & \url{https://github.com/shasabbir/event-time-raf} \\
 \bottomrule
@@ -1208,14 +1278,12 @@ Code availability & \url{https://github.com/shasabbir/event-time-raf} \\
 \end{table}
 
 The main interpretation is that conventional supervised context features are
-very strong for this Los Angeles County 24-hour PM2.5 task. Retrieval is useful
-as a standalone historical-pattern baseline and gives a small favorable MSE
-change when fused with frozen Chronos-Bolt. However, the present feature-level
-Event-TimeRAF design does not beat the best XGBoost context baseline overall.
-Event-TimeRAF should therefore be presented as an implemented and audited
-event-aware retrieval framework with selective gains, not as a uniformly
-superior forecasting model. Post-manifest artifacts are excluded from this
-interpretation.
+strong for this Los Angeles County task. Dense historical memory improves the
+retrieval-only baseline, but retrieval, event, and drift features do not beat
+M04. The small M11 change relative to frozen Chronos is unresolved, and the
+climatology fusion control is significantly better than M11. Event-TimeRAF is
+therefore evidence for an auditable evaluation protocol and a scoped negative
+result, not for retrieval-specific or event-specific superiority.
 
 Finally, all event-aware interpretations must be read with the availability
 caveat. NOAA Storm Events records are official and hash-verified, but the source
@@ -1247,39 +1315,35 @@ The fourth limitation concerns computational reporting. Hardware model
 identifiers and peak memory were absent from the run manifest, so runtime cannot
 be interpreted as a hardware-normalized efficiency result.
 
-The fifth limitation concerns cross-version replay of the random-retrieval
-baseline. Repeating the seeded selection under NumPy 2.4.1 does not reproduce
-the candidates generated under NumPy 2.0.2. The verification notebook therefore
-reconstructs M05 and A01 from the original, checksum-verified retrieval-evidence
-rows. This preserves the reported run but means that exact random-baseline
-retraining requires the archived software environment.
+The fifth limitation is target aggregation. The hourly county median combines a
+changing set of monitors and suppresses localized extremes. This improves series
+coverage but can weaken event associations and prevents conclusions about
+individual neighborhoods or monitoring sites.
 
 \section{Future Work}
 
-The immediate priority is a clean rerun that records the revised retrieval
-sensitivity, drift diagnostics, and all downstream artifacts in one manifest. Operational event studies
-should then replace event-start proxies with archives that expose genuine issue
-or publication times. External validation should apply the unchanged protocol
-to a second US county with distinct meteorology and emissions. Longer-term work
-may evaluate a learned event-context retriever, richer event embeddings,
-calibrated probabilistic uncertainty, and internal TSFM conditioning. Those
-extensions should be introduced only with component-wise ablations and without
-changing the source audit or temporal embargo.
+Operational event studies should replace event-start proxies with archives that
+expose genuine issue or publication times and should evaluate source types more
+closely tied to PM2.5, such as smoke observations. External validation should
+apply the unchanged protocol to a second US county with distinct meteorology and
+emissions. Longer-term work may evaluate site-level targets, a learned
+event-context retriever, richer event embeddings, calibrated probabilistic
+uncertainty, and internal TSFM conditioning. Each extension should retain the
+source audit, temporal embargo, and component-wise controls used here.
 \section{Conclusion}
 
-This study presented Event-TimeRAF for 24-hour Los Angeles County PM2.5
-forecasting. Its Source-Audited Context Builder aligns official environmental
-records, its Leakage-Safe Event-Context Retriever enforces a strict historical
-embargo, and its Drift-Aware Forecast and Evidence Head compares direct and
-frozen-TSFM paths while retaining traceable evidence. On the 2019--2024 test
-period, the strongest pre-specified supervised context model obtains MSE 26.185,
-MAE 3.125, RMSE 5.117, and $R^2$ 0.379; the full feature-level Event-TimeRAF
-model obtains MSE 26.712. Retrieval changes frozen Chronos-Bolt MSE from 28.941
-to 28.709, but the paired interval crosses zero. The study therefore
-supports source-audited retrieval as a transparent analysis framework with
-selective gains, not as a uniformly superior forecaster. Strict event issue
-times, external geographic validation, and deeper retrieval integration remain
-necessary before operational or general cross-domain claims are made.
+This study audited event-aware retrieval for 24-hour Los Angeles County PM2.5
+forecasting. The pipeline aligns official environmental records, enforces a
+query--candidate temporal embargo, evaluates memory density and event-channel
+sensitivity, and retains traceable evidence. M04 is the strongest evaluated
+model, with MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$ 0.379; full M09 obtains
+MSE 26.734. M11 changes frozen Chronos-Bolt MSE from 28.941 to 28.733, but the
+paired interval crosses zero, while climatology fusion reaches 27.450 and
+significantly outperforms M11. Dense retrieval improves the retrieval-only path,
+whereas the tested event channel does not improve it. The contribution is thus
+a reproducible evaluation and a bounded negative result: historical retrieval
+can be implemented causally and audited thoroughly without necessarily adding
+forecast value beyond strong local context and simple forecast combination.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}

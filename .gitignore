@@ -40,5 +40,6 @@ presentation/~$*.pptx
 presentation/*.pdf
 
 # Local visual-QA renders.
+/tmp/
 paper/paper_preview/
 paper/verification_preview/

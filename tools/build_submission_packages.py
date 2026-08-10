@@ -22,12 +22,11 @@ def write_zip(destination: Path, entries: list[tuple[Path, str]]) -> None:
 
 
 overleaf_entries = [
-    (PAPER / "main.tex", "main.tex"),
+    # The humanized manuscript is the submission version; Overleaf still expects
+    # the project entry point to be named main.tex.
+    (PAPER / "main_humanized.tex", "main.tex"),
     (PAPER / "references.bib", "references.bib"),
 ]
-overleaf_entries.extend(
-    (path, f"sections/{path.name}") for path in sorted((PAPER / "sections").glob("*.tex"))
-)
 overleaf_entries.extend(
     (path, f"figures/{path.name}")
     for path in sorted((PAPER / "figures").iterdir())
@@ -38,13 +37,12 @@ write_zip(ROOT / "event_timeraf_verified_overleaf.zip", overleaf_entries)
 faculty_entries = [
     (ROOT / "FACULTY_SUBMISSION_README.md", "FACULTY_SUBMISSION_README.md"),
     (ROOT / "notebooks" / "03_paper_claim_verification.ipynb", "notebooks/03_paper_claim_verification.ipynb"),
-    (PAPER / "main.pdf", "paper/Event-TimeRAF_corrected.pdf"),
+    (PAPER / "main_humanized.pdf", "paper/Event-TimeRAF_corrected.pdf"),
+    (PAPER / "main_humanized.tex", "paper/Event-TimeRAF_corrected.tex"),
     (PAPER / "verification_log.pdf", "paper/AI_verification_log.pdf"),
     (PAPER / "CHANGELOG.md", "paper/CHANGELOG.md"),
     (PAPER / "submission_audit.md", "paper/submission_audit.md"),
     (PAPER / "ACTION_REQUIRED_FROM_ME.md", "paper/ACTION_REQUIRED_FROM_ME.md"),
-    (ROOT / "presentation" / "Event-TimeRAF_Verified_Presentation.pptx", "presentation/Event-TimeRAF_Verified_Presentation.pptx"),
-    (ROOT / "presentation" / "Event-TimeRAF_Verified_Presentation.pdf", "presentation/Event-TimeRAF_Verified_Presentation.pdf"),
     (ROOT / "presentation" / "presenter_notes.md", "presentation/presenter_notes.md"),
     (ROOT / "event_timeraf_verified_overleaf.zip", "event_timeraf_verified_overleaf.zip"),
 ]

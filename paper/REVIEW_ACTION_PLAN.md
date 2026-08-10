@@ -17,13 +17,18 @@ Validated in a full-data local smoke run:
 - All four retrieval-only stride settings completed and every saved selected candidate satisfied the temporal embargo.
 - The primary models, controls, explanations, figures, and results notebook completed without mixed-run artifacts.
 
-Still required before manuscript synchronization:
+Completed final run and manuscript synchronization:
 
-- Run `01_event_timeraf_kaggle_pipeline.ipynb` top to bottom on Kaggle with its default final profile, including fresh Chronos inference and the M08/M09 feature-model sweep at every stride.
-- Freeze and download that new manifest-backed run, then regenerate the claim-verification notebook, both manuscript variants, verification log, figures, and presentation from that run only.
-- Retitle and reframe the paper as an audited evaluation/negative result unless
-  the final evidence supports the current event-aware, explainable, and
-  concept-drift title claims. The local smoke run does not support those claims.
+- Kaggle run `20260810T103436161252Z` completed with fresh Chronos inference,
+  final mode, all four retrieval strides, and all four M08/M09 stride models.
+- All 54 manifest entries were verified by byte size and SHA-256.
+- The verification notebook, manuscripts, figures, log, presentation source,
+  and presenter notes were synchronized to this run only. The older generated
+  PPTX/PDF is excluded from the final package pending regeneration and visual
+  verification.
+- The paper was retitled and reframed as an audited evaluation and bounded
+  negative result because the final evidence does not support retrieval-specific
+  or event-specific superiority.
 - DLinear and PatchTST remain deferred because adding a new sequence-training framework before the corrective run would materially expand the study and reproducibility surface.
 
 The local smoke run is not a publication run: it reused shape-checked archived Chronos predictions and intentionally disabled the per-stride M08/M09 retraining. Its values must not be copied into the manuscript.

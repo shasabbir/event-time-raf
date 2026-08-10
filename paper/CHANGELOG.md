@@ -1,5 +1,20 @@
 # Verified Manuscript Changelog
 
+## Final Manifest-Backed Revision (10 August 2026)
+
+- Replaced the earlier sparse-memory run with final Kaggle run
+  `20260810T103436161252Z`; verified all 54 manifest entries.
+- Retitled the paper as an audited evaluation and removed positive
+  retrieval-specific, event-benefit, adaptive-drift, and explainability claims
+  that the final evidence does not support.
+- Updated every metric, interval, subset count, runtime, package version, and
+  run identifier in both manuscript variants.
+- Added climatology and ridge controls, Chronos fusion placebos, four
+  knowledge-base strides, event-weight sensitivity, event-stratified retrieval,
+  target-variance context, drift diagnostics, and Chronos interval coverage.
+- Regenerated the verification notebook, verification log, empirical figures,
+  submission documentation, and presentation from the final run.
+
 ## Claim verification
 
 - Added `notebooks/03_paper_claim_verification.ipynb`, an executed top-to-bottom

@@ -109,7 +109,7 @@ def add_title(slide, title, subtitle=None, number=None):
         add_text(slide, f"{number:02d}", 12.45, 0.35, 0.4, 0.32, 10, True, TEAL, PP_ALIGN.RIGHT)
 
 
-def add_footer(slide, text="Verified against immutable run 20260723T112033170131Z"):
+def add_footer(slide, text="Verified against immutable run 20260810T103436161252Z"):
     add_text(slide, text, 0.62, 7.15, 11.8, 0.20, 8, False, MUTED)
 
 
@@ -185,9 +185,9 @@ def prepare_assets():
         ], check=True)
     shutil.copy2(ROOT / "paper" / "figures" / "forecast_case.png", ASSETS / "forecast_case.png")
 
-    archive = ROOT / "event_timeraf_final_run.zip"
+    archive = ROOT / "event_timeraf_final_run_20260810T103436161252Z.zip"
     with zipfile.ZipFile(archive) as bundle:
-        results = pd.read_csv(BytesIO(bundle.read("outputs/tables/main_results.csv")))
+        results = pd.read_csv(BytesIO(bundle.read("20260810T103436161252Z/tables/main_results.csv")))
     results = results.loc[results["subset"].eq("all")].copy()
     order = [
         "M00_persistence", "M01_daily_seasonal", "M02_weekly_seasonal",
@@ -228,7 +228,7 @@ def build():
     slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, Inches(0.20), SLIDE_H).fill.solid()
     slide.shapes[-1].fill.fore_color.rgb = TEAL; slide.shapes[-1].line.fill.background()
     add_text(slide, "EVENT-TIMERAF", 0.75, 1.25, 5.8, 0.45, 15, True, TEAL)
-    add_text(slide, "Verified event-aware retrieval for\n24-hour PM2.5 forecasting", 0.72, 1.75, 7.0, 1.42, 34, True, INK)
+    add_text(slide, "Audited event-aware retrieval for\n24-hour PM2.5 forecasting", 0.72, 1.75, 7.0, 1.42, 34, True, INK)
     add_text(slide, "Los Angeles County | 2019-2024 | Faculty research update", 0.76, 3.45, 6.8, 0.38, 15, False, MUTED)
     add_panel(slide, 8.15, 1.20, 4.15, 4.50, TEAL_LIGHT, TEAL)
     add_text(slide, "VERIFIED SCOPE", 8.55, 1.62, 3.3, 0.34, 13, True, TEAL)
@@ -255,9 +255,9 @@ def build():
     add_panel(slide, 6.78, 1.45, 5.93, 5.35, BLUE_LIGHT, TEAL)
     add_text(slide, "Evidence contract", 7.10, 1.76, 4.9, 0.35, 17, True, TEAL)
     add_rich_lines(slide, [
-        ("43/43  ", "manifest SHA-256 checks pass", TEAL),
-        ("M00-M11  ", "saved predictions reproduced", TEAL),
-        ("M12  ", "excluded; created after the manifest", ROSE),
+        ("54/54  ", "manifest size and SHA-256 checks pass", TEAL),
+        ("20 models  ", "saved predictions reproduced", TEAL),
+        ("Controls  ", "stride, event, and fusion placebos", TEAL),
         ("Events  ", "retrospective, not strict real time", ROSE),
         ("Geography  ", "one county; no external validation", ROSE),
     ], 7.05, 2.25, 5.20, 2.85, 18, 9)
@@ -269,7 +269,7 @@ def build():
     slide = blank_slide(prs); add_title(slide, "End-to-end framework", "SACB -> LSER -> DFEH, with an auditable evidence record", 3)
     add_picture_contain(slide, ASSETS / "event_timeraf_pipeline_overview.png", 0.55, 1.25, 12.25, 5.65)
     add_footer(slide)
-    notes(slide, "Walk left to right. Official sources enter SACB, only train-history candidates enter LSER, and DFEH evaluates direct XGBoost and frozen Chronos paths. Point out that the drift gate is marked unreported.")
+    notes(slide, "Walk left to right. Official sources enter SACB, only training-history candidates enter LSER, and DFEH evaluates direct XGBoost and frozen Chronos paths. The drift score is diagnostic and does not gate a model.")
 
     # 4. SACB
     slide = blank_slide(prs); add_title(slide, "Module 1: Source-Audited Context Builder", "Source checks, causal alignment, and chronological windows", 4)
@@ -294,7 +294,7 @@ def build():
     add_text(slide, "Hybrid score", 9.15, 3.42, 3.1, 0.35, 17, True, GOLD)
     add_text(slide, "0.5 shape + 0.2 weather\n+ 0.1 calendar + 0.2 event", 9.14, 3.83, 3.15, 0.88, 18, False, INK)
     add_rich_lines(slide, [
-        ("KB  ", "191 non-overlapping train windows", GOLD),
+        ("KB  ", "1,521 primary candidates; four strides", GOLD),
         ("Top-k  ", "k = 8; sensitivity {1,4,8,16}", GOLD),
     ], 9.08, 5.15, 3.2, 1.0, 14, 5)
     add_footer(slide)
@@ -310,7 +310,7 @@ def build():
     add_text(slide, "Chronos-Bolt + retrieval\nω selected on validation", 9.31, 3.55, 3.0, 0.72, 17, False, INK)
     add_text(slide, "Evidence output", 9.32, 4.62, 2.9, 0.32, 16, True, ROSE)
     add_text(slide, "feature effects, retrieved IDs, event IDs, drift, uncertainty", 9.31, 4.99, 3.0, 0.90, 13, False, INK)
-    add_text(slide, "Drift gate: excluded until a complete manifest-backed rerun.", 9.30, 5.96, 3.0, 0.58, 10, True, ROSE)
+    add_text(slide, "Drift score: diagnostic only; no adaptive gate.", 9.30, 5.96, 3.0, 0.58, 10, True, ROSE)
     add_footer(slide)
     notes(slide, "Derive 151: 85 context + 51 retrieval summary + 6 drift fields + 9 future-calendar fields. The five drift components are robust-scaled on training data; the threshold is the validation 0.90 quantile.")
 
@@ -325,7 +325,7 @@ def build():
     add_text(slide, "7,199", 0.95, 3.65, 1.35, 0.45, 24, True, INK)
     add_text(slide, "TEST", 2.32, 3.74, 1.3, 0.25, 11, True, MUTED)
     add_text(slide, "172,776 test points", 0.95, 4.48, 2.8, 0.35, 17, True, GOLD)
-    add_text(slide, "500 paired block-bootstrap resamples\n24-hour blocks", 0.95, 5.15, 3.1, 0.78, 15, False, INK)
+    add_text(slide, "2,000 paired block-bootstrap resamples\n168-origin blocks", 0.95, 5.15, 3.1, 0.78, 15, False, INK)
     add_table(slide, [
         ["IDs", "Purpose"],
         ["M00-M02", "Persistence + seasonal"],
@@ -348,12 +348,13 @@ def build():
     add_table(slide, [
         ["Model", "MSE", "MAE"],
         ["M04 context", "26.185", "3.125"],
-        ["M09 full", "26.712", "3.149"],
+        ["M09 full", "26.734", "3.144"],
         ["M10 Chronos", "28.941", "3.205"],
-        ["M11 fusion", "28.709", "3.209"],
+        ["M11 retrieval", "28.733", "3.205"],
+        ["C10 climatology", "27.450", "3.137"],
     ], 8.77, 2.36, 3.55, 2.20, [1.75, 0.90, 0.90], 12, highlight_rows={1: GREEN_LIGHT})
     add_text(slide, "Interpretation", 8.78, 4.92, 3.3, 0.30, 16, True, GOLD)
-    add_text(slide, "M09 does not beat M04 overall. M11 improves M10 MSE slightly, but not conclusively.", 8.77, 5.30, 3.45, 1.05, 15, True, INK)
+    add_text(slide, "M09 does not beat M04. M11 is unresolved versus M10 and worse than climatology fusion.", 8.77, 5.30, 3.45, 1.05, 15, True, INK)
     add_footer(slide)
     notes(slide, "Do not say the proposed full model wins. Say M04 is strongest, Event-TimeRAF is an audited framework, and retrieval gains are selective.")
 
@@ -361,17 +362,17 @@ def build():
     slide = blank_slide(prs); add_title(slide, "Ablation study, run for real", "Paired MSE differences; negative values favor the first model", 9)
     add_table(slide, [
         ["Comparison", "ΔMSE", "95% interval", "Conclusion"],
-        ["M04 - M03: weather/calendar", "-3.764", "[-5.856, -2.071]", "clear gain"],
-        ["M06 - M05: cosine/random", "-4.284", "[-5.862, -2.759]", "clear gain"],
-        ["M07 - M04: add retrieval", "+0.487", "[0.015, 1.028]", "worse"],
-        ["M08 - M07: event ranking", "+0.005", "[-0.292, 0.275]", "no clear gain"],
-        ["M09 - M08: drift fields", "+0.035", "[-0.101, 0.161]", "no clear gain"],
-        ["M09 - A00: event context", "+0.083", "[-0.225, 0.354]", "no clear gain"],
-        ["M11 - M10: Chronos fusion", "-0.233", "[-0.665, 0.152]", "favorable, uncertain"],
+        ["M04 - M03: weather/calendar", "-3.764", "[-7.120, -1.709]", "lower error"],
+        ["M06 - M05: cosine/random", "-7.846", "[-11.333, -4.849]", "lower error"],
+        ["M09 - M04: full/context", "+0.550", "[-0.122, 1.592]", "unresolved"],
+        ["M09 - A00: event context", "+0.216", "[-0.114, 0.635]", "unresolved"],
+        ["M09 - M08: drift fields", "+0.034", "[-0.079, 0.147]", "unresolved"],
+        ["M11 - M10: retrieval fusion", "-0.209", "[-0.654, 0.216]", "unresolved"],
+        ["M11 - C10: climatology", "+1.283", "[0.694, 1.913]", "retrieval worse"],
     ], 0.64, 1.42, 12.05, 4.65, [4.40, 1.15, 2.55, 3.95], 13,
         highlight_rows={1: GREEN_LIGHT, 2: GREEN_LIGHT, 3: ROSE_LIGHT})
     add_panel(slide, 0.68, 6.25, 12.00, 0.58, GOLD_LIGHT, GOLD)
-    add_text(slide, "Justified: audited context and cosine ranking. Not justified: a uniform gain from event, drift, or retrieval features on top of M04.", 0.95, 6.33, 11.45, 0.40, 13, True, INK)
+    add_text(slide, "Supported: source audit and dense retrieval-only improvement. Unsupported: event, drift, or retrieval superiority over M04.", 0.95, 6.33, 11.45, 0.40, 13, True, INK)
     add_footer(slide)
     notes(slide, "Every row is calculated from actual saved predictions. Explain confidence intervals: a crossing of zero means the direction is not conclusive under this bootstrap.")
 
@@ -386,7 +387,7 @@ def build():
     add_rich_lines(slide, [
         ("Event timing  ", "no publication timestamps", ROSE),
         ("External validity  ", "one county only", ROSE),
-        ("Random replay  ", "requires NumPy 2.0.2 or saved evidence", ROSE),
+        ("Target scope  ", "county median suppresses local extremes", ROSE),
         ("Efficiency  ", "hardware identifiers were not recorded", ROSE),
         ("TimeRAF scope  ", "no learned dual encoder or Channel Prompting", ROSE),
     ], 7.40, 2.42, 4.80, 2.95, 16, 9)
@@ -398,25 +399,25 @@ def build():
     slide = blank_slide(prs); add_title(slide, "What changed after verification", "Live notebook: notebooks/03_paper_claim_verification.ipynb", 11)
     add_table(slide, [
         ["AI draft", "Verified correction"],
-        ["86 context / 40 event / 152 input", "85 context / 39 event / 151 input"],
-        ["M12 as the best final result", "M12 removed: not manifest-backed"],
-        ["Generic drift equation", "Five statistics + median/MAD + validation threshold"],
+        ["Sparse memory treated as sufficient", "Four strides; six-hour retrieval is best"],
+        ["Retrieval fusion called beneficial", "Climatology fusion is significantly better"],
+        ["Event channel assumed useful", "Active channel, but error increases"],
         ["Operational event implication", "Retrospective event sensitivity only"],
     ], 0.65, 1.42, 7.15, 3.45, [3.32, 3.83], 14,
         highlight_rows={1: GOLD_LIGHT, 2: ROSE_LIGHT})
     add_panel(slide, 8.10, 1.42, 4.58, 4.95, TEAL_LIGHT, TEAL)
     add_text(slide, "Live run order", 8.46, 1.78, 3.7, 0.34, 18, True, TEAL)
     add_rich_lines(slide, [
-        ("1  ", "Verify 43 hashes", TEAL),
-        ("2  ", "Rebuild data and retrieval", TEAL),
-        ("3  ", "Rerun M00-M11", TEAL),
-        ("4  ", "Recompute metrics + ablations", TEAL),
+        ("1  ", "Verify 54 manifest entries", TEAL),
+        ("2  ", "Rebuild all model metrics", TEAL),
+        ("3  ", "Rerun paired inference", TEAL),
+        ("4  ", "Inspect stride + event controls", TEAL),
         ("5  ", "Regenerate nine figures", TEAL),
         ("6  ", "Pass final claim gate", TEAL),
     ], 8.39, 2.38, 3.75, 2.90, 17, 6)
     add_text(slide, "Expected runtime: about 2-3 minutes with the archived ZIP attached.", 8.45, 5.32, 3.65, 0.78, 12, True, INK)
     add_text(slide, "Bottom line", 0.78, 5.28, 2.0, 0.30, 16, True, GOLD)
-    add_text(slide, "The study is successful as a reproducible, leakage-audited framework with selective retrieval gains, not as a claim that Event-TimeRAF beats every baseline.", 0.76, 5.68, 6.60, 1.00, 16, True, INK)
+    add_text(slide, "The study is successful as a reproducible evaluation and bounded negative result, not as a claim that Event-TimeRAF beats the strongest baseline.", 0.76, 5.68, 6.60, 1.00, 16, True, INK)
     add_footer(slide, "Notebook, paper, verification log, slides, and source ZIP use the same archived run")
     notes(slide, "Finish with the qualified conclusion. Then open the notebook and run all cells. Keep the immutable ZIP in the project root or set FINAL_RUN_ZIP_OVERRIDE.")
 
