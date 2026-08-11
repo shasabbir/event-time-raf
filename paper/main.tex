@@ -251,8 +251,9 @@ with the gaps above:
 \end{itemize}
 
 The empirical contribution is intentionally qualified: weather-calendar
-context produces the clearest supported gain, whereas event and retrieval
-components provide selective rather than uniformly positive improvements.
+context produces the clearest reduction in error, denser retrieval improves
+only the retrieval-only path, and the tested event channel does not improve
+forecast accuracy.
 \section{Problem Formulation}
 
 Let $x_t$ denote the PM2.5 measurement at time $t$. For a forecast time $t$, the historical air-quality lookback window is
@@ -670,7 +671,9 @@ binary $D_t$ is retained for diagnostic regime analysis and explanation evidence
 The explanation module uses signed local XGBoost contributions averaged across
 the 24 direct models, weather flags, the top three retrieved windows, recent
 event records, calendar context, forecast direction, and component-level drift
-evidence. Its diagnostic uncertainty scale is
+evidence. The local values are XGBoost TreeSHAP contributions returned by
+\texttt{pred\_contribs=True}; the bias column is removed before the values are
+averaged across horizons. Its diagnostic uncertainty scale is
 \begin{equation}
 u_t^{\mathrm{diag}}=
 \sqrt{\bar{\sigma}_{R,t}^{2}+\overline{\mathrm{RMSE}}_{val}^{2}},
@@ -757,8 +760,10 @@ unavailable in the execution environment, the experiment used a locally staged
 cache containing unchanged NOAA annual archives and a source manifest with
 official URLs, byte counts, and SHA-256 hashes. The audit retained the delivery
 mode \texttt{verified\_official\_noaa\_cache}. The event audit found 117 event
-days, 2,192 source-overlap days, and three qualifying event categories. NOAA
-Storm Events does not expose machine-readable publication timestamps; therefore,
+days, 2,192 source-overlap days, and three qualifying event categories. High
+wind (76 records), flood (61), and other weather (40) meet the configured
+20-record category threshold; heavy rain (18) and wildfire (9) are retained but
+do not qualify. NOAA Storm Events does not expose machine-readable publication timestamps; therefore,
 event-aware outputs use the recorded event start time as a retrospective
 availability assumption. They are not strict real-time event forecasts.
 Table~\ref{tab:data_audit} reports the resulting readiness status. The source
@@ -768,19 +773,27 @@ audit and window contract are visualized in Figure~\ref{fig:context_builder}.
 \centering
 \caption{Data-Readiness Audit}
 \label{tab:data_audit}
-\begin{tabular}{lcc}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccc}
 \toprule
-Gate & Value & Status \\
+Gate & Observed & Requirement & Status \\
 \midrule
-PM2.5 observed coverage & 0.9997 & Pass \\
-Weather complete coverage & 0.9942 & Pass \\
-Event days & 117 & Pass \\
-Event overlap days & 2,192 & Pass \\
-Qualifying event categories & 3 & Pass \\
-Strict event availability & False & Caveat \\
+PM2.5 coverage & 0.9997 & $\geq 0.70$ & Pass \\
+Weather coverage & 0.9942 & $\geq 0.95$ & Pass \\
+Event days & 117 & $\geq 30$ & Pass \\
+Source-overlap days & 2,192 & $\geq 180$ & Pass \\
+Qualifying categories & 3 & $\geq 2$ & Pass \\
+Strict availability & False & --- & Caveat \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Window construction started from 52,608 aligned hourly rows and 52,417 possible
+forecast origins. It excluded 48 origins at split boundaries, eight for a
+missing lookback, 144 for a missing target, and 3,885 for missing origin
+features; none was excluded for future-calendar values. The remaining 48,332
+origins comprise 34,020 training, 7,113 validation, and 7,199 test origins.
 
 \begin{table*}[!t]
 \centering
@@ -1342,8 +1355,9 @@ paired interval crosses zero, while climatology fusion reaches 27.450 and
 significantly outperforms M11. Dense retrieval improves the retrieval-only path,
 whereas the tested event channel does not improve it. The contribution is thus
 a reproducible evaluation and a bounded negative result: historical retrieval
-can be implemented causally and audited thoroughly without necessarily adding
-forecast value beyond strong local context and simple forecast combination.
+can be implemented under a verified query--candidate temporal embargo and
+audited thoroughly without necessarily adding forecast value beyond strong
+local context and simple forecast combination.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}

@@ -82,7 +82,7 @@ The proposed framework provides three mechanisms, that correspond one on one wit
     \item \textit{Drift-Aware Forecast and Evidence Head (DFEH):} integrates all of the above into a single chronological evaluation contract.
 \end{itemize}
 
-The empirical contribution is intentionally qualified: weather-calendar context produces the clearest supported gain, while event and retrieval components do not produce uniformly positive improvements.
+The empirical contribution is intentionally qualified: weather-calendar context produces the clearest reduction in error, denser retrieval improves only the retrieval-only path, and the tested event channel does not improve forecast accuracy.
 \section{Problem Formulation}
 
 Let $x_t$ be the measurement of PM2.5 at time t. The lookback window for the air quality is defined by Equation~\eqref{eq:lookback} for forecast time t.
@@ -340,7 +340,7 @@ Q_{0.90}\!\left(\{S_v:v\in\mathcal{T}_{val}\}\right)\right].
 Equations~\eqref{eq:drift_raw}--\eqref{eq:drift_score} are equivalent to the detector that was used: the reference statistics are set using training data, the threshold 0.90 is set using validation data and test data are transformed without refitting. The binary $D_t$ is retained for diagnostic regime analysis and explanation evidence.
 
 \subsubsection{Evidence Record and Diagnostic Scale}
-The explanation module is based on signed local contributions provided by the 24 direct models, weather flags, top three retrieved windows, recent event records, calendar context, forecast direction, and component level drift evidence. Its diagnostic uncertainty scale is defined by equation~\eqref{eq:uncertainty_proxy}.
+The explanation module is based on signed local contributions provided by the 24 direct models, weather flags, top three retrieved windows, recent event records, calendar context, forecast direction, and component level drift evidence. The local values are XGBoost TreeSHAP contributions returned by \texttt{pred\_contribs=True}; the bias column is removed before the values are averaged across horizons. Its diagnostic uncertainty scale is defined by equation~\eqref{eq:uncertainty_proxy}.
 \begin{equation}
 u_t^{\mathrm{diag}}=
 \sqrt{\bar{\sigma}_{R,t}^{2}+\overline{\mathrm{RMSE}}_{val}^{2}},
@@ -395,25 +395,29 @@ The study period is 2019-2024. Los Angeles County PM2.5 data were collected from
 
 Weather covariates data was downloaded from NOAA Global Hourly/ISD, using the NOAA Open Data Dissemination public buckets \cite{noaaisd2026}. The selected station was 72297023129 (Long Beach / Daugherty Field / Airport) at a distance of 10.28 km to the PM2.5 target centroid. The full weather-feature coverage following past-only short-gap filling was 0.9942 and the raw measured core coverage was 0.9905.
 
-NOAA Storm Events annual detail archives \cite{noaastormevents2026} were extracted and loaded as environmental events, with duplicate events removed. The experiment used a locally staged cache of unchanged NOAA annual archives and a source manifest listing the official NOAA URLs, byte count and SHA-256 hash for each archive. No delivery-mode change was required during the audit, and the \texttt{verified\_official\_noaa\_cache} mode was retained. The event audit identified 117 event days, 2,192 source-overlap days and three qualifying event categories. Because NOAA Storm Events does not provide machine-readable publication timestamps, the event-aware outputs retrospectively assume availability at the event start time and are not, by themselves, real-time event forecasts. The resulting readiness status is given in Table~\ref{tab:data_audit}. Figure~\ref{fig:context_builder} shows the source audit window and window contract.
+NOAA Storm Events annual detail archives \cite{noaastormevents2026} were extracted and loaded as environmental events, with duplicate events removed. The experiment used a locally staged cache of unchanged NOAA annual archives and a source manifest listing the official NOAA URLs, byte count and SHA-256 hash for each archive. No delivery-mode change was required during the audit, and the \texttt{verified\_official\_noaa\_cache} mode was retained. The event audit identified 117 event days, 2,192 source-overlap days and three qualifying event categories. High wind (76 records), flood (61), and other weather (40) meet the configured 20-record category threshold; heavy rain (18) and wildfire (9) are retained but do not qualify. Because NOAA Storm Events does not provide machine-readable publication timestamps, the event-aware outputs retrospectively assume availability at the event start time and are not, by themselves, real-time event forecasts. The resulting readiness status is given in Table~\ref{tab:data_audit}. Figure~\ref{fig:context_builder} shows the source audit window and window contract.
 
 \begin{table}[!t]
 \centering
 \caption{Data-Readiness Audit}
 \label{tab:data_audit}
-\begin{tabular}{lcc}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccc}
 \toprule
-Gate & Value & Status \\
+Gate & Observed & Requirement & Status \\
 \midrule
-PM2.5 observed coverage & 0.9997 & Pass \\
-Weather complete coverage & 0.9942 & Pass \\
-Event days & 117 & Pass \\
-Event overlap days & 2,192 & Pass \\
-Qualifying event categories & 3 & Pass \\
-Strict event availability & False & Caveat \\
+PM2.5 coverage & 0.9997 & $\geq 0.70$ & Pass \\
+Weather coverage & 0.9942 & $\geq 0.95$ & Pass \\
+Event days & 117 & $\geq 30$ & Pass \\
+Source-overlap days & 2,192 & $\geq 180$ & Pass \\
+Qualifying categories & 3 & $\geq 2$ & Pass \\
+Strict availability & False & --- & Caveat \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Window construction started from 52,608 aligned hourly rows and 52,417 possible forecast origins. It excluded 48 origins at split boundaries, eight for a missing lookback, 144 for a missing target, and 3,885 for missing origin features; none was excluded for future-calendar values. The remaining 48,332 origins comprise 34,020 training, 7,113 validation, and 7,199 test origins.
 
 \begin{table*}[!t]
 \centering
@@ -795,7 +799,7 @@ The fifth limitation is target aggregation. The hourly county median combines a 
 Operational event studies should replace event-start proxies with archives that reveal the true issue or publication time and should test sources more directly related to PM2.5, such as smoke observations. External validation should apply the same protocol to a second US county. Future work can assess site-level targets, a learned event-context retriever, richer event embeddings, calibrated uncertainty, and internal TSFM event conditioning. These extensions should retain the source audit, temporal embargo, and component controls used here.
 \section{Conclusion}
 
-This study audited event-aware retrieval for 24-hour PM2.5 forecasting in Los Angeles County. The pipeline aligns official records, applies a strict query--candidate embargo, tests memory density and event sensitivity, and keeps traceable evidence. M04 is the strongest model, with MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$ 0.379. Full M09 obtains MSE 26.734. M11 changes frozen Chronos MSE from 28.941 to 28.733, but its paired interval crosses zero. Climatology fusion reaches 27.450 and significantly outperforms M11. Dense retrieval improves retrieval alone, while the tested event channel does not improve it. The main contribution is a reproducible evaluation and a bounded negative result: retrieval can be implemented causally and audited carefully without necessarily improving on strong local context or simple forecast combination.
+This study audited event-aware retrieval for 24-hour PM2.5 forecasting in Los Angeles County. The pipeline aligns official records, applies a strict query--candidate embargo, tests memory density and event sensitivity, and keeps traceable evidence. M04 is the strongest model, with MSE 26.185, MAE 3.125, RMSE 5.117, and $R^2$ 0.379. Full M09 obtains MSE 26.734. M11 changes frozen Chronos MSE from 28.941 to 28.733, but its paired interval crosses zero. Climatology fusion reaches 27.450 and significantly outperforms M11. Dense retrieval improves retrieval alone, while the tested event channel does not improve it. The main contribution is a reproducible evaluation and a bounded negative result: retrieval can be implemented under a verified query--candidate temporal embargo and audited carefully without necessarily improving on strong local context or simple forecast combination.
 
 \bibliographystyle{IEEEtran}
 \bibliography{references}
