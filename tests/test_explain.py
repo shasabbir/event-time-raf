@@ -34,6 +34,10 @@ def test_explanations_save_semantic_effects_and_uncertainty():
         mean_similarity=np.array([0.8], dtype=np.float32),
         max_similarity=np.array([0.9], dtype=np.float32),
         candidate_count=np.array([8]),
+        eligible_candidate_count=np.array([100]),
+        selected_event_fraction=np.array([0.5], dtype=np.float32),
+        query_event_context=np.array([True]),
+        event_conditioning_applied=np.array([True]),
         evidence=pd.DataFrame(
             {"query_window_id": ["q1"], "rank": [1], "candidate_window_id": ["c1"]}
         ),
@@ -53,9 +57,10 @@ def test_explanations_save_semantic_effects_and_uncertainty():
         pd.DataFrame(),
         feature_contributions=np.array([[0.2, -0.5]], dtype=np.float32),
         contribution_names=["pm25_current", "hybrid_retrieval_mean_similarity"],
-        validation_residual_mae=np.full(24, 1.0),
+        validation_residual_rmse=np.full(24, 1.0),
     )
     effects = json.loads(result.loc[0, "top_feature_effects"])
     assert effects[0]["feature"] == "hybrid_retrieval_mean_similarity"
     assert result.loc[0, "uncertainty_proxy"] > 1.0
     assert "uncertainty proxy" in result.loc[0, "explanation"].lower()
+    assert "validation_residual_rmse" in result

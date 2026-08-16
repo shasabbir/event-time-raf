@@ -39,6 +39,7 @@ def modeling_frame(cfg):
             "weather_pressure_hpa": 1012.0,
             "weather_wind_speed_ms": 3.0,
             "event_count_24h": 0.0,
+            "event_count_72h": 0.0,
             "event_burst_ratio": 0.0,
         }
     )
