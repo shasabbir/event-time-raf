@@ -403,10 +403,12 @@ y_aligned = query_input_mean + query_input_std * y_candidate_norm
 This prevents a candidate's absolute historical pollution level from being
 copied blindly while retaining its future pattern.
 
-Knowledge-base origins are spaced by 192 hours (`L+H`). At query time, a
+The primary knowledge base uses a 24-hour origin stride. Strides of 192, 24,
+and 6 hours are run as an explicit sensitivity axis. Candidate-to-candidate
+overlap is allowed because it is not a leakage condition. At query time, a
 candidate is eligible only when `candidate_target_end < query_input_start`.
-This strict embargo prevents candidate inputs or futures from duplicating any
-part of the query lookback.
+This strict per-query embargo prevents candidate inputs or futures from
+duplicating any part of the query lookback.
 
 ### 7.2 Retrieval variants
 
@@ -414,8 +416,10 @@ part of the query lookback.
 | --- | --- |
 | Random | Uniform sample of `k` eligible candidates using the recorded seed |
 | Cosine | Top-k cosine similarity on normalized PM2.5 windows |
+| Calendar | Calendar-context ranking used as a seasonal null |
 | Hybrid | Weighted score using time-series, weather, calendar, and event-context similarities |
 | Hybrid-no-event | The same weighted context score with the event component removed and remaining weights renormalized; used only for the controlled no-event ablation |
+| Event-conditioned | For queries with causal prior-event context, rank normalized hybrid scores within the eligible event-context candidate pool; record any fallback |
 
 The default hybrid score is:
 
@@ -713,8 +717,8 @@ Before declaring implementation complete:
 [ ] Target arrays have shape [N, 24].
 [ ] Chronological split and target boundaries are correct.
 [ ] No target interpolation or future feature access occurs.
-[ ] Retrieval candidates end before each query input begins, and KB records use
-    the non-overlapping 192-hour stride.
+[ ] Retrieval candidates end before each query input begins; candidate overlap
+    is not treated as query leakage, and 192/24/6-hour stride results are saved.
 [ ] Event records were published by each query origin, or the run is explicitly
     labeled as a retrospective availability sensitivity.
 [ ] Baseline, retrieval, full-MVP, and TSFM-gate predictions exist.

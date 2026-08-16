@@ -21,12 +21,14 @@ def test_retrieval_candidates_are_strictly_historical(modeling_frame, cfg):
     ).all()
 
 
-def test_knowledge_base_windows_do_not_overlap(modeling_frame, cfg):
+def test_dense_knowledge_base_allows_candidate_overlap(modeling_frame, cfg):
     dataset = build_window_dataset(modeling_frame, cfg)
     metadata = build_knowledge_base(dataset, cfg).metadata
     candidate_end = pd.to_datetime(metadata["target_end"], utc=True).to_numpy()
     next_input_start = pd.to_datetime(metadata["input_start"], utc=True).to_numpy()[1:]
-    assert (candidate_end[:-1] < next_input_start).all()
+    origins = pd.to_datetime(metadata["origin_time"], utc=True)
+    assert (origins.diff().dropna() == pd.Timedelta(hours=cfg.retrieval.kb_stride_hours)).all()
+    assert (candidate_end[:-1] >= next_input_start).any()
 
 
 def test_no_event_retrieval_removes_event_score(modeling_frame, cfg):
@@ -38,6 +40,34 @@ def test_no_event_retrieval_removes_event_score(modeling_frame, cfg):
     assert result.valid_mask.all()
     assert result.evidence["event_score"].eq(0).all()
     assert all(not name.startswith("extra_") for name in result.feature_names("no_event"))
+
+
+def test_event_conditioning_selects_event_candidates(modeling_frame, cfg):
+    modeling_frame = modeling_frame.copy()
+    modeling_frame.loc[modeling_frame.index % 96 < 24, "event_count_72h"] = 1.0
+    dataset = build_window_dataset(modeling_frame, cfg)
+    knowledge_base = build_knowledge_base(dataset, cfg)
+    queries = dataset.subset("test")
+    result = HistoricalRetriever(knowledge_base, cfg).retrieve(
+        queries, method="event_conditioned"
+    )
+    conditioned = result.evidence["event_conditioning_applied"]
+    assert conditioned.any()
+    assert result.evidence.loc[conditioned, "candidate_has_event_context"].all()
+    assert result.evidence["event_score"].between(0, 1).all()
+
+
+def test_random_retrieval_is_independent_of_call_order(modeling_frame, cfg):
+    dataset = build_window_dataset(modeling_frame, cfg)
+    retriever = HistoricalRetriever(build_knowledge_base(dataset, cfg), cfg)
+    queries = dataset.subset("test")
+    first = retriever.retrieve(queries, method="random")
+    retriever.retrieve(queries, method="cosine")
+    second = retriever.retrieve(queries, method="random")
+    pd.testing.assert_frame_equal(
+        first.evidence[["query_window_id", "rank", "candidate_window_id"]].reset_index(drop=True),
+        second.evidence[["query_window_id", "rank", "candidate_window_id"]].reset_index(drop=True),
+    )
 
 
 def test_retrieval_causality_guard_rejects_future_candidate():
