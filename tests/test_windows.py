@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from event_timeraf.models import daily_seasonal_forecast, persistence_forecast, weekly_seasonal_forecast
-from event_timeraf.windows import assert_window_integrity, build_window_dataset
+from event_timeraf.windows import assert_window_integrity, build_window_dataset, window_attrition_table
 
 
 def test_window_shapes_and_chronology(modeling_frame, cfg):
@@ -32,4 +32,12 @@ def test_naive_forecasts_have_expected_alignment(modeling_frame, cfg):
     assert np.allclose(persistence[:, 0], dataset.x[:, -1])
     assert np.allclose(daily, dataset.x[:, -24:])
     assert np.allclose(weekly, dataset.x[:, :24])
+
+
+def test_window_attrition_reconciles_retained_windows(modeling_frame, cfg):
+    dataset = build_window_dataset(modeling_frame, cfg)
+    attrition = window_attrition_table(modeling_frame, dataset, cfg, run_id="test")
+    assert attrition.iloc[-1]["stage"] == "retained_windows"
+    assert attrition.iloc[-1]["count"] == len(dataset.x)
+    assert (attrition["removed_since_previous"] >= 0).all()
 

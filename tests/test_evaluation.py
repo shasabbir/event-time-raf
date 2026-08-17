@@ -5,9 +5,15 @@ import pandas as pd
 
 from event_timeraf.evaluation import (
     build_event_period_flags,
+    diebold_mariano_hac,
+    exceedance_metrics,
+    holm_adjust_pvalues,
+    horizon_skill_table,
+    interval_metrics,
     metric_values,
     metrics_table,
     paired_block_bootstrap_difference,
+    paired_block_bootstrap_loss_difference,
     predictions_long,
 )
 
@@ -44,6 +50,42 @@ def test_paired_bootstrap_reports_correct_direction():
         seed=42,
     )
     assert result["difference"] > 0
+
+
+def test_efficient_bootstrap_and_dm_report_correct_direction():
+    actual = np.ones((200, 24))
+    better = np.ones_like(actual)
+    worse = np.zeros_like(actual)
+    bootstrap = paired_block_bootstrap_loss_difference(
+        actual, worse, better, "mse", block_length=24, resamples=200, seed=42
+    )
+    dm = diebold_mariano_hac(actual, worse, better, "mse", hac_lags=24)
+    assert bootstrap["difference"] > 0
+    assert bootstrap["ci_low"] > 0
+    assert dm["dm_statistic"] > 0
+    assert dm["dm_p_value"] < 0.05
+
+
+def test_holm_adjustment_is_monotone_in_sorted_order():
+    raw = np.array([0.03, 0.001, 0.02])
+    adjusted = holm_adjust_pvalues(raw)
+    assert np.all(adjusted >= raw)
+    assert adjusted[np.argmin(raw)] == 0.003
+
+
+def test_operational_and_probabilistic_metrics():
+    actual = np.array([[10.0, 10.0], [40.0, 40.0], [60.0, 60.0]])
+    predicted = np.array([[12.0, 12.0], [42.0, 42.0], [30.0, 30.0]])
+    exceedance = exceedance_metrics(actual, predicted, [35.4, 55.4], "model")
+    assert exceedance.loc[exceedance["threshold_ug_m3"] == 35.4, "recall"].item() == 0.5
+    assert exceedance.loc[exceedance["threshold_ug_m3"] == 55.4, "fn"].item() == 1
+
+    intervals = interval_metrics(actual, predicted - 5, predicted + 5, 0.2, "model")
+    assert 0 <= intervals.loc[0, "empirical_coverage"] <= 1
+    assert intervals.loc[0, "mean_width"] == 10
+
+    skill = horizon_skill_table(actual, actual, predicted, "perfect")
+    assert np.allclose(skill["skill_vs_climatology"], 1.0)
 
 
 def test_long_predictions_preserve_event_and_drift_labels():

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from event_timeraf.drift import DriftResult
-from event_timeraf.explain import generate_explanations
+from event_timeraf.explain import generate_explanations, grouped_feature_perturbation
 from event_timeraf.retrieval import RetrievalResult
 from event_timeraf.windows import WindowDataset
 
@@ -64,3 +64,22 @@ def test_explanations_save_semantic_effects_and_uncertainty():
     assert result.loc[0, "uncertainty_proxy"] > 1.0
     assert "uncertainty proxy" in result.loc[0, "explanation"].lower()
     assert "validation_residual_rmse" in result
+
+
+def test_grouped_feature_perturbation_uses_validation_predictions():
+    matrix = np.array([[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0]])
+    actual = matrix[:, :1]
+    result = grouped_feature_perturbation(
+        actual,
+        matrix,
+        matrix,
+        ["signal_value", "noise_value"],
+        {"signal": ("signal_",), "noise": ("noise_",)},
+        lambda values: values[:, :1],
+        seed=42,
+        model="toy",
+    )
+    signal = result.loc[result["feature_group"] == "signal", "mse_increase"]
+    noise = result.loc[result["feature_group"] == "noise", "mse_increase"]
+    assert (signal > 0).all()
+    assert (noise == 0).all()
