@@ -17,7 +17,7 @@ change should be recorded here before code and paper claims are changed.
 | Item | Final decision |
 | --- | --- |
 | Location | Los Angeles County, California, USA |
-| Study period | 2019--2025, subject to the data-readiness audit |
+| Study period | 2019-01-01 through 2025-08-24, subject to the data-readiness audit |
 | Target | Hourly PM2.5 in the source unit, expected to be `ug/m3` |
 | Forecast output | Full sequence from `t+1` through `t+24` |
 | Lookback | `L = 168` hourly observations |
