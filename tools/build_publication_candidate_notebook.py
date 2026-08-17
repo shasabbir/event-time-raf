@@ -99,9 +99,23 @@ nb.cells[8].source = code(
     no_event_train, no_event_validation, no_event_test = retrievals['hybrid_no_event'].values()
     event_train, event_validation, event_test = retrievals['event_conditioned'].values()
 
-    required_results = [result for method in retrievals.values() for result in method.values()]
-    if not all(result.valid_mask.all() for result in required_results):
-        raise RuntimeError('A query has no causally eligible retrieval candidate.')
+    required_evaluation_results = [
+        method[split]
+        for method in retrievals.values()
+        for split in ('validation', 'test')
+    ]
+    if not all(result.valid_mask.all() for result in required_evaluation_results):
+        raise RuntimeError('A validation or test query has no causally eligible retrieval candidate.')
+    training_validity = pd.DataFrame([
+        {
+            'method': method,
+            'valid_training_queries': int(results['train'].valid_mask.sum()),
+            'excluded_early_training_queries': int((~results['train'].valid_mask).sum()),
+        }
+        for method, results in retrievals.items()
+    ])
+    if training_validity['valid_training_queries'].min() == 0:
+        raise RuntimeError('No causally retrievable training queries remain for a retrieval method.')
     evidence = pd.concat(
         [retrievals[method]['test'].evidence for method in retrievals], ignore_index=True
     )
@@ -117,6 +131,7 @@ nb.cells[8].source = code(
     review_sample.to_csv(retrieval_review_path, index=False)
     print({'knowledge_base_candidates': len(knowledge_base.metadata),
            'primary_stride_hours': cfg.retrieval.kb_stride_hours})
+    display(training_validity)
     display(review_sample.drop(columns=['aligned_future']).head(20))
     if FINAL_EXPERIMENT and not RETRIEVAL_EVIDENCE_REVIEWED:
         raise RuntimeError('Review retrieval_review_sample.csv before the final run.')

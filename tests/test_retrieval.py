@@ -21,6 +21,20 @@ def test_retrieval_candidates_are_strictly_historical(modeling_frame, cfg):
     ).all()
 
 
+def test_early_training_queries_are_excluded_but_evaluation_is_complete(modeling_frame, cfg):
+    dataset = build_window_dataset(modeling_frame, cfg)
+    retriever = HistoricalRetriever(build_knowledge_base(dataset, cfg), cfg)
+    train_result = retriever.retrieve(dataset.subset("train"), method="event_conditioned")
+    validation_result = retriever.retrieve(
+        dataset.subset("validation"), method="event_conditioned"
+    )
+    test_result = retriever.retrieve(dataset.subset("test"), method="event_conditioned")
+    assert (~train_result.valid_mask).any()
+    assert train_result.valid_mask.any()
+    assert validation_result.valid_mask.all()
+    assert test_result.valid_mask.all()
+
+
 def test_dense_knowledge_base_allows_candidate_overlap(modeling_frame, cfg):
     dataset = build_window_dataset(modeling_frame, cfg)
     metadata = build_knowledge_base(dataset, cfg).metadata
