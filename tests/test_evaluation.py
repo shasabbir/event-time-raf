@@ -10,11 +10,13 @@ from event_timeraf.evaluation import (
     holm_adjust_pvalues,
     horizon_skill_table,
     interval_metrics,
+    log_scale_metrics,
     metric_values,
     metrics_table,
     paired_block_bootstrap_difference,
     paired_block_bootstrap_loss_difference,
     predictions_long,
+    quantile_forecast_metrics,
 )
 
 
@@ -86,6 +88,17 @@ def test_operational_and_probabilistic_metrics():
 
     skill = horizon_skill_table(actual, actual, predicted, "perfect")
     assert np.allclose(skill["skill_vs_climatology"], 1.0)
+
+    log_values = log_scale_metrics(actual, actual, "perfect")
+    assert log_values.loc[0, "mse"] == 0
+
+    levels = (0.1, 0.5, 0.9)
+    quantiles = np.stack([actual - 5, actual, actual + 5], axis=-1)
+    calibration, probabilistic = quantile_forecast_metrics(
+        actual, quantiles, levels, "model"
+    )
+    assert len(calibration) == len(levels)
+    assert probabilistic.loc[0, "crps_quantile_approximation"] >= 0
 
 
 def test_long_predictions_preserve_event_and_drift_labels():

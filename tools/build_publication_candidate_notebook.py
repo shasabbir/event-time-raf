@@ -16,6 +16,11 @@ def code(value: str) -> str:
 
 
 nb = nbformat.read(NOTEBOOK, as_version=4)
+nb.cells = [
+    cell for cell in nb.cells
+    if "SITE_LEVEL_SENSITIVITY_ARM" not in cell.source
+    and not cell.source.startswith("## 6. Site-level target sensitivity")
+]
 nb.cells[0].source = code(
     """
     # Event-TimeRAF: Publication-Candidate Kaggle Pipeline
@@ -26,6 +31,30 @@ nb.cells[0].source = code(
     outputs. Numerical paper claims must be updated only from the ZIP produced by the final cell.
     """
 )
+nb.cells[1].source = code(
+    """
+    # Kaggle publication setup. Pin PatchTST to the stable Transformers 4.x API.
+    import importlib.metadata
+    import importlib.util
+    import subprocess
+    import sys
+
+    requirements = []
+    if importlib.util.find_spec('chronos') is None:
+        requirements.append('chronos-forecasting>=2.1,<3')
+    transformers_version = None
+    try:
+        transformers_version = importlib.metadata.version('transformers')
+    except importlib.metadata.PackageNotFoundError:
+        pass
+    if transformers_version is None or int(transformers_version.split('.')[0]) >= 5:
+        requirements.append('transformers>=4.49,<5')
+    if importlib.util.find_spec('lightgbm') is None:
+        requirements.append('lightgbm>=4,<5')
+    if requirements:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', *requirements])
+    """
+)
 
 setup = nb.cells[2].source
 setup = re.sub(r"(?:DirectRidgeForecaster, ){2,}", "DirectRidgeForecaster, ", setup)
@@ -34,6 +63,24 @@ setup = re.sub(
     "RUN_STRIDE_MODEL_SWEEP = True\n",
     setup,
 )
+setup = setup.replace(
+    "from event_timeraf.features import build_modeling_table",
+    "from event_timeraf.features import EVENT_CATEGORIES, build_modeling_table",
+)
+setup = setup.replace(
+    "load_storm_events_cache, prepare_epa_pm25,",
+    "load_storm_events_cache, prepare_epa_pm25, prepare_epa_site_pm25,",
+)
+setup = setup.replace(
+    "build_data_audit, download_epa_pm25,",
+    "build_data_audit, download_epa_pm25, haversine_km,",
+)
+while "haversine_km, haversine_km," in setup:
+    setup = setup.replace("haversine_km, haversine_km,", "haversine_km,")
+while "prepare_epa_site_pm25, prepare_epa_site_pm25," in setup:
+    setup = setup.replace(
+        "prepare_epa_site_pm25, prepare_epa_site_pm25,", "prepare_epa_site_pm25,"
+    )
 if "DirectRidgeForecaster" not in setup:
     setup = setup.replace(
         "DirectXGBForecaster, choose_fusion_weight, chronos_forecast,",
@@ -54,6 +101,11 @@ if "RUN_STRIDE_MODEL_SWEEP = True" not in setup:
         "RETRIEVAL_EVIDENCE_REVIEWED = True",
         "RETRIEVAL_EVIDENCE_REVIEWED = True\nRUN_STRIDE_MODEL_SWEEP = True",
     )
+if "RUN_JOURNAL_BASELINES = True" not in setup:
+    setup = setup.replace(
+        "RUN_STRIDE_MODEL_SWEEP = True",
+        "RUN_STRIDE_MODEL_SWEEP = True\nRUN_JOURNAL_BASELINES = True",
+    )
 if "Clear stale writable outputs before a publication run" not in setup:
     setup = setup.replace(
         "# Final-publication profile.",
@@ -68,7 +120,8 @@ setup = re.sub(
     r"from event_timeraf\.evaluation import \(.*?\)\n",
     """from event_timeraf.evaluation import (
     build_event_period_flags, diebold_mariano_hac, exceedance_metrics,
-    holm_adjust_pvalues, horizon_skill_table, interval_metrics, metric_values, metrics_table,
+    holm_adjust_pvalues, horizon_skill_table, interval_metrics, log_scale_metrics,
+    metric_values, metrics_table, quantile_forecast_metrics,
     paired_block_bootstrap_loss_difference, predictions_long,
 )
 """,
@@ -79,6 +132,10 @@ setup = re.sub(
     r"from event_timeraf\.explain import .*\n",
     "from event_timeraf.explain import generate_explanations, grouped_feature_perturbation, xgb_local_contributions\n",
     setup,
+)
+setup = setup.replace(
+    "DirectRidgeForecaster, DirectXGBForecaster, choose_fusion_weight, chronos_forecast,",
+    "DirectLightGBMForecaster, DirectRidgeForecaster, DirectXGBForecaster, NeuralWindowForecaster, choose_fusion_weight, chronos_quantile_forecast,",
 )
 setup = re.sub(
     r"from event_timeraf\.windows import .*\n",
@@ -121,7 +178,7 @@ nb.cells[7].source = code(
 
     Candidate windows may overlap one another. For every query, the complete candidate target
     must still end before the query lookback begins. The primary 24-hour stride is evaluated
-    against 192-hour and 6-hour alternatives without changing this embargo.
+    against 6-hour and 1-hour alternatives without changing this embargo.
     """
 )
 nb.cells[8].source = code(
@@ -240,6 +297,36 @@ nb.cells[10].source = code(
     )
     validation_predictions['C01_ridge_context'] = ridge.predict(context_validation, validation.future_calendar)
     predictions['C01_ridge_context'] = ridge.predict(context_test, test.future_calendar)
+    if RUN_JOURNAL_BASELINES:
+        lightgbm = DirectLightGBMForecaster(cfg).fit(
+            context_train, train.future_calendar, train.y, context_names, train.calendar_names
+        )
+        validation_predictions['C05_lightgbm_context'] = lightgbm.predict(
+            context_validation, validation.future_calendar
+        )
+        predictions['C05_lightgbm_context'] = lightgbm.predict(context_test, test.future_calendar)
+
+        dlinear = NeuralWindowForecaster(cfg, 'dlinear').fit(train, validation)
+        lstm = NeuralWindowForecaster(cfg, 'lstm').fit(train, validation)
+        patchtst = NeuralWindowForecaster(cfg, 'patchtst').fit(train, validation)
+        validation_predictions['B00_dlinear'] = dlinear.predict(validation)
+        validation_predictions['B02_lstm'] = lstm.predict(validation)
+        validation_predictions['B01_patchtst'] = patchtst.predict(validation)
+        predictions['B00_dlinear'] = dlinear.predict(test)
+        predictions['B02_lstm'] = lstm.predict(test)
+        predictions['B01_patchtst'] = patchtst.predict(test)
+        neural_training_path = cfg.paths.outputs / 'tables' / 'neural_baseline_training.csv'
+        pd.concat([
+            dlinear.history_frame(RUN_ID), lstm.history_frame(RUN_ID), patchtst.history_frame(RUN_ID)
+        ], ignore_index=True).to_csv(neural_training_path, index=False)
+        dlinear_path = cfg.paths.outputs / 'models' / 'B00_dlinear.pt'
+        lstm_path = cfg.paths.outputs / 'models' / 'B02_lstm.pt'
+        patchtst_path = cfg.paths.outputs / 'models' / 'B01_patchtst.pt'
+        dlinear.save(dlinear_path)
+        lstm.save(lstm_path)
+        patchtst.save(patchtst_path)
+    elif FINAL_EXPERIMENT:
+        raise RuntimeError('Final publication mode requires DLinear, LSTM, PatchTST, and LightGBM baselines.')
 
     def fit_retrieval_xgb(train_result, validation_result, test_result, prefixes, label):
         names = train_result.feature_names(label)
@@ -260,6 +347,61 @@ nb.cells[10].source = code(
     predictions['M07_xgb_cosine'] = m07.predict(m07_test, test.future_calendar)
 
     full_prefixes = ('pm25_', 'weather_', 'cal_', 'event_')
+    full_train, full_names = origin_feature_matrix(train, full_prefixes)
+    full_validation, _ = origin_feature_matrix(validation, full_prefixes)
+    full_test, _ = origin_feature_matrix(test, full_prefixes)
+    c04 = DirectXGBForecaster(cfg).fit(
+        full_train, train.future_calendar, train.y, full_names, train.calendar_names
+    )
+    validation_predictions['C04_xgb_context_event'] = c04.predict(
+        full_validation, validation.future_calendar
+    )
+    predictions['C04_xgb_context_event'] = c04.predict(full_test, test.future_calendar)
+
+    event_columns = [index for index, name in enumerate(full_names) if name.startswith('event_')]
+    if not event_columns:
+        raise RuntimeError('Matched event-feature control requires event columns.')
+    def matched_event_placebo(matrix, seed):
+        changed = matrix.copy()
+        order = np.random.default_rng(seed).permutation(len(changed))
+        changed[:, event_columns] = changed[order][:, event_columns]
+        return changed
+
+    placebo_train = matched_event_placebo(full_train, cfg.seed + 101)
+    placebo_validation = matched_event_placebo(full_validation, cfg.seed + 102)
+    placebo_test = matched_event_placebo(full_test, cfg.seed + 103)
+    a02 = DirectXGBForecaster(cfg).fit(
+        placebo_train, train.future_calendar, train.y, full_names, train.calendar_names
+    )
+    validation_predictions['A02_xgb_matched_event_placebo'] = a02.predict(
+        placebo_validation, validation.future_calendar
+    )
+    predictions['A02_xgb_matched_event_placebo'] = a02.predict(
+        placebo_test, test.future_calendar
+    )
+    feature_control_design_path = cfg.paths.outputs / 'tables' / 'feature_count_control_design.csv'
+    pd.DataFrame([
+        {
+            'run_id': RUN_ID, 'model': 'M04_xgb_context',
+            'origin_feature_count': len(context_names),
+            'future_calendar_feature_count': len(train.calendar_names),
+            'event_feature_count': 0, 'control': 'lower-dimensional context baseline',
+        },
+        {
+            'run_id': RUN_ID, 'model': 'C04_xgb_context_event',
+            'origin_feature_count': len(full_names),
+            'future_calendar_feature_count': len(train.calendar_names),
+            'event_feature_count': len(event_columns), 'control': 'observed event features',
+        },
+        {
+            'run_id': RUN_ID, 'model': 'A02_xgb_matched_event_placebo',
+            'origin_feature_count': len(full_names),
+            'future_calendar_feature_count': len(train.calendar_names),
+            'event_feature_count': len(event_columns),
+            'control': 'split-local joint row permutation of event features',
+        },
+    ]).to_csv(feature_control_design_path, index=False)
+
     m08, m08_train, m08_validation, m08_test, m08_names = fit_retrieval_xgb(
         event_train, event_validation, event_test, full_prefixes, 'event_conditioned_retrieval'
     )
@@ -366,8 +508,12 @@ nb.cells[11].source = code(
     models_to_save = {
         'M03': m03, 'M04': m04, 'M07': m07, 'M08': m08, 'M09': m09,
         'A00_full_without_events': m09_no_events,
-        'A01_xgb_random_retrieval': random_model, 'C01_ridge_context': ridge,
+        'A01_xgb_random_retrieval': random_model,
+        'A02_xgb_matched_event_placebo': a02,
+        'C01_ridge_context': ridge, 'C04_xgb_context_event': c04,
     }
+    if RUN_JOURNAL_BASELINES:
+        models_to_save['C05_lightgbm_context'] = lightgbm
     for name, model in models_to_save.items():
         model.save(cfg.paths.outputs / 'models' / f'{name}.joblib')
     print({'drift_score_mode': cfg.drift.score_mode, 'event_timeraf_threshold': drift_test.threshold,
@@ -406,13 +552,17 @@ nb.cells[13].source = code(
     subset_counts.to_csv(subset_counts_path, index=False)
 
     k_rows = []
+    k_predictions = {'actual': test.y}
     for method in ('cosine', 'event_conditioned'):
         for candidate_k in cfg.retrieval.k_values:
             result = retriever.retrieve(test, method=method, k=candidate_k)
+            k_predictions[f'{method}_k_{candidate_k}'] = result.prediction
             k_rows.append({'run_id': RUN_ID, 'method': method, 'k': candidate_k,
                            **metric_values(test.y, result.prediction)})
     k_sensitivity_path = cfg.paths.outputs / 'tables' / 'k_sensitivity_results.csv'
+    k_predictions_path = cfg.paths.outputs / 'predictions' / 'k_sensitivity_predictions.npz'
     pd.DataFrame(k_rows).to_csv(k_sensitivity_path, index=False)
+    np.savez_compressed(k_predictions_path, **k_predictions)
 
     event_weight_rows = []
     composition_rows = []
@@ -443,10 +593,90 @@ nb.cells[13].source = code(
         row['selected_candidate_changed_fraction_vs_weight_0'] = float(np.mean(ids != baseline_ids))
     event_weight_path = cfg.paths.outputs / 'tables' / 'event_weight_sensitivity.csv'
     event_composition_path = cfg.paths.outputs / 'tables' / 'event_candidate_composition.csv'
+    event_weight_retrieval_predictions_path = (
+        cfg.paths.outputs / 'predictions' / 'event_weight_retrieval_predictions.npz'
+    )
     pd.DataFrame(event_weight_rows).to_csv(event_weight_path, index=False)
     pd.DataFrame(composition_rows).to_csv(event_composition_path, index=False)
+    np.savez_compressed(
+        event_weight_retrieval_predictions_path,
+        actual=test.y,
+        **{
+            f"weight_{weight:.2f}".replace('.', 'p'): result.prediction
+            for weight, result in weight_results.items()
+        },
+    )
+
+    category_rows = []
+    primary_evidence = weight_results[float(cfg.retrieval.weights['event'])].evidence
+    candidate_lookup = pd.Series(
+        np.arange(len(knowledge_base.metadata)),
+        index=knowledge_base.metadata['window_id'].astype(str),
+    )
+    for category in EVENT_CATEGORIES:
+        feature_name = f'event_{category}_72h'
+        if feature_name not in test.feature_names or feature_name not in knowledge_base.feature_names:
+            continue
+        query_column = test.feature_names.index(feature_name)
+        candidate_column = knowledge_base.feature_names.index(feature_name)
+        query_has_category = test.features[:, query_column] > cfg.retrieval.epsilon
+        query_ids = set(test.metadata.loc[query_has_category, 'window_id'].astype(str))
+        selected = primary_evidence.loc[
+            primary_evidence['query_window_id'].astype(str).isin(query_ids)
+        ]
+        selected_indices = candidate_lookup.reindex(selected['candidate_window_id'].astype(str)).dropna().astype(int)
+        selected_fraction = (
+            float(np.mean(knowledge_base.features[selected_indices, candidate_column] > cfg.retrieval.epsilon))
+            if len(selected_indices) else np.nan
+        )
+        category_rows.append({
+            'run_id': RUN_ID, 'category': category,
+            'query_origins_with_category': int(query_has_category.sum()),
+            'selected_candidates': int(len(selected_indices)),
+            'selected_candidate_category_fraction': selected_fraction,
+            'knowledge_base_category_fraction': float(np.mean(
+                knowledge_base.features[:, candidate_column] > cfg.retrieval.epsilon
+            )),
+        })
+    event_category_composition_path = cfg.paths.outputs / 'tables' / 'event_category_candidate_composition.csv'
+    pd.DataFrame(category_rows).to_csv(event_category_composition_path, index=False)
+
+    event_weight_model_rows = []
+    event_weight_model_predictions = {'validation_actual': validation.y, 'test_actual': test.y}
+    primary_event_weight = float(cfg.retrieval.weights['event'])
+    for weight in cfg.retrieval.event_weight_values:
+        if np.isclose(weight, primary_event_weight):
+            validation_values = validation_predictions['M08_event_timeraf_no_drift']
+            test_values = predictions['M08_event_timeraf_no_drift']
+        else:
+            train_result = retriever.retrieve(train, method='event_conditioned', event_weight=weight)
+            validation_result = retriever.retrieve(validation, method='event_conditioned', event_weight=weight)
+            test_result = weight_results[weight]
+            weight_model, _, validation_matrix, test_matrix, _ = fit_retrieval_xgb(
+                train_result, validation_result, test_result, full_prefixes,
+                f'event_weight_{weight:.2f}'.replace('.', 'p'),
+            )
+            validation_values = weight_model.predict(validation_matrix, validation.future_calendar)
+            test_values = weight_model.predict(test_matrix, test.future_calendar)
+        key = f"weight_{weight:.2f}".replace('.', 'p')
+        event_weight_model_predictions[f'{key}_validation'] = validation_values
+        event_weight_model_predictions[f'{key}_test'] = test_values
+        for split, actual, values in (
+            ('validation', validation.y, validation_values), ('test', test.y, test_values)
+        ):
+            event_weight_model_rows.append({
+                'run_id': RUN_ID, 'event_weight': weight, 'split': split,
+                'model': 'M08_event_timeraf_no_drift',
+                'primary_configuration': bool(np.isclose(weight, primary_event_weight)),
+                **metric_values(actual, values),
+            })
+    event_weight_model_path = cfg.paths.outputs / 'tables' / 'event_weight_model_sensitivity.csv'
+    event_weight_predictions_path = cfg.paths.outputs / 'predictions' / 'event_weight_model_predictions.npz'
+    pd.DataFrame(event_weight_model_rows).to_csv(event_weight_model_path, index=False)
+    np.savez_compressed(event_weight_predictions_path, **event_weight_model_predictions)
 
     stride_rows = []
+    stride_retrieval_predictions = {'actual': test.y}
     stride_cache = {}
     for stride in cfg.retrieval.kb_stride_values:
         started = time.perf_counter()
@@ -466,6 +696,7 @@ nb.cells[13].source = code(
         stride_cache[stride] = (stride_kb, stride_retriever, stride_results)
         elapsed = time.perf_counter() - started
         for method, result in stride_results.items():
+            stride_retrieval_predictions[f'stride_{stride}_{method}'] = result.prediction
             stride_rows.append({
                 'run_id': RUN_ID, 'stride_hours': stride, 'method': method,
                 'candidate_count': len(stride_kb.metadata), 'runtime_seconds': elapsed,
@@ -473,15 +704,19 @@ nb.cells[13].source = code(
                 **metric_values(test.y, result.prediction),
             })
     stride_path = cfg.paths.outputs / 'tables' / 'kb_stride_sensitivity.csv'
+    stride_predictions_path = cfg.paths.outputs / 'predictions' / 'kb_stride_retrieval_predictions.npz'
     pd.DataFrame(stride_rows).to_csv(stride_path, index=False)
+    np.savez_compressed(stride_predictions_path, **stride_retrieval_predictions)
 
     stride_model_rows = []
+    stride_model_predictions = {'actual': test.y}
     if RUN_STRIDE_MODEL_SWEEP:
         for stride in cfg.retrieval.kb_stride_values:
             if stride == cfg.retrieval.kb_stride_hours:
                 for name in ('M07_xgb_cosine', 'M08_event_timeraf_no_drift', 'M09_event_timeraf_full'):
                     stride_model_rows.append({'run_id': RUN_ID, 'stride_hours': stride,
                                               'model': name, **metric_values(test.y, predictions[name])})
+                    stride_model_predictions[f'stride_{stride}_{name}'] = predictions[name]
                 continue
             stride_kb, stride_retriever, test_results = stride_cache[stride]
             train_cos = stride_retriever.retrieve(train, method='cosine')
@@ -513,13 +748,16 @@ nb.cells[13].source = code(
                 train.y[train_event.valid_mask], names09, train.calendar_names,
             )
             pred09 = model09.predict(matrix09_test, test.future_calendar)
-            for name, values in {'M07_xgb_cosine': pred07,
-                                 'M08_event_timeraf_no_drift': pred08,
-                                 'M09_event_timeraf_full': pred09}.items():
-                stride_model_rows.append({'run_id': RUN_ID, 'stride_hours': stride,
-                                          'model': name, **metric_values(test.y, values)})
+        for name, values in {'M07_xgb_cosine': pred07,
+                             'M08_event_timeraf_no_drift': pred08,
+                             'M09_event_timeraf_full': pred09}.items():
+            stride_model_predictions[f'stride_{stride}_{name}'] = values
+            stride_model_rows.append({'run_id': RUN_ID, 'stride_hours': stride,
+                                      'model': name, **metric_values(test.y, values)})
     stride_model_path = cfg.paths.outputs / 'tables' / 'kb_stride_model_sensitivity.csv'
+    stride_model_predictions_path = cfg.paths.outputs / 'predictions' / 'kb_stride_model_predictions.npz'
     pd.DataFrame(stride_model_rows).to_csv(stride_model_path, index=False)
+    np.savez_compressed(stride_model_predictions_path, **stride_model_predictions)
 
     drift_comparison = pd.DataFrame([
         {'run_id': RUN_ID, 'detector': 'Event-TimeRAF composite', 'threshold': drift_test.threshold,
@@ -535,6 +773,7 @@ nb.cells[13].source = code(
     drift_comparison.to_csv(drift_comparison_path, index=False)
     display(pd.DataFrame(stride_rows))
     display(pd.DataFrame(event_weight_rows))
+    display(pd.DataFrame(category_rows))
     """
 )
 
@@ -551,12 +790,18 @@ nb.cells[15].source = code(
     """
     tsfm_gate_path = cfg.paths.outputs / 'logs' / 'tsfm_gate_status.json'
     if RUN_TSF_MODEL:
-        tsfm_validation, tsfm_val_low, tsfm_val_high = chronos_forecast(
-            validation.x, cfg.forecast.horizon, cfg.tsfm.checkpoint, cfg.tsfm.batch_size
+        tsfm_validation, tsfm_val_quantiles = chronos_quantile_forecast(
+            validation.x, cfg.forecast.horizon, cfg.tsfm.checkpoint,
+            cfg.evaluation.probabilistic_quantiles, cfg.tsfm.batch_size
         )
-        tsfm_test, tsfm_test_low, tsfm_test_high = chronos_forecast(
-            test.x, cfg.forecast.horizon, cfg.tsfm.checkpoint, cfg.tsfm.batch_size
+        tsfm_test, tsfm_test_quantiles = chronos_quantile_forecast(
+            test.x, cfg.forecast.horizon, cfg.tsfm.checkpoint,
+            cfg.evaluation.probabilistic_quantiles, cfg.tsfm.batch_size
         )
+        lower_index = cfg.evaluation.probabilistic_quantiles.index(0.1)
+        upper_index = cfg.evaluation.probabilistic_quantiles.index(0.9)
+        tsfm_test_low = tsfm_test_quantiles[..., lower_index]
+        tsfm_test_high = tsfm_test_quantiles[..., upper_index]
         selected_weight, fusion_scores = choose_fusion_weight(
             validation.y, tsfm_validation, event_validation.prediction, cfg.tsfm.fusion_weights
         )
@@ -568,6 +813,10 @@ nb.cells[15].source = code(
         predictions['M11_chronos_event_retrieval'] = fuse_forecasts(
             tsfm_test, event_test.prediction, selected_weight
         )
+        fused_test_quantiles = (
+            selected_weight * tsfm_test_quantiles
+            + (1.0 - selected_weight) * event_test.prediction[..., None]
+        ).astype(np.float32)
         placebo_sources = {
             'P00_chronos_climatology_fusion': 'C00_hour_month_climatology',
             'P01_chronos_persistence_fusion': 'M00_persistence',
@@ -594,9 +843,11 @@ nb.cells[15].source = code(
         tsfm_predictions_path = cfg.paths.outputs / 'predictions' / 'tsfm_predictions.npz'
         np.savez_compressed(
             tsfm_predictions_path, validation_mean=tsfm_validation,
-            validation_lower=tsfm_val_low, validation_upper=tsfm_val_high,
-            test_mean=tsfm_test, test_lower=tsfm_test_low, test_upper=tsfm_test_high,
+            validation_quantiles=tsfm_val_quantiles,
+            test_mean=tsfm_test, test_quantiles=tsfm_test_quantiles,
             fused_test_mean=predictions['M11_chronos_event_retrieval'],
+            fused_test_quantiles=fused_test_quantiles,
+            quantile_levels=np.asarray(cfg.evaluation.probabilistic_quantiles),
             fusion_weight=selected_weight,
         )
         fusion_scores_path = cfg.paths.outputs / 'tables' / 'tsfm_fusion_validation.csv'
@@ -605,10 +856,37 @@ nb.cells[15].source = code(
         placebo_fusion_path = cfg.paths.outputs / 'tables' / 'tsfm_placebo_fusion_validation.csv'
         pd.DataFrame(placebo_fusion_rows).to_csv(placebo_fusion_path, index=False)
         interval_path = cfg.paths.outputs / 'tables' / 'tsfm_interval_metrics.csv'
-        interval_metrics(
-            test.y, tsfm_test_low, tsfm_test_high, alpha=0.2,
-            model='M10_frozen_chronos', run_id=RUN_ID,
-        ).to_csv(interval_path, index=False)
+        fused_test_low = fused_test_quantiles[..., lower_index]
+        fused_test_high = fused_test_quantiles[..., upper_index]
+        pd.concat([
+            interval_metrics(
+                test.y, tsfm_test_low, tsfm_test_high, alpha=0.2,
+                model='M10_frozen_chronos', run_id=RUN_ID,
+            ),
+            interval_metrics(
+                test.y, fused_test_low, fused_test_high, alpha=0.2,
+                model='M11_chronos_event_retrieval', run_id=RUN_ID,
+            ),
+        ], ignore_index=True).to_csv(interval_path, index=False)
+        quantile_calibration_path = cfg.paths.outputs / 'tables' / 'tsfm_quantile_calibration.csv'
+        probabilistic_path = cfg.paths.outputs / 'tables' / 'tsfm_probabilistic_metrics.csv'
+        calibration_frames = []
+        probabilistic_frames = []
+        for name, values in {
+            'M10_frozen_chronos': tsfm_test_quantiles,
+            'M11_chronos_event_retrieval': fused_test_quantiles,
+        }.items():
+            calibration, probabilistic = quantile_forecast_metrics(
+                test.y, values, cfg.evaluation.probabilistic_quantiles, name, RUN_ID
+            )
+            calibration_frames.append(calibration)
+            probabilistic_frames.append(probabilistic)
+        pd.concat(calibration_frames, ignore_index=True).to_csv(
+            quantile_calibration_path, index=False
+        )
+        pd.concat(probabilistic_frames, ignore_index=True).to_csv(
+            probabilistic_path, index=False
+        )
         tsfm_gate_status = {'run_id': RUN_ID, 'completed': True,
                             'checkpoint': cfg.tsfm.checkpoint,
                             'selected_fusion_weight': selected_weight,
@@ -771,6 +1049,11 @@ nb.cells[17].source = code(
         exceedance_metrics(test.y, values, cfg.evaluation.aqi_thresholds, name, RUN_ID)
         for name, values in predictions.items()
     ], ignore_index=True).to_csv(exceedance_path, index=False)
+    log_metrics_path = cfg.paths.outputs / 'tables' / 'log_scale_metrics.csv'
+    pd.concat([
+        log_scale_metrics(test.y, values, name, RUN_ID)
+        for name, values in predictions.items()
+    ], ignore_index=True).to_csv(log_metrics_path, index=False)
 
     comparisons = {
         'M04_minus_M03_weather_calendar': (predictions['M04_xgb_context'], predictions['M03_xgb_pm25']),
@@ -781,6 +1064,13 @@ nb.cells[17].source = code(
         'M09_minus_M04_full': (predictions['M09_event_timeraf_full'], predictions['M04_xgb_context']),
         'A01_minus_M04_random_control': (predictions['A01_xgb_random_retrieval'], predictions['M04_xgb_context']),
         'M09_minus_A01_random_control': (predictions['M09_event_timeraf_full'], predictions['A01_xgb_random_retrieval']),
+        'C04_minus_M04_raw_event_features': (predictions['C04_xgb_context_event'], predictions['M04_xgb_context']),
+        'A02_minus_M04_matched_feature_count': (predictions['A02_xgb_matched_event_placebo'], predictions['M04_xgb_context']),
+        'C04_minus_A02_event_signal': (predictions['C04_xgb_context_event'], predictions['A02_xgb_matched_event_placebo']),
+        'C05_minus_M04_lightgbm': (predictions['C05_lightgbm_context'], predictions['M04_xgb_context']),
+        'B00_minus_M04_dlinear': (predictions['B00_dlinear'], predictions['M04_xgb_context']),
+        'B01_minus_M04_patchtst': (predictions['B01_patchtst'], predictions['M04_xgb_context']),
+        'B02_minus_M04_lstm': (predictions['B02_lstm'], predictions['M04_xgb_context']),
         'M11_minus_M10_retrieval': (predictions['M11_chronos_event_retrieval'], predictions['M10_frozen_chronos']),
         'M11_minus_P00_climatology_placebo': (predictions['M11_chronos_event_retrieval'], predictions['P00_chronos_climatology_fusion']),
         'M11_minus_P01_persistence_placebo': (predictions['M11_chronos_event_retrieval'], predictions['P01_chronos_persistence_fusion']),
@@ -845,6 +1135,37 @@ nb.cells[17].source = code(
     group_importance_path = cfg.paths.outputs / 'tables' / 'validation_group_faithfulness.csv'
     group_importance.to_csv(group_importance_path, index=False)
 
+    leaf_rows = []
+    for horizon in range(cfg.forecast.horizon):
+        matrix = m09._matrix(m09_test, test.future_calendar, horizon)
+        leaf_indices = np.asarray(m09.models[horizon].apply(matrix), dtype=np.int64)
+        if leaf_indices.ndim == 1:
+            leaf_indices = leaf_indices[:, None]
+        for state, state_mask in {'non_drift': ~drift_test.flag, 'drift': drift_test.flag}.items():
+            other_mask = ~state_mask
+            support_sum = 0.0
+            exclusive_count = 0
+            assignment_count = int(state_mask.sum() * leaf_indices.shape[1])
+            occupied_pairs = 0
+            for tree in range(leaf_indices.shape[1]):
+                leaves = leaf_indices[:, tree]
+                unique, inverse = np.unique(leaves, return_inverse=True)
+                state_counts = np.bincount(inverse[state_mask], minlength=len(unique))
+                other_counts = np.bincount(inverse[other_mask], minlength=len(unique))
+                support_sum += float(state_counts[inverse[state_mask]].sum())
+                exclusive_count += int(np.sum(other_counts[inverse[state_mask]] == 0))
+                occupied_pairs += int(np.count_nonzero(state_counts))
+            leaf_rows.append({
+                'run_id': RUN_ID, 'model': 'M09_event_timeraf_full',
+                'horizon': horizon + 1, 'state': state,
+                'n_origins': int(state_mask.sum()), 'n_trees': int(leaf_indices.shape[1]),
+                'occupied_tree_leaf_pairs': occupied_pairs,
+                'mean_same_state_leaf_support': support_sum / assignment_count if assignment_count else np.nan,
+                'exclusive_assignment_fraction': exclusive_count / assignment_count if assignment_count else np.nan,
+            })
+    drift_leaf_path = cfg.paths.outputs / 'tables' / 'drift_leaf_occupancy.csv'
+    pd.DataFrame(leaf_rows).to_csv(drift_leaf_path, index=False)
+
     horizon_contributions = []
     for horizon in range(cfg.forecast.horizon):
         matrix = m09._matrix(m09_test, test.future_calendar, horizon)
@@ -891,17 +1212,29 @@ nb.cells[17].source = code(
         kb_arrays_path, kb_metadata_path, kb_arrays_path.with_suffix('.json'),
         retrieval_evidence_path, retrieval_review_path, drift_evidence_path,
         feature_effects_path, explanations_path, predictions_path, metrics_path,
-        main_results_path, attrition_path, subset_counts_path, subset_stats_path,
-        horizon_skill_path, exceedance_path, k_sensitivity_path,
+        main_results_path, attrition_path, feature_control_design_path,
+        subset_counts_path, subset_stats_path,
+        horizon_skill_path, exceedance_path, log_metrics_path, k_sensitivity_path,
+        k_predictions_path,
         drift_period_path, event_period_path, drift_diagnostics_path, drift_correlations_path,
-        event_weight_path, event_composition_path, stride_path, stride_model_path,
+        drift_leaf_path,
+        event_weight_path, event_composition_path, event_category_composition_path,
+        event_weight_retrieval_predictions_path,
+        event_weight_model_path,
+        event_weight_predictions_path, stride_path, stride_predictions_path,
+        stride_model_path, stride_model_predictions_path,
         drift_comparison_path, retrieval_fusion_path, group_importance_path,
         ablation_path, tsfm_gate_path, fusion_scores_path, placebo_fusion_path,
-        interval_path, router_path,
+        interval_path, quantile_calibration_path, probabilistic_path, router_path,
         horizon_figure_path, mse_figure_path, forecast_figure_path,
         retrieval_figure_path, drift_figure_path,
         drift_detector_path, no_event_detector_path, ks_detector_path, tsfm_predictions_path,
+        site_level_sensitivity_path, site_level_design_path, site_selection_audit_path,
+        site_level_predictions_path,
     ]
+    if RUN_JOURNAL_BASELINES:
+        artifact_paths.extend([neural_training_path, dlinear_path, lstm_path, patchtst_path])
+    artifact_paths.extend(site_model_paths)
     artifact_paths.extend(cfg.paths.outputs / 'models' / f'{name}.joblib' for name in models_to_save)
     manifest = write_run_manifest(
         cfg, artifact_paths, run_id=RUN_ID, config_path=CONFIG_PATH,
@@ -915,12 +1248,19 @@ nb.cells[17].source = code(
             'event_delivery_modes': audit['event_delivery_modes'],
             'run_tsf_model': RUN_TSF_MODEL, 'final_experiment': FINAL_EXPERIMENT,
             'retrieval_evidence_reviewed': RETRIEVAL_EVIDENCE_REVIEWED,
-            'publication_title_allowed': bool(tsfm_gate_status['completed']),
+            'publication_title_allowed': bool(
+                tsfm_gate_status['completed']
+                and RUN_JOURNAL_BASELINES
+                and set(cfg.retrieval.kb_stride_values) == {1, 6, 24}
+                and len(site_level_design) == 3
+            ),
             'primary_kb_stride_hours': cfg.retrieval.kb_stride_hours,
             'kb_stride_values': list(cfg.retrieval.kb_stride_values),
             'stride_model_sweep_completed': RUN_STRIDE_MODEL_SWEEP,
+            'journal_baselines_completed': RUN_JOURNAL_BASELINES,
             'event_retrieval_method': 'event_conditioned',
             'event_weight_values': list(cfg.retrieval.event_weight_values),
+            'event_weight_model_sweep_completed': True,
             'drift_score_mode': cfg.drift.score_mode,
             'bootstrap_block_hours': cfg.evaluation.bootstrap_block_hours,
             'bootstrap_resamples': cfg.evaluation.bootstrap_resamples,
@@ -928,6 +1268,9 @@ nb.cells[17].source = code(
             'holm_adjustment': True,
             'placebo_fusion_controls': ['climatology', 'persistence'],
             'aqi_thresholds': list(cfg.evaluation.aqi_thresholds),
+            'probabilistic_quantiles': list(cfg.evaluation.probabilistic_quantiles),
+            'matched_feature_count_control': True,
+            'site_level_sensitivity_completed': len(site_level_design) == 3,
         },
     )
 
@@ -971,6 +1314,199 @@ nb.cells[17].source = code(
     """
 )
 
+nb.cells[14].source = nb.cells[14].source.replace(
+    "## 6. Frozen-TSFM", "## 7. Frozen-TSFM"
+)
+nb.cells[16].source = nb.cells[16].source.replace(
+    "## 7. Final evaluation", "## 8. Final evaluation"
+)
+site_markdown = nbformat.v4.new_markdown_cell(code(
+    """
+    ## 6. Site-level target sensitivity
+
+    The three highest-coverage individual monitors are evaluated separately. This arm keeps
+    the shared meteorological covariates fixed to isolate whether county-median aggregation
+    masks the event-retrieval effect; station-to-monitor distance is reported as a limitation.
+    """
+))
+site_code = nbformat.v4.new_code_cell(code(
+    """
+    # SITE_LEVEL_SENSITIVITY_ARM
+    site_cfg = replace(
+        cfg,
+        retrieval=replace(cfg.retrieval, kb_stride_hours=24, kb_stride_values=(24,)),
+    )
+    site_candidates = (
+        site_coverage.loc[site_coverage['aggregation_method'].eq('single_monitor')]
+        .drop_duplicates('site_id')
+        .sort_values(['observed_hours', 'site_id'], ascending=[False, True])
+    )
+    screened_sites = []
+    site_selection_rows = []
+    for _, site_candidate in site_candidates.iterrows():
+        candidate_id = str(site_candidate['site_id'])
+        try:
+            candidate_pm25, candidate_metadata = prepare_epa_site_pm25(
+                epa_raw, candidate_id, site_cfg
+            )
+            candidate_modeling = build_modeling_table(candidate_pm25, weather, events, site_cfg)
+            candidate_dataset = build_window_dataset(candidate_modeling, site_cfg)
+            candidate_counts = {
+                split: len(candidate_dataset.subset(split).x)
+                for split in ('train', 'validation', 'test')
+            }
+            selected = min(candidate_counts.values()) >= site_cfg.evaluation.minimum_subset_origins
+            reason = 'selected' if selected else 'fewer than minimum origins in a chronological split'
+            if selected:
+                screened_sites.append(
+                    (site_candidate, candidate_pm25, candidate_metadata, candidate_dataset)
+                )
+        except Exception as error:
+            candidate_counts = {'train': 0, 'validation': 0, 'test': 0}
+            selected = False
+            reason = f'{type(error).__name__}: {error}'
+        site_selection_rows.append({
+            'run_id': RUN_ID, 'site_id': candidate_id,
+            'overall_observed_hours': int(site_candidate['observed_hours']),
+            'overall_coverage': float(site_candidate['coverage']),
+            **{f'{split}_origins': count for split, count in candidate_counts.items()},
+            'selected': selected, 'reason': reason,
+        })
+        if len(screened_sites) == 3:
+            break
+    if len(screened_sites) < 3:
+        raise RuntimeError(
+            'Fewer than three EPA monitors have usable train/validation/test windows. '
+            + '; '.join(f"{row['site_id']}: {row['reason']}" for row in site_selection_rows)
+        )
+
+    station_latitude = float(weather_station['LAT'])
+    station_longitude = float(weather_station['LON'])
+    site_rows = []
+    site_design_rows = []
+    site_prediction_arrays = {}
+    site_model_paths = []
+    for site_candidate, site_pm25, site_metadata, site_dataset in screened_sites:
+        site_id = str(site_candidate['site_id'])
+        site_key = site_id.replace('-', '_')
+        site_train = site_dataset.subset('train')
+        site_validation = site_dataset.subset('validation')
+        site_test = site_dataset.subset('test')
+        if min(len(site_train.x), len(site_validation.x), len(site_test.x)) == 0:
+            raise RuntimeError(f'Site {site_id} has an empty chronological split.')
+
+        site_kb = build_knowledge_base(site_dataset, site_cfg)
+        site_retriever = HistoricalRetriever(site_kb, site_cfg)
+        site_event_train = site_retriever.retrieve(site_train, method='event_conditioned')
+        site_event_test = site_retriever.retrieve(site_test, method='event_conditioned')
+        if not site_event_test.valid_mask.all() or not site_event_train.valid_mask.any():
+            raise RuntimeError(f'Site {site_id} fails the causal retrieval eligibility gate.')
+
+        site_context_prefixes = ('pm25_', 'weather_', 'cal_')
+        site_context_train, site_context_names = origin_feature_matrix(
+            site_train, site_context_prefixes
+        )
+        site_context_test, _ = origin_feature_matrix(site_test, site_context_prefixes)
+        site_m04 = DirectXGBForecaster(site_cfg).fit(
+            site_context_train, site_train.future_calendar, site_train.y,
+            site_context_names, site_train.calendar_names,
+        )
+        site_m04_prediction = site_m04.predict(site_context_test, site_test.future_calendar)
+
+        site_full_prefixes = ('pm25_', 'weather_', 'cal_', 'event_')
+        site_retrieval_names = site_event_train.feature_names('event_conditioned_retrieval')
+        site_event_matrix_train, site_event_names = origin_feature_matrix(
+            site_train, site_full_prefixes, site_event_train.as_features(), site_retrieval_names
+        )
+        site_event_matrix_test, _ = origin_feature_matrix(
+            site_test, site_full_prefixes, site_event_test.as_features(), site_retrieval_names
+        )
+        site_m08 = DirectXGBForecaster(site_cfg).fit(
+            site_event_matrix_train[site_event_train.valid_mask],
+            site_train.future_calendar[site_event_train.valid_mask],
+            site_train.y[site_event_train.valid_mask], site_event_names,
+            site_train.calendar_names,
+        )
+        site_m08_prediction = site_m08.predict(site_event_matrix_test, site_test.future_calendar)
+        site_climatology = hour_month_climatology_forecast(
+            site_train, site_test, site_cfg.timezone
+        )
+        site_event_flags = build_event_period_flags(site_test.metadata, events)[
+            'target_event_flag'
+        ].to_numpy(dtype=bool)
+        site_prediction_arrays[f'{site_key}_actual'] = site_test.y
+        site_prediction_arrays[f'{site_key}_M04'] = site_m04_prediction
+        site_prediction_arrays[f'{site_key}_M08'] = site_m08_prediction
+        site_prediction_arrays[f'{site_key}_climatology'] = site_climatology
+        site_prediction_arrays[f'{site_key}_event_mask'] = site_event_flags
+
+        for subset_name, subset_mask in {
+            'all': np.ones(len(site_test.x), dtype=bool),
+            'event': site_event_flags,
+            'non_event': ~site_event_flags,
+        }.items():
+            eligible = int(subset_mask.sum()) >= site_cfg.evaluation.minimum_subset_origins
+            climatology_mse = (
+                metric_values(site_test.y[subset_mask], site_climatology[subset_mask])['mse']
+                if eligible else np.nan
+            )
+            for model_name, model_prediction in {
+                'S_M04_xgb_context': site_m04_prediction,
+                'S_M08_event_retrieval': site_m08_prediction,
+            }.items():
+                scores = (
+                    metric_values(site_test.y[subset_mask], model_prediction[subset_mask])
+                    if eligible else {'mse': np.nan, 'mae': np.nan, 'rmse': np.nan, 'r2': np.nan}
+                )
+                site_rows.append({
+                    'run_id': RUN_ID, 'site_id': site_id, 'subset': subset_name,
+                    'model': model_name, 'n_origins': int(subset_mask.sum()),
+                    'eligible_for_metrics': eligible, **scores,
+                    'skill_vs_site_climatology': (
+                        1 - scores['mse'] / climatology_mse
+                        if eligible and climatology_mse > 0 else np.nan
+                    ),
+                })
+
+        monitor_latitude = float(site_metadata.loc[0, 'latitude'])
+        monitor_longitude = float(site_metadata.loc[0, 'longitude'])
+        station_distance = float(haversine_km(
+            monitor_latitude, monitor_longitude,
+            [station_latitude], [station_longitude],
+        )[0])
+        site_design_rows.append({
+            'run_id': RUN_ID, 'site_id': site_id,
+            'observed_hour_coverage': float(site_metadata.loc[0, 'coverage']),
+            'train_origins': len(site_train.x), 'validation_origins': len(site_validation.x),
+            'test_origins': len(site_test.x), 'knowledge_base_windows': len(site_kb.metadata),
+            'monitor_latitude': monitor_latitude, 'monitor_longitude': monitor_longitude,
+            'weather_station_id': f"{weather_station['USAF']}{weather_station['WBAN']}",
+            'weather_station_distance_km': station_distance,
+            'weather_covariate_design': 'shared primary station; target-construction sensitivity only',
+        })
+        for suffix, model in {'M04': site_m04, 'M08': site_m08}.items():
+            model_path = cfg.paths.outputs / 'models' / f'site_{site_key}_{suffix}.joblib'
+            model.save(model_path)
+            site_model_paths.append(model_path)
+
+    site_level_sensitivity = pd.DataFrame(site_rows)
+    site_level_design = pd.DataFrame(site_design_rows)
+    site_selection_audit = pd.DataFrame(site_selection_rows)
+    site_level_sensitivity_path = cfg.paths.outputs / 'tables' / 'site_level_sensitivity.csv'
+    site_level_design_path = cfg.paths.outputs / 'tables' / 'site_level_design.csv'
+    site_selection_audit_path = cfg.paths.outputs / 'tables' / 'site_selection_audit.csv'
+    site_level_predictions_path = cfg.paths.outputs / 'predictions' / 'site_level_predictions.npz'
+    site_level_sensitivity.to_csv(site_level_sensitivity_path, index=False)
+    site_level_design.to_csv(site_level_design_path, index=False)
+    site_selection_audit.to_csv(site_selection_audit_path, index=False)
+    np.savez_compressed(site_level_predictions_path, **site_prediction_arrays)
+    display(site_level_design)
+    display(site_selection_audit)
+    display(site_level_sensitivity)
+    """
+))
+nb.cells[14:14] = [site_markdown, site_code]
+
 for cell in nb.cells:
     if cell.cell_type == "code":
         cell.outputs = []
@@ -1008,14 +1544,25 @@ stride_results = pd.read_csv(cfg.paths.outputs / 'tables' / 'kb_stride_sensitivi
 stride_models = pd.read_csv(cfg.paths.outputs / 'tables' / 'kb_stride_model_sensitivity.csv')
 event_weights = pd.read_csv(cfg.paths.outputs / 'tables' / 'event_weight_sensitivity.csv')
 event_composition = pd.read_csv(cfg.paths.outputs / 'tables' / 'event_candidate_composition.csv')
+event_category_composition = pd.read_csv(cfg.paths.outputs / 'tables' / 'event_category_candidate_composition.csv')
+event_weight_models = pd.read_csv(cfg.paths.outputs / 'tables' / 'event_weight_model_sensitivity.csv')
 subset_statistics = pd.read_csv(cfg.paths.outputs / 'tables' / 'subset_target_statistics.csv')
 drift_comparison = pd.read_csv(cfg.paths.outputs / 'tables' / 'drift_detector_comparison.csv')
+drift_leaf_occupancy = pd.read_csv(cfg.paths.outputs / 'tables' / 'drift_leaf_occupancy.csv')
 group_faithfulness = pd.read_csv(cfg.paths.outputs / 'tables' / 'validation_group_faithfulness.csv')
 attrition = pd.read_csv(cfg.paths.outputs / 'tables' / 'window_origin_attrition.csv')
 horizon_skill = pd.read_csv(cfg.paths.outputs / 'tables' / 'horizon_skill_vs_climatology.csv')
 exceedance = pd.read_csv(cfg.paths.outputs / 'tables' / 'aqi_exceedance_metrics.csv')
 interval_results = pd.read_csv(cfg.paths.outputs / 'tables' / 'tsfm_interval_metrics.csv')
 placebo_validation = pd.read_csv(cfg.paths.outputs / 'tables' / 'tsfm_placebo_fusion_validation.csv')
+log_metrics = pd.read_csv(cfg.paths.outputs / 'tables' / 'log_scale_metrics.csv')
+quantile_calibration = pd.read_csv(cfg.paths.outputs / 'tables' / 'tsfm_quantile_calibration.csv')
+probabilistic_metrics = pd.read_csv(cfg.paths.outputs / 'tables' / 'tsfm_probabilistic_metrics.csv')
+neural_training = pd.read_csv(cfg.paths.outputs / 'tables' / 'neural_baseline_training.csv')
+feature_control_design = pd.read_csv(cfg.paths.outputs / 'tables' / 'feature_count_control_design.csv')
+site_level_sensitivity = pd.read_csv(cfg.paths.outputs / 'tables' / 'site_level_sensitivity.csv')
+site_level_design = pd.read_csv(cfg.paths.outputs / 'tables' / 'site_level_design.csv')
+site_selection_audit = pd.read_csv(cfg.paths.outputs / 'tables' / 'site_selection_audit.csv')
 """,
     results_setup,
     flags=re.DOTALL,
@@ -1028,10 +1575,18 @@ results_setup = re.sub(
     | set(drift_results['run_id']) | set(event_results['run_id'])
     | set(stride_results['run_id']) | set(stride_models['run_id'])
     | set(event_weights['run_id']) | set(event_composition['run_id'])
+    | set(event_category_composition['run_id'])
+    | set(event_weight_models['run_id'])
     | set(subset_statistics['run_id']) | set(drift_comparison['run_id'])
+    | set(drift_leaf_occupancy['run_id'])
     | set(group_faithfulness['run_id']) | set(attrition['run_id'])
     | set(horizon_skill['run_id']) | set(exceedance['run_id'])
     | set(interval_results['run_id']) | set(placebo_validation['run_id'])
+    | set(log_metrics['run_id']) | set(quantile_calibration['run_id'])
+    | set(probabilistic_metrics['run_id']) | set(neural_training['run_id'])
+    | set(feature_control_design['run_id'])
+    | set(site_level_sensitivity['run_id']) | set(site_level_design['run_id'])
+    | set(site_selection_audit['run_id'])
 )""",
     results_setup,
     flags=re.DOTALL,
@@ -1050,6 +1605,16 @@ if not run_options.get('holm_adjustment'):
     raise RuntimeError('Publication-candidate inference must include Holm multiplicity adjustment.')
 if set(run_options.get('placebo_fusion_controls', [])) != {'climatology', 'persistence'}:
     raise RuntimeError('Both Chronos fusion placebo controls are required.')
+if set(run_options.get('kb_stride_values', [])) != {1, 6, 24}:
+    raise RuntimeError('Publication-candidate run must complete 1/6/24-hour KB sensitivity.')
+if not run_options.get('journal_baselines_completed'):
+    raise RuntimeError('DLinear, LSTM, PatchTST, and LightGBM baselines are required.')
+if not run_options.get('event_weight_model_sweep_completed'):
+    raise RuntimeError('The learned event-weight sweep is required.')
+if not run_options.get('matched_feature_count_control'):
+    raise RuntimeError('The matched event-feature-count control is required.')
+if not run_options.get('site_level_sensitivity_completed'):
+    raise RuntimeError('The three-monitor site-level sensitivity arm is required.')
 if REQUIRE_PUBLICATION_TITLE_ALLOWED""",
     results_setup,
     flags=re.DOTALL,
@@ -1070,6 +1635,9 @@ results_nb.cells[2].source = code(
     display(ablation)
     display(exceedance)
     display(interval_results)
+    display(log_metrics.sort_values('mse'))
+    display(probabilistic_metrics)
+    display(quantile_calibration)
     """
 )
 results_nb.cells[3].source = code(
@@ -1078,10 +1646,18 @@ results_nb.cells[3].source = code(
     display(stride_models.sort_values(['model', 'stride_hours']))
     display(event_weights.sort_values(['subset', 'event_weight']))
     display(event_composition)
+    display(event_category_composition)
+    display(event_weight_models.sort_values(['split', 'event_weight']))
     display(placebo_validation.loc[placebo_validation['selected_on_validation']])
     display(group_faithfulness.sort_values('mse_increase', ascending=False))
     display(horizon_skill.sort_values(['model', 'horizon']))
+    display(neural_training.loc[neural_training['selected_epoch']])
+    display(feature_control_design)
+    display(site_level_design)
+    display(site_selection_audit)
+    display(site_level_sensitivity)
     display(drift_comparison)
+    display(drift_leaf_occupancy)
     display(drift_results)
     display(event_results)
     display(explanations.sort_values('drift_score', ascending=False).head(10))

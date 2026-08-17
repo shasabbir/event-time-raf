@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from event_timeraf.models import DirectRidgeForecaster, hour_month_climatology_forecast
+from event_timeraf.models import DirectRidgeForecaster, NeuralWindowForecaster, hour_month_climatology_forecast
 from event_timeraf.windows import build_window_dataset
 
 
@@ -25,3 +25,17 @@ def test_climatology_and_ridge_controls_are_finite(modeling_frame, cfg):
     prediction = model.predict(validation.features[:, :4], validation.future_calendar)
     assert prediction.shape == validation.y.shape
     assert np.isfinite(prediction).all()
+
+
+def test_neural_window_normalization_is_origin_local(modeling_frame, cfg):
+    dataset = build_window_dataset(modeling_frame, cfg).subset("validation")
+    model = NeuralWindowForecaster(cfg, "dlinear")
+    x_normalized, y_normalized = model._normalize(dataset.x, dataset.y)
+    assert np.allclose(x_normalized.mean(axis=1), 0, atol=1e-5)
+    assert x_normalized.shape == dataset.x.shape
+    assert y_normalized.shape == dataset.y.shape
+
+
+def test_neural_window_forecaster_accepts_required_architectures(cfg):
+    for architecture in ("dlinear", "lstm", "patchtst"):
+        assert NeuralWindowForecaster(cfg, architecture).architecture == architecture
