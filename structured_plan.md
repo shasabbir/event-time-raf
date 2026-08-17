@@ -1,6 +1,6 @@
 # Event-TimeRAF Finalized Implementation Plan
 
-Status: **implementation scaffold complete; full 2019--2024 Kaggle experiment
+Status: **implementation scaffold complete; full 2019--2025 Kaggle experiment
 and frozen result artifacts pending**
 
 This document is the binding implementation contract for the project. `plan.md`
@@ -17,7 +17,7 @@ change should be recorded here before code and paper claims are changed.
 | Item | Final decision |
 | --- | --- |
 | Location | Los Angeles County, California, USA |
-| Study period | 2019--2024, subject to the data-readiness audit |
+| Study period | 2019--2025, subject to the data-readiness audit |
 | Target | Hourly PM2.5 in the source unit, expected to be `ug/m3` |
 | Forecast output | Full sequence from `t+1` through `t+24` |
 | Lookback | `L = 168` hourly observations |
@@ -28,7 +28,7 @@ change should be recorded here before code and paper claims are changed.
 | Main reported metrics | MSE, MAE, RMSE, sMAPE, and R2 |
 | Retrieval count | `k = 8` by default; test `1, 4, 8, 16` |
 | Primary learned model | 24 direct `XGBRegressor` models, one per horizon |
-| Fallback learned model | LightGBM only if XGBoost is unavailable or fails |
+| Additional learned controls | Ridge, LightGBM, DLinear, LSTM, and PatchTST |
 | Random seed | `42`; record all library and environment versions |
 | Execution target | A Kaggle notebook with CPU support; GPU is optional |
 
@@ -49,6 +49,7 @@ The final study requires all of the following:
 7. A frozen time-series foundation-model baseline and a retrieval-augmented
    variant before retaining "Foundation Models" in the final paper title.
 8. A reproducible ablation table generated from saved predictions.
+9. A three-monitor target-construction sensitivity arm.
 
 ### 1.3 Explicitly deferred work
 
@@ -119,6 +120,15 @@ median across official Los Angeles County AQS monitors. The audit must record
 the revised PM2.5 target still fails, replace the source or formally revise the
 task and paper. If only the event gate fails, run event-free diagnostics but
 revise the event-aware claims before submission.
+
+The county target remains the primary comparable series. A target-construction
+sensitivity arm selects the three highest-overall-coverage individual monitors
+that each retain at least 50 valid origins in train, validation, and test. It
+reruns the context XGBoost and event-conditioned retrieval model at each site,
+saves every rejection reason, and reports skill against site-specific
+climatology. The shared primary weather station is held fixed to isolate target
+aggregation; monitor-to-station distance is therefore mandatory and this arm is
+not presented as independent geographic validation.
 
 ### 2.3 Canonical schemas
 
@@ -244,7 +254,7 @@ figures. It must not retrain models.
 ```text
 data paths and source metadata
 timezone = America/Los_Angeles
-study years = 2019..2024
+study years = 2019..2025
 EPA state/county codes = 06/037
 EPA PM2.5 parameter = 88101
 frequency = 1h
@@ -309,9 +319,9 @@ These rules are mandatory and will be tested:
 7. An event is usable only when `published_at <= t`.
 8. Validation and test queries retrieve from the training knowledge base only.
 9. For every query, a candidate is eligible only when its full future segment
-   ends before the query input window begins. Knowledge-base records use a
-   `L+H=192` hour stride, so candidate records and query/candidate records do not
-   overlap. Self-matches and near-duplicate historical windows are excluded.
+   ends before the query input window begins. Candidate-to-candidate overlap is
+   allowed and does not weaken this query-specific embargo. The primary stride
+   is 24 hours, with 1- and 6-hour sensitivity runs.
 10. Random, cosine, and hybrid retrieval use the same eligible candidate pool.
 11. Validation selects hyperparameters and thresholds. Test data is evaluated
     once after choices are frozen.
@@ -403,8 +413,8 @@ y_aligned = query_input_mean + query_input_std * y_candidate_norm
 This prevents a candidate's absolute historical pollution level from being
 copied blindly while retaining its future pattern.
 
-The primary knowledge base uses a 24-hour origin stride. Strides of 192, 24,
-and 6 hours are run as an explicit sensitivity axis. Candidate-to-candidate
+The primary knowledge base uses a 24-hour origin stride. Strides of 1, 6,
+and 24 hours are run as an explicit sensitivity axis. Candidate-to-candidate
 overlap is allowed because it is not a leakage condition. At query time, a
 candidate is eligible only when `candidate_target_end < query_input_start`.
 This strict per-query embargo prevents candidate inputs or futures from
@@ -492,6 +502,13 @@ Each model consumes the same split and writes the same prediction schema.
 | `M09` | Full Event-TimeRAF MVP including drift features | Yes |
 | `M10` | Frozen TSFM zero-shot baseline | Publication gate |
 | `M11` | Frozen TSFM plus retrieval augmentation | Publication gate |
+| `M12` | Validation-selected drift router | Diagnostic |
+| `B00` | DLinear univariate baseline | Yes |
+| `B01` | PatchTST univariate baseline | Yes |
+| `B02` | LSTM univariate baseline | Yes |
+| `C00` | Hour-of-day by month climatology | Yes |
+| `C01` | Ridge context control | Yes |
+| `C05` | LightGBM context baseline | Yes |
 
 For direct XGBoost, train one regressor for each horizon `h = 1..24`. Each model
 uses origin-time causal features plus deterministic calendar features for its
@@ -718,12 +735,13 @@ Before declaring implementation complete:
 [ ] Chronological split and target boundaries are correct.
 [ ] No target interpolation or future feature access occurs.
 [ ] Retrieval candidates end before each query input begins; candidate overlap
-    is not treated as query leakage, and 192/24/6-hour stride results are saved.
+    is not treated as query leakage, and 1/6/24-hour stride results are saved.
 [ ] Event records were published by each query origin, or the run is explicitly
     labeled as a retrospective availability sensitivity.
 [ ] Baseline, retrieval, full-MVP, and TSFM-gate predictions exist.
 [ ] Metrics are available overall and by horizon.
 [ ] Required ablations and bootstrap intervals are saved.
+[ ] Three individual-monitor sensitivity results and prediction arrays are saved.
 [ ] Explanations aggregate all 24 direct-model contribution vectors and link to
     machine-readable retrieval, event, feature-effect, and drift evidence.
 [ ] A run manifest records run ID, config hash and values, code revision, data

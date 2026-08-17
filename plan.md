@@ -10,7 +10,7 @@ Base paper:
 
 This document is the corrected high-level plan for the project. It is scoped for a simple Kaggle-friendly implementation first, with advanced TimeRAF-style components added only after a working baseline pipeline exists.
 
-Project status: **implementation scaffold complete; full 2019--2024 Kaggle run and
+Project status: **implementation scaffold complete; full 2019--2025 Kaggle run and
 final result generation pending**.
 
 `structured_plan.md` is the binding implementation contract. It resolves detailed decisions about target shape, data-readiness gates, artifact schemas, leakage controls, model identifiers, the foundation-model publication gate, and phase exit criteria. If the two documents differ on an implementation detail, follow `structured_plan.md` and update this overview afterward.
@@ -75,7 +75,7 @@ lookback L = 168 hours
 forecast horizon H = 24 hours
 target = the full PM2.5 sequence from t+1 through t+24
 location = Los Angeles County, California, USA
-study period = 2019-2024, subject to the data audit
+study period = 2019-2025, subject to the data audit
 frequency = hourly if data quality allows
 ```
 
@@ -365,7 +365,7 @@ Primary target:
 US EPA AirData/AQS hourly parameter 88101
 Location: Los Angeles County, California, USA
 State/county codes: 06/037
-Study period: 2019-2024
+Study period: 2019-2025
 Frequency: hourly if available
 Target: PM2.5
 ```
@@ -664,7 +664,7 @@ Leakage controls:
 - candidate future windows must never overlap the forecast target being evaluated
 - self-matches and query/candidate overlap are excluded by requiring each
   candidate target to end before the query lookback begins
-- candidate-to-candidate overlap is allowed; evaluate 192-, 24-, and 6-hour
+- candidate-to-candidate overlap is allowed; evaluate 1-, 6-, and 24-hour
   knowledge-base strides explicitly
 - retrieved windows should have the same lookback length as the query
 - record selected candidate IDs and use stride sensitivity to quantify redundancy

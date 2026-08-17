@@ -16,6 +16,7 @@ from event_timeraf.data import (
     download_file,
     load_storm_events_cache,
     prepare_epa_pm25,
+    prepare_epa_site_pm25,
     prepare_noaa_weather,
     prepare_storm_events,
     write_run_manifest,
@@ -169,6 +170,30 @@ def test_pm25_falls_back_to_county_hourly_median_when_sites_are_sparse(cfg):
     assert selected["coverage"] >= test_cfg.data.minimum_pm25_coverage
     assert pm25["site_id"].eq("06-037-COUNTY").all()
     assert pm25["pm25_observed"].notna().mean() >= test_cfg.data.minimum_pm25_coverage
+
+
+def test_prepare_epa_site_pm25_keeps_named_monitor(cfg):
+    hours = pd.date_range("2024-01-01", periods=48, freq="h", tz="UTC")
+    rows = []
+    for site_num in ("0001", "0002"):
+        for timestamp in hours:
+            rows.append(
+                {
+                    "State Code": "06", "County Code": "037", "Site Num": site_num,
+                    "POC": 1, "Latitude": 34.05, "Longitude": -118.25,
+                    "Date GMT": timestamp.strftime("%Y-%m-%d"),
+                    "Time GMT": timestamp.strftime("%H:%M"),
+                    "Sample Measurement": 10.0 if site_num == "0001" else 20.0,
+                    "Units of Measure": "Micrograms/cubic meter (LC)",
+                    "Sample Duration": "1 HOUR",
+                }
+            )
+    test_cfg = replace(cfg, data=replace(cfg.data, start_year=2024, end_year=2024))
+    hourly, metadata = prepare_epa_site_pm25(pd.DataFrame(rows), "06-037-0002", test_cfg)
+    assert metadata.loc[0, "site_id"] == "06-037-0002"
+    assert metadata.loc[0, "aggregation_method"] == "single_monitor_sensitivity"
+    assert hourly["site_id"].eq("06-037-0002").all()
+    assert hourly["pm25_observed"].dropna().eq(20.0).all()
 
 
 def test_noaa_precipitation_preserves_missingness(cfg):
