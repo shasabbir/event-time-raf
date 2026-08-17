@@ -15,6 +15,7 @@ from event_timeraf.data import (
     _event_coverage_days,
     download_file,
     load_storm_events_cache,
+    noaa_station_candidates,
     prepare_epa_pm25,
     prepare_epa_site_pm25,
     prepare_noaa_weather,
@@ -26,6 +27,22 @@ from event_timeraf.data import (
 def test_noaa_weather_uses_official_nodd_endpoints():
     assert NOAA_ISD_HISTORY_URL == "https://noaa-isd-pds.s3.amazonaws.com/isd-history.csv"
     assert NOAA_GLOBAL_HOURLY_URL == "https://noaa-global-hourly-pds.s3.amazonaws.com"
+
+
+def test_station_inventory_lag_does_not_reject_final_year_overlap(cfg):
+    inventory_path = cfg.paths.raw / "noaa_isd" / "isd-history.csv"
+    inventory_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(
+        [
+            {
+                "USAF": "722950", "WBAN": "23174", "STATION NAME": "LOS ANGELES AIRPORT",
+                "CTRY": "US", "ICAO": "KLAX", "LAT": 33.94, "LON": -118.40,
+                "BEGIN": "19440101", "END": "20250827",
+            }
+        ]
+    ).to_csv(inventory_path, index=False)
+    candidates = noaa_station_candidates(cfg, 34.05, -118.25)
+    assert candidates.iloc[0]["USAF"] == "722950"
 
 
 def test_download_error_explains_kaggle_internet_or_cache(monkeypatch, tmp_path):
@@ -162,7 +179,9 @@ def test_pm25_falls_back_to_county_hourly_median_when_sites_are_sparse(cfg):
                 "Sample Duration": "1 HOUR",
             }
         )
-    test_cfg = replace(cfg, data=replace(cfg.data, start_year=2024, end_year=2024))
+    test_cfg = replace(
+        cfg, data=replace(cfg.data, start_year=2024, end_year=2024, study_end_date=None)
+    )
     pm25, coverage = prepare_epa_pm25(pd.DataFrame(rows), test_cfg)
     selected = coverage.iloc[0]
     assert selected["site_id"] == "06-037-COUNTY"
@@ -188,7 +207,9 @@ def test_prepare_epa_site_pm25_keeps_named_monitor(cfg):
                     "Sample Duration": "1 HOUR",
                 }
             )
-    test_cfg = replace(cfg, data=replace(cfg.data, start_year=2024, end_year=2024))
+    test_cfg = replace(
+        cfg, data=replace(cfg.data, start_year=2024, end_year=2024, study_end_date=None)
+    )
     hourly, metadata = prepare_epa_site_pm25(pd.DataFrame(rows), "06-037-0002", test_cfg)
     assert metadata.loc[0, "site_id"] == "06-037-0002"
     assert metadata.loc[0, "aggregation_method"] == "single_monitor_sensitivity"
