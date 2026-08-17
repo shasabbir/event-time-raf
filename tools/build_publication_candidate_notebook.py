@@ -64,7 +64,56 @@ if Path('/kaggle/working').exists() and cfg.paths.outputs.resolve().is_relative_
 
 # Final-publication profile.""",
     )
+setup = re.sub(
+    r"from event_timeraf\.evaluation import \(.*?\)\n",
+    """from event_timeraf.evaluation import (
+    build_event_period_flags, diebold_mariano_hac, exceedance_metrics,
+    holm_adjust_pvalues, horizon_skill_table, interval_metrics, metric_values, metrics_table,
+    paired_block_bootstrap_loss_difference, predictions_long,
+)
+""",
+    setup,
+    flags=re.DOTALL,
+)
+setup = re.sub(
+    r"from event_timeraf\.explain import .*\n",
+    "from event_timeraf.explain import generate_explanations, grouped_feature_perturbation, xgb_local_contributions\n",
+    setup,
+)
+setup = re.sub(
+    r"from event_timeraf\.windows import .*\n",
+    "from event_timeraf.windows import build_window_dataset, window_attrition_table\n",
+    setup,
+)
+setup = setup.replace(
+    "for directory in ('configs', 'src'):\n            target = writable / directory",
+    "for directory in ('configs', 'src', 'notebooks', 'tests'):\n            target = writable / directory",
+)
 nb.cells[2].source = setup
+
+nb.cells[6].source = code(
+    """
+    modeling = build_modeling_table(pm25, weather, events, cfg)
+    modeling_path = cfg.paths.processed / 'modeling_hourly.parquet'
+    modeling.to_parquet(modeling_path, index=False)
+
+    dataset = build_window_dataset(modeling, cfg)
+    window_arrays_path = cfg.paths.processed / 'window_arrays.npz'
+    window_metadata_path = cfg.paths.processed / 'window_metadata.parquet'
+    dataset.save(window_arrays_path, window_metadata_path)
+    train = dataset.subset('train')
+    validation = dataset.subset('validation')
+    test = dataset.subset('test')
+    attrition = window_attrition_table(modeling, dataset, cfg, RUN_ID)
+    attrition_path = cfg.paths.outputs / 'tables' / 'window_origin_attrition.csv'
+    attrition.to_csv(attrition_path, index=False)
+    print({'train': len(train.x), 'validation': len(validation.x), 'test': len(test.x)})
+    print('X/Y shapes:', dataset.x.shape, dataset.y.shape)
+    display(attrition)
+    if min(len(train.x), len(validation.x), len(test.x)) == 0:
+        raise RuntimeError('At least one chronological split is empty after validity filtering.')
+    """
+)
 
 nb.cells[7].source = code(
     """
@@ -163,6 +212,9 @@ nb.cells[10].source = code(
         'C00_hour_month_climatology': hour_month_climatology_forecast(train, validation, cfg.timezone),
         'C02_calendar_retrieval': calendar_validation.prediction,
         'C03_event_conditioned_retrieval': event_validation.prediction,
+        'M00_persistence': persistence_forecast(validation.x, cfg.forecast.horizon),
+        'M01_daily_seasonal': daily_seasonal_forecast(validation.x, cfg.forecast.horizon),
+        'M02_weekly_seasonal': weekly_seasonal_forecast(validation.x, cfg.forecast.horizon),
     }
 
     pm_train, pm_names = origin_feature_matrix(train, ('pm25_',))
@@ -516,6 +568,29 @@ nb.cells[15].source = code(
         predictions['M11_chronos_event_retrieval'] = fuse_forecasts(
             tsfm_test, event_test.prediction, selected_weight
         )
+        placebo_sources = {
+            'P00_chronos_climatology_fusion': 'C00_hour_month_climatology',
+            'P01_chronos_persistence_fusion': 'M00_persistence',
+        }
+        placebo_fusion_rows = []
+        placebo_weights = {}
+        for placebo_name, source_name in placebo_sources.items():
+            placebo_weight, placebo_scores = choose_fusion_weight(
+                validation.y, tsfm_validation, validation_predictions[source_name],
+                cfg.tsfm.fusion_weights,
+            )
+            placebo_weights[placebo_name] = placebo_weight
+            validation_predictions[placebo_name] = fuse_forecasts(
+                tsfm_validation, validation_predictions[source_name], placebo_weight
+            )
+            predictions[placebo_name] = fuse_forecasts(
+                tsfm_test, predictions[source_name], placebo_weight
+            )
+            placebo_fusion_rows.extend({
+                'run_id': RUN_ID, 'placebo_model': placebo_name, 'source_model': source_name,
+                'tsfm_weight': weight, 'validation_mse': score,
+                'selected_on_validation': weight == placebo_weight,
+            } for weight, score in placebo_scores.items())
         tsfm_predictions_path = cfg.paths.outputs / 'predictions' / 'tsfm_predictions.npz'
         np.savez_compressed(
             tsfm_predictions_path, validation_mean=tsfm_validation,
@@ -527,15 +602,17 @@ nb.cells[15].source = code(
         fusion_scores_path = cfg.paths.outputs / 'tables' / 'tsfm_fusion_validation.csv'
         pd.DataFrame([{'run_id': RUN_ID, 'tsfm_weight': weight, 'validation_mse': score}
                       for weight, score in fusion_scores.items()]).to_csv(fusion_scores_path, index=False)
+        placebo_fusion_path = cfg.paths.outputs / 'tables' / 'tsfm_placebo_fusion_validation.csv'
+        pd.DataFrame(placebo_fusion_rows).to_csv(placebo_fusion_path, index=False)
         interval_path = cfg.paths.outputs / 'tables' / 'tsfm_interval_metrics.csv'
-        pd.DataFrame([{
-            'run_id': RUN_ID, 'nominal_interval': '10--90%',
-            'empirical_coverage': float(np.mean((test.y >= tsfm_test_low) & (test.y <= tsfm_test_high))),
-            'mean_width': float(np.mean(tsfm_test_high - tsfm_test_low)),
-        }]).to_csv(interval_path, index=False)
+        interval_metrics(
+            test.y, tsfm_test_low, tsfm_test_high, alpha=0.2,
+            model='M10_frozen_chronos', run_id=RUN_ID,
+        ).to_csv(interval_path, index=False)
         tsfm_gate_status = {'run_id': RUN_ID, 'completed': True,
                             'checkpoint': cfg.tsfm.checkpoint,
-                            'selected_fusion_weight': selected_weight}
+                            'selected_fusion_weight': selected_weight,
+                            'placebo_fusion_weights': placebo_weights}
     else:
         tsfm_gate_status = {'run_id': RUN_ID, 'completed': False,
                             'checkpoint': cfg.tsfm.checkpoint,
@@ -571,7 +648,8 @@ nb.cells[15].source = code(
         'non_drift_source': router_selection['non_drift'],
         'drift_source': router_selection['drift'],
     }, indent=2), encoding='utf-8')
-    print({'tsfm_weight': selected_weight, 'drift_router': router_selection})
+    print({'tsfm_weight': selected_weight, 'placebo_weights': placebo_weights,
+           'drift_router': router_selection})
     """
 )
 
@@ -682,10 +760,18 @@ nb.cells[17].source = code(
     subset_stats_path = cfg.paths.outputs / 'tables' / 'subset_target_statistics.csv'
     pd.DataFrame(subset_stats).to_csv(subset_stats_path, index=False)
 
-    metric_functions = {
-        'mse': lambda y, p: float(np.mean((y - p) ** 2)),
-        'mae': lambda y, p: float(np.mean(np.abs(y - p))),
-    }
+    horizon_skill_path = cfg.paths.outputs / 'tables' / 'horizon_skill_vs_climatology.csv'
+    pd.concat([
+        horizon_skill_table(test.y, values, climatology, name, RUN_ID)
+        for name, values in predictions.items()
+    ], ignore_index=True).to_csv(horizon_skill_path, index=False)
+
+    exceedance_path = cfg.paths.outputs / 'tables' / 'aqi_exceedance_metrics.csv'
+    pd.concat([
+        exceedance_metrics(test.y, values, cfg.evaluation.aqi_thresholds, name, RUN_ID)
+        for name, values in predictions.items()
+    ], ignore_index=True).to_csv(exceedance_path, index=False)
+
     comparisons = {
         'M04_minus_M03_weather_calendar': (predictions['M04_xgb_context'], predictions['M03_xgb_pm25']),
         'M07_minus_M04_cosine_retrieval': (predictions['M07_xgb_cosine'], predictions['M04_xgb_context']),
@@ -693,21 +779,40 @@ nb.cells[17].source = code(
         'M09_minus_M08_drift_features': (predictions['M09_event_timeraf_full'], predictions['M08_event_timeraf_no_drift']),
         'M09_minus_A00_events': (predictions['M09_event_timeraf_full'], predictions['A00_full_without_events']),
         'M09_minus_M04_full': (predictions['M09_event_timeraf_full'], predictions['M04_xgb_context']),
+        'A01_minus_M04_random_control': (predictions['A01_xgb_random_retrieval'], predictions['M04_xgb_context']),
+        'M09_minus_A01_random_control': (predictions['M09_event_timeraf_full'], predictions['A01_xgb_random_retrieval']),
         'M11_minus_M10_retrieval': (predictions['M11_chronos_event_retrieval'], predictions['M10_frozen_chronos']),
+        'M11_minus_P00_climatology_placebo': (predictions['M11_chronos_event_retrieval'], predictions['P00_chronos_climatology_fusion']),
+        'M11_minus_P01_persistence_placebo': (predictions['M11_chronos_event_retrieval'], predictions['P01_chronos_persistence_fusion']),
         'M12_minus_M04_drift_router': (predictions['M12_validation_drift_router'], predictions['M04_xgb_context']),
     }
     bootstrap_rows = []
     for comparison_name, (prediction_a, prediction_b) in comparisons.items():
-        for metric_name, metric_fn in metric_functions.items():
-            result = paired_block_bootstrap_difference(
-                test.y, prediction_a, prediction_b, metric_fn,
-                cfg.evaluation.bootstrap_block_hours,
-                cfg.evaluation.bootstrap_resamples, cfg.seed,
+        for metric_name in ('mse', 'mae'):
+            interval = paired_block_bootstrap_loss_difference(
+                test.y, prediction_a, prediction_b, metric_name,
+                cfg.evaluation.bootstrap_block_hours, cfg.evaluation.bootstrap_resamples,
+                cfg.seed,
+            )
+            dm = diebold_mariano_hac(
+                test.y, prediction_a, prediction_b, metric_name,
+                cfg.evaluation.dm_hac_lags,
             )
             bootstrap_rows.append({'run_id': RUN_ID, 'comparison': comparison_name,
-                                   'metric': metric_name, **result})
+                                   'comparison_family': 'component_and_placebo_tests',
+                                   'metric': metric_name, **interval, **dm})
     ablation_path = cfg.paths.outputs / 'tables' / 'ablation_results.csv'
-    pd.DataFrame(bootstrap_rows).to_csv(ablation_path, index=False)
+    ablation_results = pd.DataFrame(bootstrap_rows)
+    for metric_name, indices in ablation_results.groupby('metric').groups.items():
+        indices = list(indices)
+        ablation_results.loc[indices, 'bootstrap_p_value_holm'] = holm_adjust_pvalues(
+            ablation_results.loc[indices, 'bootstrap_p_value'].to_numpy()
+        )
+        ablation_results.loc[indices, 'dm_p_value_holm'] = holm_adjust_pvalues(
+            ablation_results.loc[indices, 'dm_p_value'].to_numpy()
+        )
+    ablation_results['significant_dm_holm_0_05'] = ablation_results['dm_p_value_holm'] < 0.05
+    ablation_results.to_csv(ablation_path, index=False)
 
     fusion_rows = []
     for method, result in {'cosine': cosine_test, 'event_conditioned': event_test}.items():
@@ -718,27 +823,27 @@ nb.cells[17].source = code(
     retrieval_fusion_path = cfg.paths.outputs / 'tables' / 'retrieval_fusion_ablation.csv'
     pd.DataFrame(fusion_rows).to_csv(retrieval_fusion_path, index=False)
 
-    rng = np.random.default_rng(cfg.seed)
-    baseline_validation_mse = metric_values(
-        validation.y, validation_predictions['M08_event_timeraf_no_drift']
-    )['mse']
-    group_rows = []
-    for group, prefix in {'pm25': 'pm25_', 'weather': 'weather_', 'calendar': 'cal_',
-                          'event': 'event_', 'retrieval': 'event_conditioned_retrieval_'}.items():
-        columns = [i for i, name in enumerate(m08_names) if name.startswith(prefix)]
-        if not columns:
-            continue
-        permuted = m08_validation.copy()
-        order = rng.permutation(len(permuted))
-        permuted[:, columns] = permuted[order][:, columns]
-        permuted_mse = metric_values(
-            validation.y, m08.predict(permuted, validation.future_calendar)
-        )['mse']
-        group_rows.append({'run_id': RUN_ID, 'feature_group': group,
-                           'validation_mse': permuted_mse,
-                           'mse_increase': permuted_mse - baseline_validation_mse})
-    group_importance_path = cfg.paths.outputs / 'tables' / 'validation_group_permutation.csv'
-    pd.DataFrame(group_rows).to_csv(group_importance_path, index=False)
+    feature_groups = {
+        'pm25': ('pm25_',), 'weather': ('weather_',), 'calendar': ('cal_',),
+        'event': ('event_',), 'retrieval': ('event_conditioned_retrieval_',),
+        'drift': ('drift_',),
+    }
+    group_importance = pd.concat([
+        grouped_feature_perturbation(
+            validation.y, m08_validation, m08_train[event_train.valid_mask], m08_names,
+            feature_groups,
+            lambda matrix: m08.predict(matrix, validation.future_calendar),
+            cfg.seed, RUN_ID, 'M08_event_timeraf_no_drift',
+        ),
+        grouped_feature_perturbation(
+            validation.y, m09_validation, m09_train[event_train.valid_mask], m09_names,
+            feature_groups,
+            lambda matrix: m09.predict(matrix, validation.future_calendar),
+            cfg.seed, RUN_ID, 'M09_event_timeraf_full',
+        ),
+    ], ignore_index=True)
+    group_importance_path = cfg.paths.outputs / 'tables' / 'validation_group_faithfulness.csv'
+    group_importance.to_csv(group_importance_path, index=False)
 
     horizon_contributions = []
     for horizon in range(cfg.forecast.horizon):
@@ -786,11 +891,13 @@ nb.cells[17].source = code(
         kb_arrays_path, kb_metadata_path, kb_arrays_path.with_suffix('.json'),
         retrieval_evidence_path, retrieval_review_path, drift_evidence_path,
         feature_effects_path, explanations_path, predictions_path, metrics_path,
-        main_results_path, subset_counts_path, subset_stats_path, k_sensitivity_path,
+        main_results_path, attrition_path, subset_counts_path, subset_stats_path,
+        horizon_skill_path, exceedance_path, k_sensitivity_path,
         drift_period_path, event_period_path, drift_diagnostics_path, drift_correlations_path,
         event_weight_path, event_composition_path, stride_path, stride_model_path,
         drift_comparison_path, retrieval_fusion_path, group_importance_path,
-        ablation_path, tsfm_gate_path, fusion_scores_path, interval_path, router_path,
+        ablation_path, tsfm_gate_path, fusion_scores_path, placebo_fusion_path,
+        interval_path, router_path,
         horizon_figure_path, mse_figure_path, forecast_figure_path,
         retrieval_figure_path, drift_figure_path,
         drift_detector_path, no_event_detector_path, ks_detector_path, tsfm_predictions_path,
@@ -816,6 +923,11 @@ nb.cells[17].source = code(
             'event_weight_values': list(cfg.retrieval.event_weight_values),
             'drift_score_mode': cfg.drift.score_mode,
             'bootstrap_block_hours': cfg.evaluation.bootstrap_block_hours,
+            'bootstrap_resamples': cfg.evaluation.bootstrap_resamples,
+            'dm_hac_lags': cfg.evaluation.dm_hac_lags,
+            'holm_adjustment': True,
+            'placebo_fusion_controls': ['climatology', 'persistence'],
+            'aqi_thresholds': list(cfg.evaluation.aqi_thresholds),
         },
     )
 
@@ -824,21 +936,33 @@ nb.cells[17].source = code(
         package_path = PROJECT_ROOT / f'event_timeraf_publication_candidate_{RUN_ID}.zip'
     with zipfile.ZipFile(package_path, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:
         package_root = PurePosixPath(f'event_timeraf_{RUN_ID}')
-        for directory in ('configs', 'src'):
+        for directory in ('configs', 'src', 'tests', 'notebooks'):
             for path in (PROJECT_ROOT / directory).rglob('*'):
                 if path.is_file() and '__pycache__' not in path.parts:
+                    bundle.write(path, (package_root / path.relative_to(PROJECT_ROOT).as_posix()).as_posix())
+        for data_directory in (cfg.paths.processed, cfg.paths.knowledge_base):
+            for path in data_directory.rglob('*'):
+                if path.is_file():
                     bundle.write(path, (package_root / path.relative_to(PROJECT_ROOT).as_posix()).as_posix())
         for path in cfg.paths.outputs.rglob('*'):
             if path.is_file():
                 relative = PurePosixPath('outputs') / path.relative_to(cfg.paths.outputs).as_posix()
                 bundle.write(path, (package_root / relative).as_posix())
-        for name in ('01_event_timeraf_kaggle_pipeline.ipynb', '02_results_and_figures.ipynb'):
-            path = PROJECT_ROOT / 'notebooks' / name
+        for name in ('README.md', 'requirements.txt', 'requirements-optional.txt'):
+            path = PROJECT_ROOT / name
             if path.exists():
-                bundle.write(path, (package_root / 'notebooks' / name).as_posix())
+                bundle.write(path, (package_root / name).as_posix())
     with zipfile.ZipFile(package_path) as bundle:
-        if any('\\\\' in name for name in bundle.namelist()):
+        package_names = set(bundle.namelist())
+        if any('\\\\' in name for name in package_names):
             raise AssertionError('Backslash path found in final ZIP')
+        missing_artifacts = [
+            relative for relative in manifest['artifacts']
+            if not Path(relative).is_absolute()
+            and (package_root / PurePosixPath(relative)).as_posix() not in package_names
+        ]
+        if missing_artifacts:
+            raise AssertionError(f'Manifest artifacts missing from final ZIP: {missing_artifacts}')
     display(metrics.loc[(metrics['horizon'].astype(str) == 'overall') &
                         (metrics['subset'] == 'all')].sort_values('mse'))
     print({'manifest': str(cfg.paths.outputs / 'logs' / 'run_manifest.json'),
@@ -871,38 +995,65 @@ results_nb.cells[0].source = code(
     """
 )
 results_setup = results_nb.cells[1].source
-if "stride_results = pd.read_csv" not in results_setup:
-    results_setup = results_setup.replace(
-    "event_results = pd.read_csv(cfg.paths.outputs / 'tables' / 'event_period_results.csv')",
-    """event_results = pd.read_csv(cfg.paths.outputs / 'tables' / 'event_period_results.csv')
+results_setup = re.sub(
+    r"metrics = pd\.read_csv.*?(?=run_ids = \()",
+    """metrics = pd.read_csv(cfg.paths.outputs / 'tables' / 'metrics.csv')
+predictions = pd.read_parquet(cfg.paths.outputs / 'predictions' / 'predictions.parquet')
+explanations = pd.read_parquet(cfg.paths.outputs / 'evidence' / 'explanations.parquet')
+ablation = pd.read_csv(cfg.paths.outputs / 'tables' / 'ablation_results.csv')
+subset_counts = pd.read_csv(cfg.paths.outputs / 'tables' / 'subset_counts.csv')
+drift_results = pd.read_csv(cfg.paths.outputs / 'tables' / 'drift_period_results.csv')
+event_results = pd.read_csv(cfg.paths.outputs / 'tables' / 'event_period_results.csv')
 stride_results = pd.read_csv(cfg.paths.outputs / 'tables' / 'kb_stride_sensitivity.csv')
 stride_models = pd.read_csv(cfg.paths.outputs / 'tables' / 'kb_stride_model_sensitivity.csv')
 event_weights = pd.read_csv(cfg.paths.outputs / 'tables' / 'event_weight_sensitivity.csv')
 event_composition = pd.read_csv(cfg.paths.outputs / 'tables' / 'event_candidate_composition.csv')
 subset_statistics = pd.read_csv(cfg.paths.outputs / 'tables' / 'subset_target_statistics.csv')
 drift_comparison = pd.read_csv(cfg.paths.outputs / 'tables' / 'drift_detector_comparison.csv')
-group_permutation = pd.read_csv(cfg.paths.outputs / 'tables' / 'validation_group_permutation.csv')""",
-    ).replace(
-    "| set(drift_results['run_id']) | set(event_results['run_id'])",
-    """| set(drift_results['run_id']) | set(event_results['run_id'])
+group_faithfulness = pd.read_csv(cfg.paths.outputs / 'tables' / 'validation_group_faithfulness.csv')
+attrition = pd.read_csv(cfg.paths.outputs / 'tables' / 'window_origin_attrition.csv')
+horizon_skill = pd.read_csv(cfg.paths.outputs / 'tables' / 'horizon_skill_vs_climatology.csv')
+exceedance = pd.read_csv(cfg.paths.outputs / 'tables' / 'aqi_exceedance_metrics.csv')
+interval_results = pd.read_csv(cfg.paths.outputs / 'tables' / 'tsfm_interval_metrics.csv')
+placebo_validation = pd.read_csv(cfg.paths.outputs / 'tables' / 'tsfm_placebo_fusion_validation.csv')
+""",
+    results_setup,
+    flags=re.DOTALL,
+)
+results_setup = re.sub(
+    r"run_ids = \(.*?\n\)",
+    """run_ids = (
+    set(metrics['run_id']) | set(predictions['run_id']) | set(explanations['run_id'])
+    | set(ablation['run_id']) | set(subset_counts['run_id'])
+    | set(drift_results['run_id']) | set(event_results['run_id'])
     | set(stride_results['run_id']) | set(stride_models['run_id'])
     | set(event_weights['run_id']) | set(event_composition['run_id'])
     | set(subset_statistics['run_id']) | set(drift_comparison['run_id'])
-    | set(group_permutation['run_id'])""",
-    ).replace(
-    "'run_tsf_model': run_options.get('run_tsf_model'),",
-    """'run_tsf_model': run_options.get('run_tsf_model'),
-        'stride_model_sweep_completed': run_options.get('stride_model_sweep_completed'),""",
-    ).replace(
-    "if REQUIRE_PUBLICATION_TITLE_ALLOWED and not run_options.get('publication_title_allowed'):",
+    | set(group_faithfulness['run_id']) | set(attrition['run_id'])
+    | set(horizon_skill['run_id']) | set(exceedance['run_id'])
+    | set(interval_results['run_id']) | set(placebo_validation['run_id'])
+)""",
+    results_setup,
+    flags=re.DOTALL,
+)
+results_setup = re.sub(
+    r"if run_options\.get\('primary_kb_stride_hours'\).*?if REQUIRE_PUBLICATION_TITLE_ALLOWED",
     """if run_options.get('primary_kb_stride_hours') != 24:
     raise RuntimeError('Publication-candidate run must use the primary 24-hour knowledge-base stride.')
 if run_options.get('drift_score_mode') != 'two_sided':
     raise RuntimeError('Publication-candidate run must use two-sided drift scoring.')
 if run_options.get('bootstrap_block_hours', 0) < 168:
     raise RuntimeError('Publication-candidate inference must use blocks of at least 168 origins.')
-if REQUIRE_PUBLICATION_TITLE_ALLOWED and not run_options.get('publication_title_allowed'):""",
-    )
+if run_options.get('bootstrap_resamples', 0) < 2000:
+    raise RuntimeError('Publication-candidate inference must use at least 2,000 resamples.')
+if not run_options.get('holm_adjustment'):
+    raise RuntimeError('Publication-candidate inference must include Holm multiplicity adjustment.')
+if set(run_options.get('placebo_fusion_controls', [])) != {'climatology', 'persistence'}:
+    raise RuntimeError('Both Chronos fusion placebo controls are required.')
+if REQUIRE_PUBLICATION_TITLE_ALLOWED""",
+    results_setup,
+    flags=re.DOTALL,
+)
 results_nb.cells[1].source = results_setup
 results_nb.cells[2].source = code(
     """
@@ -914,8 +1065,11 @@ results_nb.cells[2].source = code(
     plot_horizon_metrics(primary_metrics, 'mse')
     plot_horizon_metrics(primary_metrics, 'mae')
     display(subset_counts)
+    display(attrition)
     display(subset_statistics)
     display(ablation)
+    display(exceedance)
+    display(interval_results)
     """
 )
 results_nb.cells[3].source = code(
@@ -924,7 +1078,9 @@ results_nb.cells[3].source = code(
     display(stride_models.sort_values(['model', 'stride_hours']))
     display(event_weights.sort_values(['subset', 'event_weight']))
     display(event_composition)
-    display(group_permutation.sort_values('mse_increase', ascending=False))
+    display(placebo_validation.loc[placebo_validation['selected_on_validation']])
+    display(group_faithfulness.sort_values('mse_increase', ascending=False))
+    display(horizon_skill.sort_values(['model', 'horizon']))
     display(drift_comparison)
     display(drift_results)
     display(event_results)

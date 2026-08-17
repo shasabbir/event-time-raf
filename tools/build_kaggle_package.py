@@ -11,6 +11,7 @@ NOTEBOOK_FILES = (
     "00_prepare_official_noaa_storm_cache.ipynb",
     "01_event_timeraf_kaggle_pipeline.ipynb",
     "02_results_and_figures.ipynb",
+    "03_paper_claim_verification.ipynb",
 )
 ROOT_FILES = (
     "README.md",
