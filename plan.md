@@ -75,7 +75,10 @@ lookback L = 168 hours
 forecast horizon H = 24 hours
 target = the full PM2.5 sequence from t+1 through t+24
 location = Los Angeles County, California, USA
-study period = 2019-01-01 through 2025-08-24, subject to the data audit
+study period = 2019-01-01 through 2025-12-31, subject to the data audit
+validation = 2024-08-25 through 2025-08-24
+selection-independent final test = 2025-08-25 onward
+January 2025 = validation-only development-stress analysis, not final-holdout evidence
 frequency = hourly if data quality allows
 ```
 
@@ -365,7 +368,7 @@ Primary target:
 US EPA AirData/AQS hourly parameter 88101
 Location: Los Angeles County, California, USA
 State/county codes: 06/037
-Study period: 2019-01-01 through 2025-08-24
+Study period: 2019-01-01 through 2025-12-31
 Frequency: hourly if available
 Target: PM2.5
 ```

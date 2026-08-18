@@ -17,13 +17,13 @@ change should be recorded here before code and paper claims are changed.
 | Item | Final decision |
 | --- | --- |
 | Location | Los Angeles County, California, USA |
-| Study period | 2019-01-01 through 2025-08-24, subject to the data-readiness audit |
+| Study period | 2019-01-01 through 2025-12-31, subject to the data-readiness audit |
 | Target | Hourly PM2.5 in the source unit, expected to be `ug/m3` |
 | Forecast output | Full sequence from `t+1` through `t+24` |
 | Lookback | `L = 168` hourly observations |
 | Horizon | `H = 24` hourly values |
 | Forecast origins | Every valid hour; also report horizon-wise metrics |
-| Main split | Earliest 70% train, next 15% validation, latest 15% test |
+| Main split | Train before 2024-08-25; validation 2024-08-25 through 2025-08-24; selection-independent test from 2025-08-25 |
 | Model-selection metric | Validation MSE |
 | Main reported metrics | MSE, MAE, RMSE, sMAPE, and R2 |
 | Retrieval count | `k = 8` by default; test `1, 4, 8, 16` |
@@ -35,6 +35,9 @@ change should be recorded here before code and paper claims are changed.
 The primary target is not a single value at `t+24`. For every forecast origin,
 the expected target and prediction shape is `[24]`. Longer horizons and
 multi-station modeling are extensions and must not delay the primary task.
+January 2025 is a validation-only development-stress interval. It is reported
+separately because it contains the severe wildfire-era regime, but it is not
+used as final-holdout evidence. The final holdout begins on 2025-08-25.
 
 ### 1.2 Research-critical components
 
@@ -420,6 +423,12 @@ candidate is eligible only when `candidate_target_end < query_input_start`.
 This strict per-query embargo prevents candidate inputs or futures from
 duplicating any part of the query lookback.
 
+TRACE-RAF selects its residual-memory stride from 1, 6, and 24 hours using only
+the validation selection segment. Test retrieval for TRACE is deferred until
+that stride and the global correction strength are frozen. The no-event TRACE
+ablation reuses the selected stride so event conditioning is the only changed
+factor.
+
 ### 7.2 Retrieval variants
 
 | Variant | Definition |
@@ -709,8 +718,10 @@ foundation-model wording is formally scheduled for removal.
 
 ### Phase 9: Final evaluation and ablations
 
-Freeze all choices, run the test set once, compute intervals and ablations, and
-generate final figures from saved outputs.
+Freeze all choices on data ending 2025-08-24, run the explicit late-2025 test
+set once, compute intervals and ablations, and generate final figures from saved
+outputs. Physical AQI thresholds and validation-calibrated alert decisions must
+be reported separately.
 
 Exit gate: one run manifest reproduces every final table and figure; no table is
 manually populated.
