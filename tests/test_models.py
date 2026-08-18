@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from event_timeraf.models import DirectRidgeForecaster, NeuralWindowForecaster, hour_month_climatology_forecast
+from event_timeraf.models import (
+    ConvexForecastEnsemble,
+    DirectRidgeForecaster,
+    NeuralWindowForecaster,
+    SelectiveResidualGate,
+    hour_month_climatology_forecast,
+    residual_gate_features,
+)
 from event_timeraf.windows import build_window_dataset
 
 
@@ -39,3 +46,49 @@ def test_neural_window_normalization_is_origin_local(modeling_frame, cfg):
 def test_neural_window_forecaster_accepts_required_architectures(cfg):
     for architecture in ("dlinear", "lstm", "patchtst"):
         assert NeuralWindowForecaster(cfg, architecture).architecture == architecture
+
+
+def test_convex_ensemble_recovers_better_component():
+    actual = np.arange(48, dtype=np.float32).reshape(2, 24)
+    first = actual.copy()
+    second = actual + 2.0
+    ensemble = ConvexForecastEnsemble("first", "second").fit(actual, first, second)
+    assert ensemble.first_weight == 1.0
+    assert np.allclose(ensemble.predict(first, second), actual)
+
+
+def test_trace_raf_gate_has_validation_no_correction_fallback(cfg):
+    rows, horizon = 60, 24
+    actual = np.zeros((rows, horizon), dtype=np.float32)
+    base = np.zeros_like(actual)
+    harmful_correction = np.ones_like(actual)
+    features = np.column_stack([np.linspace(0, 1, rows), np.ones(rows)]).astype(np.float32)
+    gate = SelectiveResidualGate(cfg).fit(
+        actual, base, harmful_correction, features, ["signal", "constant"]
+    )
+    assert gate.selected_strength == 0.0
+    assert np.allclose(gate.predict(base, harmful_correction, features), base)
+
+
+def test_residual_gate_features_are_finite_and_origin_level():
+    rows, horizon = 5, 24
+    base = np.full((rows, horizon), 10.0, dtype=np.float32)
+    correction = np.full_like(base, 0.5)
+    spread = np.full_like(base, 0.2)
+    disagreement = np.full_like(base, 0.3)
+    matrix, names = residual_gate_features(
+        base,
+        correction,
+        spread,
+        np.full(rows, 0.7),
+        np.full(rows, 0.8),
+        np.full(rows, 8),
+        np.full(rows, 100),
+        np.full(rows, 0.5),
+        np.ones(rows, dtype=bool),
+        disagreement,
+        np.full(rows, 0.4),
+        np.zeros(rows, dtype=bool),
+    )
+    assert matrix.shape == (rows, len(names))
+    assert np.isfinite(matrix).all()

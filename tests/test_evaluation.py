@@ -15,6 +15,7 @@ from event_timeraf.evaluation import (
     metrics_table,
     paired_block_bootstrap_difference,
     paired_block_bootstrap_loss_difference,
+    paired_masked_block_bootstrap_loss_difference,
     predictions_long,
     quantile_forecast_metrics,
 )
@@ -154,3 +155,19 @@ def test_event_period_flags_separate_recent_active_and_target_overlap():
     assert not flags.loc[0, "recent_event_flag"]
     assert not flags.loc[0, "active_event_flag"]
     assert flags.loc[0, "target_event_flag"]
+
+
+def test_masked_block_bootstrap_preserves_subset_direction():
+    actual = np.ones((240, 4), dtype=float)
+    better = actual.copy()
+    worse = actual.copy()
+    mask = np.zeros(240, dtype=bool)
+    mask[::6] = True
+    worse[mask] = 0.0
+    result = paired_masked_block_bootstrap_loss_difference(
+        actual, better, worse, mask, "mse", block_length=24,
+        resamples=500, seed=42,
+    )
+    assert result["difference"] < 0
+    assert result["subset_origins"] == int(mask.sum())
+    assert result["ci_high"] < 0

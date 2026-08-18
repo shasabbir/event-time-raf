@@ -21,7 +21,7 @@ def code(value: str):
 cells = [
     markdown(
         """
-        # Event-TimeRAF Artifact and Claim Verification
+        # TRACE-RAF Artifact and Claim Verification
 
         This notebook verifies one completed publication-candidate ZIP or its Kaggle-extracted
         directory. It contains no expected metric constants. Every comparison is recomputed
@@ -178,7 +178,8 @@ cells = [
         from event_timeraf.evaluation import (
             diebold_mariano_hac, exceedance_metrics, holm_adjust_pvalues,
             horizon_skill_table, interval_metrics, log_scale_metrics, metric_values,
-            paired_block_bootstrap_loss_difference, quantile_forecast_metrics,
+            paired_block_bootstrap_loss_difference,
+            paired_masked_block_bootstrap_loss_difference, quantile_forecast_metrics,
         )
 
         cfg = load_config(project_root / 'configs' / 'default.yaml', project_root)
@@ -194,13 +195,20 @@ cells = [
         site_level_saved = read_csv('outputs/tables/site_level_sensitivity.csv')
         site_design_saved = read_csv('outputs/tables/site_level_design.csv')
         site_selection_saved = read_csv('outputs/tables/site_selection_audit.csv')
+        stride_models_saved = read_csv('outputs/tables/kb_stride_model_sensitivity.csv')
+        trace_gate_saved = read_csv('outputs/tables/trace_raf_gate_selection.csv')
+        trace_design_saved = read_csv('outputs/tables/trace_raf_design.csv')
+        trace_oof_saved = read_csv('outputs/tables/trace_raf_oof_audit.csv')
+        trace_subset_saved = read_csv('outputs/tables/trace_raf_subset_inference.csv')
 
         run_id_sets = [
             set(frame['run_id']) for frame in (
                 predictions_long, main_results, ablation_saved, exceedance_saved,
                 horizon_skill_saved, log_saved, interval_saved, quantile_saved, probabilistic_saved,
                 site_level_saved, site_design_saved,
-                site_selection_saved,
+                site_selection_saved, stride_models_saved, trace_gate_saved, trace_design_saved,
+                trace_oof_saved,
+                trace_subset_saved,
             )
         ]
         assert all(values == {manifest['run_id']} for values in run_id_sets)
@@ -231,6 +239,14 @@ cells = [
         metric_error_columns = [name for name in comparison if name.endswith('_absolute_error')]
         display(comparison[['model', *metric_error_columns]].sort_values('mse_absolute_error', ascending=False))
         assert comparison[metric_error_columns].to_numpy().max() < 1e-5
+        trace = read_npz('outputs/predictions/trace_raf_predictions.npz')
+        assert np.allclose(
+            trace['M13_test'],
+            trace['test_base'] + trace['test_gate'][:, None] * trace['event_test_correction'],
+        )
+        assert np.allclose(trace['M13_test'], array_cache['M13_trace_raf'][1])
+        assert np.allclose(trace['A03_test'], array_cache['A03_trace_raf_no_event'][1])
+        assert trace_oof_saved['embargo_passed'].all()
         display(main_results.sort_values('mse'))
         """
     ),
@@ -250,6 +266,11 @@ cells = [
             'A02_minus_M04_matched_feature_count': ('A02_xgb_matched_event_placebo', 'M04_xgb_context'),
             'C04_minus_A02_event_signal': ('C04_xgb_context_event', 'A02_xgb_matched_event_placebo'),
             'C05_minus_M04_lightgbm': ('C05_lightgbm_context', 'M04_xgb_context'),
+            'C06_minus_C05_context_ensemble': ('C06_context_ensemble', 'C05_lightgbm_context'),
+            'M13_minus_C06_trace_residual_gate': ('M13_trace_raf', 'C06_context_ensemble'),
+            'A03_minus_C06_no_event_residual_gate': ('A03_trace_raf_no_event', 'C06_context_ensemble'),
+            'M13_minus_A03_trace_event_conditioning': ('M13_trace_raf', 'A03_trace_raf_no_event'),
+            'M13_minus_C05_trace_vs_best_baseline': ('M13_trace_raf', 'C05_lightgbm_context'),
             'B00_minus_M04_dlinear': ('B00_dlinear', 'M04_xgb_context'),
             'B01_minus_M04_patchtst': ('B01_patchtst', 'M04_xgb_context'),
             'B02_minus_M04_lstm': ('B02_lstm', 'M04_xgb_context'),
@@ -297,6 +318,47 @@ cells = [
             errors.append(error_name)
         display(ablation_check[['comparison', 'metric', *errors]])
         assert ablation_check[errors].to_numpy().max() < 1e-10
+
+        trace_masks = read_npz('outputs/predictions/trace_raf_subset_masks.npz')
+        trace_subset_comparisons = {
+            'M13_minus_C06_trace_residual_gate': ('M13_trace_raf', 'C06_context_ensemble'),
+            'M13_minus_A03_trace_event_conditioning': ('M13_trace_raf', 'A03_trace_raf_no_event'),
+        }
+        trace_rows = []
+        for subset in ('event', 'event_context', 'drift', 'non_event'):
+            mask = trace_masks[subset].astype(bool)
+            for comparison_name, (model_a, model_b) in trace_subset_comparisons.items():
+                actual, prediction_a = array_cache[model_a]
+                _, prediction_b = array_cache[model_b]
+                for metric in ('mse', 'mae'):
+                    interval = paired_masked_block_bootstrap_loss_difference(
+                        actual, prediction_a, prediction_b, mask, metric,
+                        cfg.evaluation.bootstrap_block_hours,
+                        cfg.evaluation.bootstrap_resamples, cfg.seed,
+                    )
+                    trace_rows.append({
+                        'subset': subset, 'comparison': comparison_name,
+                        'metric': metric, **interval,
+                    })
+        trace_subset_recomputed = pd.DataFrame(trace_rows)
+        for _, indices in trace_subset_recomputed.groupby('metric').groups.items():
+            indices = list(indices)
+            trace_subset_recomputed.loc[indices, 'bootstrap_p_value_holm'] = holm_adjust_pvalues(
+                trace_subset_recomputed.loc[indices, 'bootstrap_p_value'].to_numpy()
+            )
+        trace_check = trace_subset_recomputed.merge(
+            trace_subset_saved,
+            on=['subset', 'comparison', 'metric'], suffixes=('_recomputed', '_saved'),
+            validate='one_to_one',
+        )
+        trace_errors = []
+        for column in ('difference', 'ci_low', 'ci_high', 'bootstrap_p_value', 'bootstrap_p_value_holm'):
+            error_name = f'{column}_absolute_error'
+            trace_check[error_name] = np.abs(
+                trace_check[f'{column}_recomputed'] - trace_check[f'{column}_saved']
+            )
+            trace_errors.append(error_name)
+        assert trace_check[trace_errors].to_numpy().max() < 1e-10
         """
     ),
     markdown("## 5. Recompute operational, log-scale, and probabilistic metrics"),
@@ -424,6 +486,8 @@ cells = [
             'tsfm_quantile_calibration.csv', 'tsfm_probabilistic_metrics.csv',
             'site_level_sensitivity.csv', 'site_level_design.csv',
             'site_selection_audit.csv',
+            'trace_raf_design.csv', 'trace_raf_gate_selection.csv', 'trace_raf_oof_audit.csv',
+            'trace_raf_subset_inference.csv',
         }
         required_figures = {
             'mae_by_horizon.png', 'mse_by_horizon.png', 'forecast_case.png',
@@ -440,12 +504,29 @@ cells = [
         gate_rows = [
             {'gate': 'manifest hashes', 'passed': bool(integrity['sha256_match'].all())},
             {'gate': '1/6/24-hour KB sweep', 'passed': set(options.get('kb_stride_values', [])) == {1, 6, 24}},
+            {'gate': 'complete learned stride sweep', 'passed': bool(
+                options.get('stride_model_sweep_completed')
+                and len(stride_models_saved) == 3 * len(options.get('kb_stride_values', []))
+            )},
             {'gate': 'journal baselines', 'passed': bool(options.get('journal_baselines_completed'))},
             {'gate': 'learned event-weight sweep', 'passed': bool(options.get('event_weight_model_sweep_completed'))},
             {'gate': 'matched feature-count control', 'passed': bool(options.get('matched_feature_count_control'))},
             {'gate': 'three-monitor site arm', 'passed': bool(options.get('site_level_sensitivity_completed'))},
             {'gate': 'Holm-adjusted DM inference', 'passed': bool(options.get('holm_adjustment'))},
-            {'gate': 'probabilistic quantile grid', 'passed': len(options.get('probabilistic_quantiles', [])) >= 19},
+            {'gate': 'native Chronos quantile grid', 'passed': bool(
+                options.get('chronos_native_quantile_grid')
+                and min(options.get('probabilistic_quantiles', [0])) >= 0.1
+                and max(options.get('probabilistic_quantiles', [1])) <= 0.9
+            )},
+            {'gate': 'TRACE-RAF OOF residual memory', 'passed': bool(
+                options.get('trace_raf_completed')
+                and options.get('trace_raf_oof_embargo_passed')
+                and trace_oof_saved['embargo_passed'].all()
+            )},
+            {'gate': 'TRACE-RAF validation-only selection', 'passed': bool(
+                (~trace_design_saved['test_used_for_selection'].astype(str).str.lower().eq('true')).all()
+                and trace_design_saved['selected_gate_strength'].between(0, 1).all()
+            )},
         ]
         gates = pd.DataFrame(gate_rows)
         display(gates)
@@ -458,5 +539,7 @@ cells = [
 
 notebook = nbf.v4.new_notebook(cells=cells)
 notebook.metadata.kernelspec = {"display_name": "Python 3", "language": "python", "name": "python3"}
+for index, cell in enumerate(notebook.cells):
+    cell.id = f"trace-verify-{index:03d}"
 nbf.write(notebook, DESTINATION)
 print(f"Wrote {DESTINATION}")
