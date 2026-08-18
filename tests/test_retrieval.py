@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 import pandas as pd
+import numpy as np
 import pytest
 
-from event_timeraf.retrieval import HistoricalRetriever, assert_retrieval_causality, build_knowledge_base
+from event_timeraf.retrieval import (
+    HistoricalRetriever,
+    assert_retrieval_causality,
+    build_knowledge_base,
+    residual_correction_from_retrieval,
+)
 from event_timeraf.windows import build_window_dataset
 
 
@@ -82,6 +88,26 @@ def test_random_retrieval_is_independent_of_call_order(modeling_frame, cfg):
         first.evidence[["query_window_id", "rank", "candidate_window_id"]].reset_index(drop=True),
         second.evidence[["query_window_id", "rank", "candidate_window_id"]].reset_index(drop=True),
     )
+
+
+def test_residual_retrieval_uses_only_oof_candidates(modeling_frame, cfg):
+    dataset = build_window_dataset(modeling_frame, cfg)
+    knowledge_base = build_knowledge_base(dataset, cfg)
+    candidate_mask = np.zeros(len(knowledge_base.metadata), dtype=bool)
+    candidate_mask[len(candidate_mask) // 2 :] = True
+    candidate_residuals = np.full_like(knowledge_base.y, np.nan)
+    candidate_residuals[candidate_mask] = 1.0
+    queries = dataset.subset("validation")
+    result = HistoricalRetriever(knowledge_base, cfg).retrieve(
+        queries, method="event_conditioned", candidate_mask=candidate_mask
+    )
+    assert result.valid_mask.all()
+    assert candidate_mask[result.selected_indices[result.selected_indices >= 0]].all()
+    correction = residual_correction_from_retrieval(
+        knowledge_base, queries, result, candidate_residuals, cfg.retrieval.epsilon
+    )
+    assert correction.valid_mask.all()
+    assert (correction.candidate_count > 0).all()
 
 
 def test_retrieval_causality_guard_rejects_future_candidate():

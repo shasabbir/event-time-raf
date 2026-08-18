@@ -23,12 +23,14 @@ nb.cells = [
 ]
 nb.cells[0].source = code(
     """
-    # Event-TimeRAF: Publication-Candidate Kaggle Pipeline
+    # TRACE-RAF: Publication-Candidate Kaggle Pipeline
 
     This experiment log runs the complete study from official cached sources. It uses a dense,
     leakage-safe historical knowledge base, explicit event-conditioned retrieval, two-sided
     drift evidence, real component ablations, a frozen Chronos baseline, and manifest-backed
-    outputs. Numerical paper claims must be updated only from the ZIP produced by the final cell.
+    outputs. The proposed TRACE-RAF model adds trust-gated out-of-fold residual analog correction
+    to the strongest supervised ensemble. Numerical paper claims must be updated only from the ZIP
+    produced by the final cell.
     """
 )
 nb.cells[1].source = code(
@@ -122,7 +124,8 @@ setup = re.sub(
     build_event_period_flags, diebold_mariano_hac, exceedance_metrics,
     holm_adjust_pvalues, horizon_skill_table, interval_metrics, log_scale_metrics,
     metric_values, metrics_table, quantile_forecast_metrics,
-    paired_block_bootstrap_loss_difference, predictions_long,
+    paired_block_bootstrap_loss_difference, paired_masked_block_bootstrap_loss_difference,
+    predictions_long,
 )
 """,
     setup,
@@ -133,9 +136,23 @@ setup = re.sub(
     "from event_timeraf.explain import generate_explanations, grouped_feature_perturbation, xgb_local_contributions\n",
     setup,
 )
-setup = setup.replace(
-    "DirectRidgeForecaster, DirectXGBForecaster, choose_fusion_weight, chronos_forecast,",
-    "DirectLightGBMForecaster, DirectRidgeForecaster, DirectXGBForecaster, NeuralWindowForecaster, choose_fusion_weight, chronos_quantile_forecast,",
+setup = re.sub(
+    r"from event_timeraf\.models import \(.*?\)\n",
+    """from event_timeraf.models import (
+    ConvexForecastEnsemble, DirectLightGBMForecaster, DirectRidgeForecaster,
+    DirectXGBForecaster, NeuralWindowForecaster, SelectiveResidualGate,
+    choose_fusion_weight, chronos_quantile_forecast, daily_seasonal_forecast,
+    fuse_forecasts, hour_month_climatology_forecast, origin_feature_matrix,
+    persistence_forecast, residual_gate_features, weekly_seasonal_forecast,
+)
+""",
+    setup,
+    flags=re.DOTALL,
+)
+setup = re.sub(
+    r"from event_timeraf\.retrieval import .*\n",
+    "from event_timeraf.retrieval import HistoricalRetriever, build_knowledge_base, residual_correction_from_retrieval\n",
+    setup,
 )
 setup = re.sub(
     r"from event_timeraf\.windows import .*\n",
@@ -246,11 +263,12 @@ nb.cells[8].source = code(
 
 nb.cells[9].source = code(
     """
-    ## 4. Baselines, regularized control, and Event-TimeRAF variants
+    ## 4. Baselines, Event-TimeRAF variants, and TRACE-RAF
 
     All learned variants use the same chronological splits. M08 uses the event-conditioned
     retriever, while A00 removes event inputs and event-conditioned retrieval under an otherwise
-    comparable direct-model design.
+    comparable direct-model design. TRACE-RAF uses expanding-window out-of-fold residual memory,
+    a convex XGBoost-LightGBM base, and a validation-trained gate with a zero-correction fallback.
     """
 )
 nb.cells[10].source = code(
@@ -327,6 +345,65 @@ nb.cells[10].source = code(
         patchtst.save(patchtst_path)
     elif FINAL_EXPERIMENT:
         raise RuntimeError('Final publication mode requires DLinear, LSTM, PatchTST, and LightGBM baselines.')
+
+    # Expanding-window predictions provide genuinely out-of-fold residuals for
+    # TRACE-RAF's historical memory. Every fit block is embargoed before the
+    # first query input in the following prediction block.
+    oof_xgb = np.full_like(train.y, np.nan, dtype=np.float32)
+    oof_lightgbm = np.full_like(train.y, np.nan, dtype=np.float32)
+    oof_rows = []
+    train_target_end = pd.to_datetime(train.metadata['target_end'], utc=True)
+    boundaries = cfg.selective_residual.oof_boundaries
+    for start_fraction, end_fraction in zip(boundaries[:-1], boundaries[1:]):
+        block_start = int(len(train.x) * start_fraction)
+        block_end = int(len(train.x) * end_fraction)
+        block_input_start = pd.Timestamp(train.metadata.iloc[block_start]['input_start'])
+        fit_mask = (train_target_end < block_input_start).to_numpy()
+        fit_indices = np.flatnonzero(fit_mask)
+        block_indices = np.arange(block_start, block_end)
+        if len(fit_indices) < 100 or len(block_indices) == 0:
+            raise RuntimeError('TRACE-RAF OOF block is too small after temporal embargo.')
+        fold_xgb = DirectXGBForecaster(cfg).fit(
+            context_train[fit_indices], train.future_calendar[fit_indices],
+            train.y[fit_indices], context_names, train.calendar_names,
+        )
+        fold_lightgbm = DirectLightGBMForecaster(cfg).fit(
+            context_train[fit_indices], train.future_calendar[fit_indices],
+            train.y[fit_indices], context_names, train.calendar_names,
+        )
+        oof_xgb[block_indices] = fold_xgb.predict(
+            context_train[block_indices], train.future_calendar[block_indices]
+        )
+        oof_lightgbm[block_indices] = fold_lightgbm.predict(
+            context_train[block_indices], train.future_calendar[block_indices]
+        )
+        oof_rows.append({
+            'run_id': RUN_ID, 'block_start_fraction': start_fraction,
+            'block_end_fraction': end_fraction, 'fit_origins': len(fit_indices),
+            'predicted_origins': len(block_indices),
+            'fit_target_end_max': train_target_end.iloc[fit_indices].max(),
+            'prediction_input_start_min': block_input_start,
+            'embargo_passed': bool(train_target_end.iloc[fit_indices].max() < block_input_start),
+        })
+    oof_valid = np.isfinite(oof_xgb).all(axis=1) & np.isfinite(oof_lightgbm).all(axis=1)
+    context_ensemble = ConvexForecastEnsemble(
+        'C05_lightgbm_context', 'M04_xgb_context'
+    ).fit(train.y[oof_valid], oof_lightgbm[oof_valid], oof_xgb[oof_valid])
+    validation_predictions['C06_context_ensemble'] = context_ensemble.predict(
+        validation_predictions['C05_lightgbm_context'],
+        validation_predictions['M04_xgb_context'],
+    )
+    predictions['C06_context_ensemble'] = context_ensemble.predict(
+        predictions['C05_lightgbm_context'], predictions['M04_xgb_context']
+    )
+    oof_ensemble = np.full_like(train.y, np.nan, dtype=np.float32)
+    oof_ensemble[oof_valid] = context_ensemble.predict(
+        oof_lightgbm[oof_valid], oof_xgb[oof_valid]
+    )
+    trace_oof_audit_path = cfg.paths.outputs / 'tables' / 'trace_raf_oof_audit.csv'
+    pd.DataFrame(oof_rows).to_csv(trace_oof_audit_path, index=False)
+    if not pd.DataFrame(oof_rows)['embargo_passed'].all():
+        raise RuntimeError('TRACE-RAF OOF temporal embargo failed.')
 
     def fit_retrieval_xgb(train_result, validation_result, test_result, prefixes, label):
         names = train_result.feature_names(label)
@@ -453,8 +530,189 @@ nb.cells[11].source = code(
     )
     no_event_detector.calibrate(validation, no_event_validation.mean_similarity)
     no_event_drift_train = no_event_detector.transform(train, no_event_train.mean_similarity)
-    no_event_drift_validation = no_event_detector.transform(validation, no_event_validation.mean_similarity)
+    no_event_drift_validation = no_event_detector.transform(
+        validation, no_event_validation.mean_similarity
+    )
     no_event_drift_test = no_event_detector.transform(test, no_event_test.mean_similarity)
+
+    kb_position_by_window = pd.Series(
+        np.arange(len(train.metadata)), index=train.metadata['window_id'].astype(str)
+    )
+    kb_train_positions = kb_position_by_window.reindex(
+        knowledge_base.metadata['window_id'].astype(str)
+    ).to_numpy(dtype=int)
+    candidate_oof_prediction = oof_ensemble[kb_train_positions]
+    candidate_residuals = knowledge_base.y - candidate_oof_prediction
+    residual_candidate_mask = np.isfinite(candidate_residuals).all(axis=1)
+    if residual_candidate_mask.sum() < max(100, cfg.retrieval.k):
+        raise RuntimeError('TRACE-RAF has too few out-of-fold residual candidates.')
+    clip_quantile = cfg.selective_residual.residual_clip_quantile
+    residual_clip_lower = np.quantile(
+        candidate_residuals[residual_candidate_mask], clip_quantile, axis=0
+    )
+    residual_clip_upper = np.quantile(
+        candidate_residuals[residual_candidate_mask], 1.0 - clip_quantile, axis=0
+    )
+    candidate_residuals[residual_candidate_mask] = np.clip(
+        candidate_residuals[residual_candidate_mask],
+        residual_clip_lower, residual_clip_upper,
+    )
+
+    event_residual_validation = retriever.retrieve(
+        validation, method='event_conditioned', candidate_mask=residual_candidate_mask
+    )
+    event_residual_test = retriever.retrieve(
+        test, method='event_conditioned', candidate_mask=residual_candidate_mask
+    )
+    no_event_residual_validation = retriever.retrieve(
+        validation, method='hybrid_no_event', candidate_mask=residual_candidate_mask
+    )
+    no_event_residual_test = retriever.retrieve(
+        test, method='hybrid_no_event', candidate_mask=residual_candidate_mask
+    )
+    event_correction_validation = residual_correction_from_retrieval(
+        knowledge_base, validation, event_residual_validation, candidate_residuals,
+        cfg.retrieval.epsilon,
+    )
+    event_correction_test = residual_correction_from_retrieval(
+        knowledge_base, test, event_residual_test, candidate_residuals,
+        cfg.retrieval.epsilon,
+    )
+    no_event_correction_validation = residual_correction_from_retrieval(
+        knowledge_base, validation, no_event_residual_validation, candidate_residuals,
+        cfg.retrieval.epsilon,
+    )
+    no_event_correction_test = residual_correction_from_retrieval(
+        knowledge_base, test, no_event_residual_test, candidate_residuals,
+        cfg.retrieval.epsilon,
+    )
+    correction_results = (
+        event_correction_validation, event_correction_test,
+        no_event_correction_validation, no_event_correction_test,
+    )
+    if not all(result.valid_mask.all() for result in correction_results):
+        raise RuntimeError('TRACE-RAF residual correction is incomplete.')
+
+    validation_base = validation_predictions['C06_context_ensemble']
+    test_base = predictions['C06_context_ensemble']
+    validation_disagreement = np.abs(
+        validation_predictions['C05_lightgbm_context']
+        - validation_predictions['M04_xgb_context']
+    )
+    test_disagreement = np.abs(
+        predictions['C05_lightgbm_context'] - predictions['M04_xgb_context']
+    )
+
+    def trace_features(base, correction_result, retrieval_result, disagreement, drift):
+        return residual_gate_features(
+            base, correction_result.correction, correction_result.spread,
+            retrieval_result.mean_similarity, retrieval_result.max_similarity,
+            correction_result.candidate_count, retrieval_result.eligible_candidate_count,
+            retrieval_result.selected_event_fraction,
+            retrieval_result.event_conditioning_applied,
+            disagreement, drift.score, drift.flag,
+        )
+
+    trace_validation_features, trace_feature_names = trace_features(
+        validation_base, event_correction_validation, event_residual_validation,
+        validation_disagreement, drift_validation,
+    )
+    trace_test_features, _ = trace_features(
+        test_base, event_correction_test, event_residual_test,
+        test_disagreement, drift_test,
+    )
+    trace_gate = SelectiveResidualGate(cfg).fit(
+        validation.y, validation_base, event_correction_validation.correction,
+        trace_validation_features, trace_feature_names,
+    )
+    validation_predictions['M13_trace_raf'] = trace_gate.predict(
+        validation_base, event_correction_validation.correction, trace_validation_features
+    )
+    predictions['M13_trace_raf'] = trace_gate.predict(
+        test_base, event_correction_test.correction, trace_test_features
+    )
+
+    no_event_validation_features, no_event_trace_names = trace_features(
+        validation_base, no_event_correction_validation, no_event_residual_validation,
+        validation_disagreement, no_event_drift_validation,
+    )
+    no_event_test_features, _ = trace_features(
+        test_base, no_event_correction_test, no_event_residual_test,
+        test_disagreement, no_event_drift_test,
+    )
+    trace_no_event_gate = SelectiveResidualGate(cfg).fit(
+        validation.y, validation_base, no_event_correction_validation.correction,
+        no_event_validation_features, no_event_trace_names,
+    )
+    validation_predictions['A03_trace_raf_no_event'] = trace_no_event_gate.predict(
+        validation_base, no_event_correction_validation.correction,
+        no_event_validation_features,
+    )
+    predictions['A03_trace_raf_no_event'] = trace_no_event_gate.predict(
+        test_base, no_event_correction_test.correction, no_event_test_features
+    )
+
+    trace_selection_rows = []
+    for model_name, gate in {
+        'M13_trace_raf': trace_gate,
+        'A03_trace_raf_no_event': trace_no_event_gate,
+    }.items():
+        for strength, validation_mse in gate.selection_scores.items():
+            trace_selection_rows.append({
+                'run_id': RUN_ID, 'model': model_name, 'gate_strength': strength,
+                'selection_mse': validation_mse,
+                'selected_on_validation': strength == gate.selected_strength,
+                'residual_candidate_count': int(residual_candidate_mask.sum()),
+            })
+    trace_gate_selection_path = cfg.paths.outputs / 'tables' / 'trace_raf_gate_selection.csv'
+    pd.DataFrame(trace_selection_rows).to_csv(trace_gate_selection_path, index=False)
+    trace_design_path = cfg.paths.outputs / 'tables' / 'trace_raf_design.csv'
+    pd.DataFrame([{
+        'run_id': RUN_ID,
+        'model': 'M13_trace_raf',
+        'expanded_name': 'Trust-gated Residual Analog Correction for Event-aware Retrieval-Augmented Forecasting',
+        'base_weights_json': json.dumps(context_ensemble.weights(), sort_keys=True),
+        'oof_boundaries_json': json.dumps(cfg.selective_residual.oof_boundaries),
+        'residual_candidate_count': int(residual_candidate_mask.sum()),
+        'residual_clip_quantile': clip_quantile,
+        'retrieval_k': cfg.retrieval.k,
+        'gate_fit_fraction': cfg.selective_residual.gate_fit_fraction,
+        'gate_max_depth': cfg.selective_residual.gate_max_depth,
+        'gate_max_iter': cfg.selective_residual.gate_max_iter,
+        'gate_learning_rate': cfg.selective_residual.gate_learning_rate,
+        'gate_l2_regularization': cfg.selective_residual.gate_l2_regularization,
+        'selected_gate_strength': trace_gate.selected_strength,
+        'test_used_for_selection': False,
+    }]).to_csv(trace_design_path, index=False)
+    trace_predictions_path = cfg.paths.outputs / 'predictions' / 'trace_raf_predictions.npz'
+    np.savez_compressed(
+        trace_predictions_path,
+        validation_actual=validation.y, test_actual=test.y,
+        validation_base=validation_base, test_base=test_base,
+        event_validation_correction=event_correction_validation.correction,
+        event_test_correction=event_correction_test.correction,
+        no_event_validation_correction=no_event_correction_validation.correction,
+        no_event_test_correction=no_event_correction_test.correction,
+        validation_gate=trace_gate.gate_values(trace_validation_features),
+        test_gate=trace_gate.gate_values(trace_test_features),
+        M13_validation=validation_predictions['M13_trace_raf'],
+        M13_test=predictions['M13_trace_raf'],
+        A03_validation=validation_predictions['A03_trace_raf_no_event'],
+        A03_test=predictions['A03_trace_raf_no_event'],
+        residual_candidate_mask=residual_candidate_mask,
+        residual_clip_lower=residual_clip_lower,
+        residual_clip_upper=residual_clip_upper,
+    )
+    trace_retrieval_evidence_path = (
+        cfg.paths.outputs / 'evidence' / 'trace_raf_retrieval_evidence.parquet'
+    )
+    pd.concat([
+        event_residual_test.evidence.assign(trace_variant='event_conditioned'),
+        no_event_residual_test.evidence.assign(trace_variant='no_event'),
+    ], ignore_index=True).assign(run_id=RUN_ID).to_parquet(
+        trace_retrieval_evidence_path, index=False
+    )
+
     no_event_names = no_event_train.feature_names('no_event_retrieval')
     no_event_drift_names = [f'no_event_drift_{name}' for name in no_event_drift_test.component_names] + ['no_event_drift_score']
     no_event_train_extra = np.column_stack([
@@ -507,6 +765,9 @@ nb.cells[11].source = code(
 
     models_to_save = {
         'M03': m03, 'M04': m04, 'M07': m07, 'M08': m08, 'M09': m09,
+        'M13_trace_raf': trace_gate,
+        'A03_trace_raf_no_event': trace_no_event_gate,
+        'C06_context_ensemble': context_ensemble,
         'A00_full_without_events': m09_no_events,
         'A01_xgb_random_retrieval': random_model,
         'A02_xgb_matched_event_placebo': a02,
@@ -748,15 +1009,30 @@ nb.cells[13].source = code(
                 train.y[train_event.valid_mask], names09, train.calendar_names,
             )
             pred09 = model09.predict(matrix09_test, test.future_calendar)
-        for name, values in {'M07_xgb_cosine': pred07,
-                             'M08_event_timeraf_no_drift': pred08,
-                             'M09_event_timeraf_full': pred09}.items():
-            stride_model_predictions[f'stride_{stride}_{name}'] = values
-            stride_model_rows.append({'run_id': RUN_ID, 'stride_hours': stride,
-                                      'model': name, **metric_values(test.y, values)})
+            for name, values in {'M07_xgb_cosine': pred07,
+                                 'M08_event_timeraf_no_drift': pred08,
+                                 'M09_event_timeraf_full': pred09}.items():
+                stride_model_predictions[f'stride_{stride}_{name}'] = values
+                stride_model_rows.append({'run_id': RUN_ID, 'stride_hours': stride,
+                                          'model': name, **metric_values(test.y, values)})
+        stride_model_frame = pd.DataFrame(stride_model_rows)
+        expected_stride_rows = {
+            (stride, model)
+            for stride in cfg.retrieval.kb_stride_values
+            for model in ('M07_xgb_cosine', 'M08_event_timeraf_no_drift', 'M09_event_timeraf_full')
+        }
+        actual_stride_rows = set(zip(
+            stride_model_frame['stride_hours'], stride_model_frame['model']
+        ))
+        if actual_stride_rows != expected_stride_rows:
+            raise RuntimeError(
+                f'Incomplete learned stride sweep: {sorted(expected_stride_rows - actual_stride_rows)}'
+            )
+    else:
+        stride_model_frame = pd.DataFrame(stride_model_rows)
     stride_model_path = cfg.paths.outputs / 'tables' / 'kb_stride_model_sensitivity.csv'
     stride_model_predictions_path = cfg.paths.outputs / 'predictions' / 'kb_stride_model_predictions.npz'
-    pd.DataFrame(stride_model_rows).to_csv(stride_model_path, index=False)
+    stride_model_frame.to_csv(stride_model_path, index=False)
     np.savez_compressed(stride_model_predictions_path, **stride_model_predictions)
 
     drift_comparison = pd.DataFrame([
@@ -1055,6 +1331,51 @@ nb.cells[17].source = code(
         for name, values in predictions.items()
     ], ignore_index=True).to_csv(log_metrics_path, index=False)
 
+    trace_subset_rows = []
+    trace_subset_comparisons = {
+        'M13_minus_C06_trace_residual_gate': (
+            predictions['M13_trace_raf'], predictions['C06_context_ensemble']
+        ),
+        'M13_minus_A03_trace_event_conditioning': (
+            predictions['M13_trace_raf'], predictions['A03_trace_raf_no_event']
+        ),
+    }
+    for subset, mask in {
+        'event': subset_masks['event'],
+        'event_context': subset_masks['event_context'],
+        'drift': subset_masks['drift'],
+        'non_event': subset_masks['non_event'],
+    }.items():
+        if int(mask.sum()) < cfg.evaluation.minimum_subset_origins:
+            continue
+        for comparison_name, (prediction_a, prediction_b) in trace_subset_comparisons.items():
+            for metric_name in ('mse', 'mae'):
+                interval = paired_masked_block_bootstrap_loss_difference(
+                    test.y, prediction_a, prediction_b, mask, metric_name,
+                    cfg.evaluation.bootstrap_block_hours,
+                    cfg.evaluation.bootstrap_resamples, cfg.seed,
+                )
+                trace_subset_rows.append({
+                    'run_id': RUN_ID, 'subset': subset, 'comparison': comparison_name,
+                    'metric': metric_name, **interval,
+                })
+    trace_subset_inference = pd.DataFrame(trace_subset_rows)
+    for metric_name, indices in trace_subset_inference.groupby('metric').groups.items():
+        indices = list(indices)
+        trace_subset_inference.loc[indices, 'bootstrap_p_value_holm'] = holm_adjust_pvalues(
+            trace_subset_inference.loc[indices, 'bootstrap_p_value'].to_numpy()
+        )
+    trace_subset_inference_path = (
+        cfg.paths.outputs / 'tables' / 'trace_raf_subset_inference.csv'
+    )
+    trace_subset_inference.to_csv(trace_subset_inference_path, index=False)
+    trace_subset_masks_path = cfg.paths.outputs / 'predictions' / 'trace_raf_subset_masks.npz'
+    np.savez_compressed(
+        trace_subset_masks_path,
+        event=subset_masks['event'], event_context=subset_masks['event_context'],
+        drift=subset_masks['drift'], non_event=subset_masks['non_event'],
+    )
+
     comparisons = {
         'M04_minus_M03_weather_calendar': (predictions['M04_xgb_context'], predictions['M03_xgb_pm25']),
         'M07_minus_M04_cosine_retrieval': (predictions['M07_xgb_cosine'], predictions['M04_xgb_context']),
@@ -1068,6 +1389,11 @@ nb.cells[17].source = code(
         'A02_minus_M04_matched_feature_count': (predictions['A02_xgb_matched_event_placebo'], predictions['M04_xgb_context']),
         'C04_minus_A02_event_signal': (predictions['C04_xgb_context_event'], predictions['A02_xgb_matched_event_placebo']),
         'C05_minus_M04_lightgbm': (predictions['C05_lightgbm_context'], predictions['M04_xgb_context']),
+        'C06_minus_C05_context_ensemble': (predictions['C06_context_ensemble'], predictions['C05_lightgbm_context']),
+        'M13_minus_C06_trace_residual_gate': (predictions['M13_trace_raf'], predictions['C06_context_ensemble']),
+        'A03_minus_C06_no_event_residual_gate': (predictions['A03_trace_raf_no_event'], predictions['C06_context_ensemble']),
+        'M13_minus_A03_trace_event_conditioning': (predictions['M13_trace_raf'], predictions['A03_trace_raf_no_event']),
+        'M13_minus_C05_trace_vs_best_baseline': (predictions['M13_trace_raf'], predictions['C05_lightgbm_context']),
         'B00_minus_M04_dlinear': (predictions['B00_dlinear'], predictions['M04_xgb_context']),
         'B01_minus_M04_patchtst': (predictions['B01_patchtst'], predictions['M04_xgb_context']),
         'B02_minus_M04_lstm': (predictions['B02_lstm'], predictions['M04_xgb_context']),
@@ -1197,12 +1523,12 @@ nb.cells[17].source = code(
     plot_retrieval_diagnostics(evidence, retrieval_figure_path)
     plot_drift_scores(drift_evidence.loc[drift_evidence['split'] == 'test'], drift_figure_path)
     case_index = int(np.argsort(np.abs(
-        test.y.mean(axis=1) - predictions['M09_event_timeraf_full'].mean(axis=1)
+        test.y.mean(axis=1) - predictions['M13_trace_raf'].mean(axis=1)
     ))[len(test.y) // 2])
     plot_forecast_case(test.x[case_index], test.y[case_index], {
         'Persistence': predictions['M00_persistence'][case_index],
-        'XGBoost context': predictions['M04_xgb_context'][case_index],
-        'Event-TimeRAF': predictions['M09_event_timeraf_full'][case_index],
+        'LightGBM context': predictions['C05_lightgbm_context'][case_index],
+        'TRACE-RAF': predictions['M13_trace_raf'][case_index],
     }, forecast_figure_path)
 
     artifact_paths = [
@@ -1211,6 +1537,7 @@ nb.cells[17].source = code(
         window_arrays_path, window_metadata_path, window_arrays_path.with_suffix('.json'),
         kb_arrays_path, kb_metadata_path, kb_arrays_path.with_suffix('.json'),
         retrieval_evidence_path, retrieval_review_path, drift_evidence_path,
+        trace_retrieval_evidence_path,
         feature_effects_path, explanations_path, predictions_path, metrics_path,
         main_results_path, attrition_path, feature_control_design_path,
         subset_counts_path, subset_stats_path,
@@ -1218,6 +1545,9 @@ nb.cells[17].source = code(
         k_predictions_path,
         drift_period_path, event_period_path, drift_diagnostics_path, drift_correlations_path,
         drift_leaf_path,
+        trace_oof_audit_path, trace_design_path, trace_gate_selection_path,
+        trace_subset_inference_path,
+        trace_predictions_path, trace_subset_masks_path,
         event_weight_path, event_composition_path, event_category_composition_path,
         event_weight_retrieval_predictions_path,
         event_weight_model_path,
@@ -1252,11 +1582,15 @@ nb.cells[17].source = code(
                 tsfm_gate_status['completed']
                 and RUN_JOURNAL_BASELINES
                 and set(cfg.retrieval.kb_stride_values) == {1, 6, 24}
+                and len(stride_model_frame) == 3 * len(cfg.retrieval.kb_stride_values)
                 and len(site_level_design) == 3
             ),
             'primary_kb_stride_hours': cfg.retrieval.kb_stride_hours,
             'kb_stride_values': list(cfg.retrieval.kb_stride_values),
-            'stride_model_sweep_completed': RUN_STRIDE_MODEL_SWEEP,
+            'stride_model_sweep_completed': bool(
+                RUN_STRIDE_MODEL_SWEEP
+                and len(stride_model_frame) == 3 * len(cfg.retrieval.kb_stride_values)
+            ),
             'journal_baselines_completed': RUN_JOURNAL_BASELINES,
             'event_retrieval_method': 'event_conditioned',
             'event_weight_values': list(cfg.retrieval.event_weight_values),
@@ -1269,6 +1603,14 @@ nb.cells[17].source = code(
             'placebo_fusion_controls': ['climatology', 'persistence'],
             'aqi_thresholds': list(cfg.evaluation.aqi_thresholds),
             'probabilistic_quantiles': list(cfg.evaluation.probabilistic_quantiles),
+            'chronos_native_quantile_grid': bool(
+                min(cfg.evaluation.probabilistic_quantiles) >= 0.1
+                and max(cfg.evaluation.probabilistic_quantiles) <= 0.9
+            ),
+            'trace_raf_completed': True,
+            'trace_raf_oof_embargo_passed': bool(pd.DataFrame(oof_rows)['embargo_passed'].all()),
+            'trace_raf_residual_candidate_count': int(residual_candidate_mask.sum()),
+            'trace_raf_selected_gate_strength': trace_gate.selected_strength,
             'matched_feature_count_control': True,
             'site_level_sensitivity_completed': len(site_level_design) == 3,
         },
@@ -1507,7 +1849,8 @@ site_code = nbformat.v4.new_code_cell(code(
 ))
 nb.cells[14:14] = [site_markdown, site_code]
 
-for cell in nb.cells:
+for index, cell in enumerate(nb.cells):
+    cell.id = f"event-timeraf-{index:03d}"
     if cell.cell_type == "code":
         cell.outputs = []
         cell.execution_count = None
@@ -1523,7 +1866,7 @@ RESULTS_NOTEBOOK = ROOT / "notebooks" / "02_results_and_figures.ipynb"
 results_nb = nbformat.read(RESULTS_NOTEBOOK, as_version=4)
 results_nb.cells[0].source = code(
     """
-    # Event-TimeRAF Publication-Candidate Results
+    # TRACE-RAF Publication-Candidate Results
 
     This notebook reads one manifest-backed final run. It does not train models or alter
     predictions. It rejects mixed run identifiers and displays the diagnostics required before
@@ -1563,6 +1906,10 @@ feature_control_design = pd.read_csv(cfg.paths.outputs / 'tables' / 'feature_cou
 site_level_sensitivity = pd.read_csv(cfg.paths.outputs / 'tables' / 'site_level_sensitivity.csv')
 site_level_design = pd.read_csv(cfg.paths.outputs / 'tables' / 'site_level_design.csv')
 site_selection_audit = pd.read_csv(cfg.paths.outputs / 'tables' / 'site_selection_audit.csv')
+trace_gate_selection = pd.read_csv(cfg.paths.outputs / 'tables' / 'trace_raf_gate_selection.csv')
+trace_design = pd.read_csv(cfg.paths.outputs / 'tables' / 'trace_raf_design.csv')
+trace_oof_audit = pd.read_csv(cfg.paths.outputs / 'tables' / 'trace_raf_oof_audit.csv')
+trace_subset_inference = pd.read_csv(cfg.paths.outputs / 'tables' / 'trace_raf_subset_inference.csv')
 """,
     results_setup,
     flags=re.DOTALL,
@@ -1587,6 +1934,9 @@ results_setup = re.sub(
     | set(feature_control_design['run_id'])
     | set(site_level_sensitivity['run_id']) | set(site_level_design['run_id'])
     | set(site_selection_audit['run_id'])
+    | set(trace_gate_selection['run_id']) | set(trace_oof_audit['run_id'])
+    | set(trace_design['run_id'])
+    | set(trace_subset_inference['run_id'])
 )""",
     results_setup,
     flags=re.DOTALL,
@@ -1615,6 +1965,13 @@ if not run_options.get('matched_feature_count_control'):
     raise RuntimeError('The matched event-feature-count control is required.')
 if not run_options.get('site_level_sensitivity_completed'):
     raise RuntimeError('The three-monitor site-level sensitivity arm is required.')
+if not run_options.get('trace_raf_completed') or not run_options.get('trace_raf_oof_embargo_passed'):
+    raise RuntimeError('TRACE-RAF and its out-of-fold temporal embargo are required.')
+if not run_options.get('chronos_native_quantile_grid'):
+    raise RuntimeError('Chronos probabilistic evaluation must use only its native quantile grid.')
+expected_stride_rows = 3 * len(run_options.get('kb_stride_values', []))
+if len(stride_models) != expected_stride_rows:
+    raise RuntimeError('The learned 1/6/24-hour stride table is incomplete.')
 if REQUIRE_PUBLICATION_TITLE_ALLOWED""",
     results_setup,
     flags=re.DOTALL,
@@ -1656,6 +2013,10 @@ results_nb.cells[3].source = code(
     display(site_level_design)
     display(site_selection_audit)
     display(site_level_sensitivity)
+    display(trace_oof_audit)
+    display(trace_design)
+    display(trace_gate_selection.sort_values(['model', 'gate_strength']))
+    display(trace_subset_inference.sort_values(['subset', 'comparison', 'metric']))
     display(drift_comparison)
     display(drift_leaf_occupancy)
     display(drift_results)
@@ -1663,7 +2024,8 @@ results_nb.cells[3].source = code(
     display(explanations.sort_values('drift_score', ascending=False).head(10))
     """
 )
-for cell in results_nb.cells:
+for index, cell in enumerate(results_nb.cells):
+    cell.id = f"trace-results-{index:03d}"
     if cell.cell_type == "code":
         cell.outputs = []
         cell.execution_count = None

@@ -503,6 +503,9 @@ Each model consumes the same split and writes the same prediction schema.
 | `M10` | Frozen TSFM zero-shot baseline | Publication gate |
 | `M11` | Frozen TSFM plus retrieval augmentation | Publication gate |
 | `M12` | Validation-selected drift router | Diagnostic |
+| `C06` | OOF-selected convex XGBoost-LightGBM context ensemble | Yes |
+| `A03` | TRACE-RAF without event-conditioned residual retrieval | Yes |
+| `M13` | TRACE-RAF trust-gated residual analog correction | Yes |
 | `B00` | DLinear univariate baseline | Yes |
 | `B01` | PatchTST univariate baseline | Yes |
 | `B02` | LSTM univariate baseline | Yes |
