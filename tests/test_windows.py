@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 
 from event_timeraf.models import daily_seasonal_forecast, persistence_forecast, weekly_seasonal_forecast
@@ -40,4 +42,25 @@ def test_window_attrition_reconciles_retained_windows(modeling_frame, cfg):
     assert attrition.iloc[-1]["stage"] == "retained_windows"
     assert attrition.iloc[-1]["count"] == len(dataset.x)
     assert (attrition["removed_since_previous"] >= 0).all()
+
+
+def test_explicit_split_dates_create_an_unseen_test_period(modeling_frame, cfg):
+    validation_start = modeling_frame.loc[1_800, "timestamp_utc"]
+    test_start = modeling_frame.loc[2_400, "timestamp_utc"]
+    dated_cfg = replace(
+        cfg,
+        forecast=replace(
+            cfg.forecast,
+            validation_start_date=validation_start.date().isoformat(),
+            test_start_date=test_start.date().isoformat(),
+        ),
+    )
+    dataset = build_window_dataset(modeling_frame, dated_cfg)
+    metadata = dataset.metadata
+    validation_boundary = validation_start.normalize()
+    test_boundary = test_start.normalize()
+    assert (metadata.loc[metadata["split"] == "train", "target_end"] < validation_boundary).all()
+    assert (metadata.loc[metadata["split"] == "validation", "origin_time"] >= validation_boundary).all()
+    assert (metadata.loc[metadata["split"] == "validation", "target_end"] < test_boundary).all()
+    assert (metadata.loc[metadata["split"] == "test", "origin_time"] >= test_boundary).all()
 

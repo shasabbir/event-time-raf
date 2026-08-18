@@ -18,6 +18,7 @@ from event_timeraf.evaluation import (
     paired_masked_block_bootstrap_loss_difference,
     predictions_long,
     quantile_forecast_metrics,
+    select_exceedance_decision_thresholds,
 )
 
 
@@ -100,6 +101,27 @@ def test_operational_and_probabilistic_metrics():
     )
     assert len(calibration) == len(levels)
     assert probabilistic.loc[0, "crps_quantile_approximation"] >= 0
+
+
+def test_exceedance_decision_threshold_is_selected_only_from_validation():
+    validation_actual = np.array([[10.0], [36.0], [40.0], [12.0]])
+    validation_predicted = np.array([[8.0], [30.0], [32.0], [15.0]])
+    selection = select_exceedance_decision_thresholds(
+        validation_actual, validation_predicted, [35.4], "model"
+    )
+    decision = selection.loc[0, "selected_decision_threshold_ug_m3"]
+    assert decision < 35.4
+    test_actual = np.array([[10.0], [38.0]])
+    test_predicted = np.array([[12.0], [31.0]])
+    calibrated = exceedance_metrics(
+        test_actual,
+        test_predicted,
+        [35.4],
+        "model",
+        decision_thresholds={35.4: decision},
+    )
+    assert calibrated.loc[0, "decision_rule"] == "validation_calibrated"
+    assert calibrated.loc[0, "recall"] == 1.0
 
 
 def test_long_predictions_preserve_event_and_drift_labels():

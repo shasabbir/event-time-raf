@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -12,7 +13,15 @@ from event_timeraf.features import CALENDAR_FEATURES
 
 @pytest.fixture
 def cfg(tmp_path: Path):
-    return load_config(Path(__file__).parents[1] / "configs" / "default.yaml", project_root=tmp_path)
+    loaded = load_config(Path(__file__).parents[1] / "configs" / "default.yaml", project_root=tmp_path)
+    return replace(
+        loaded,
+        forecast=replace(
+            loaded.forecast,
+            validation_start_date=None,
+            test_start_date=None,
+        ),
+    )
 
 
 @pytest.fixture
