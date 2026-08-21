@@ -11,8 +11,13 @@ import requests
 
 from event_timeraf.data import (
     NOAA_GLOBAL_HOURLY_URL,
+    NOAA_GHCNH_URL,
+    NOAA_ISD_END,
     NOAA_ISD_HISTORY_URL,
     _event_coverage_days,
+    _ghcnh_station_id,
+    _ghcnh_to_isd_schema,
+    _noaa_cache_covers_required_period,
     download_file,
     load_storm_events_cache,
     noaa_station_candidates,
@@ -27,6 +32,30 @@ from event_timeraf.data import (
 def test_noaa_weather_uses_official_nodd_endpoints():
     assert NOAA_ISD_HISTORY_URL == "https://noaa-isd-pds.s3.amazonaws.com/isd-history.csv"
     assert NOAA_GLOBAL_HOURLY_URL == "https://noaa-global-hourly-pds.s3.amazonaws.com"
+    assert NOAA_GHCNH_URL.endswith("hourly/access/by-year")
+    assert NOAA_ISD_END == pd.Timestamp("2025-08-29", tz="UTC")
+
+
+def test_ghcnh_station_mapping_and_schema_conversion(cfg):
+    station = pd.Series({"CTRY": "US", "WBAN": "23152"})
+    assert _ghcnh_station_id(station) == "USW00023152"
+    ghcnh = pd.DataFrame(
+        {
+            "Year": [2025], "Month": [9], "Day": [1], "Hour": [0], "Minute": [0],
+            "temperature": [21.6], "dew_point_temperature": [14.2],
+            "sea_level_pressure": [1012.8], "station_level_pressure": [987.4],
+            "wind_direction": [270], "wind_speed": [3.5], "precipitation": [0.2],
+        }
+    )
+    converted = _ghcnh_to_isd_schema(ghcnh)
+    weather = prepare_noaa_weather(converted, cfg)
+    assert weather.loc[0, "timestamp_utc"] == pd.Timestamp("2025-09-01", tz="UTC")
+    assert weather.loc[0, "temperature_c"] == pytest.approx(21.6)
+    assert weather.loc[0, "pressure_hpa"] == pytest.approx(1012.8)
+    assert weather.loc[0, "wind_direction_deg"] == pytest.approx(270)
+    assert weather.loc[0, "wind_speed_ms"] == pytest.approx(3.5)
+    assert weather.loc[0, "precipitation_mm"] == pytest.approx(0.2)
+    assert weather.loc[0, "weather_source"] == "NOAA GHCNh"
 
 
 def test_station_inventory_lag_does_not_reject_final_year_overlap(cfg):
@@ -52,6 +81,19 @@ def test_download_error_explains_kaggle_internet_or_cache(monkeypatch, tmp_path)
     monkeypatch.setattr(requests, "get", fail_request)
     with pytest.raises(RuntimeError, match="Enable Internet in the Kaggle notebook"):
         download_file("https://example.invalid/data.csv", tmp_path / "data.csv")
+
+
+def test_noaa_cache_must_reach_configured_study_end(cfg, tmp_path):
+    cache = tmp_path / "station_2025.csv"
+    pd.DataFrame(
+        {"DATE": pd.date_range("2025-01-01", "2025-08-24 23:00", freq="h", tz="UTC")}
+    ).to_csv(cache, index=False)
+    assert not _noaa_cache_covers_required_period(cache, 2025, cfg)
+
+    pd.DataFrame(
+        {"DATE": pd.date_range("2025-01-01", "2025-12-31 23:00", freq="h", tz="UTC")}
+    ).to_csv(cache, index=False)
+    assert _noaa_cache_covers_required_period(cache, 2025, cfg)
 
 
 def test_event_coverage_counts_union_of_source_ranges():
