@@ -395,7 +395,7 @@ Processing requirements:
 Preferred source:
 
 ```text
-NOAA NCEI Global Hourly/ISD through the official NOAA NODD public buckets first
+NOAA NCEI GHCNh through the official annual station files first
 Open-Meteo optional fallback
 ```
 

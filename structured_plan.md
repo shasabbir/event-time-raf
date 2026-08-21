@@ -93,7 +93,7 @@ coverage.
 | Data | Preferred source | Fallback rule |
 | --- | --- | --- |
 | PM2.5 | US EPA AirData/AQS hourly parameter `88101` | Use parameter `88502` only as a separately documented sensitivity source; never merge parameter codes silently |
-| Weather | NOAA NCEI Global Hourly/ISD observations through NOAA NODD | Open-Meteo may be used only as a documented weather fallback |
+| Weather | NOAA NCEI GHCNh annual station observations; do not mix retired ISD records into the 2019--2025 run | Open-Meteo may be used only as a documented weather fallback |
 | Calendar | Deterministic US federal and California holiday features | Omit uncertain special-day flags and document the omission |
 | Events | NOAA Storm Events; optional NOAA HMS fire/smoke records | Use unchanged NOAA annual archives prepared from the official NCEI index; attach them privately with their generated source manifest and SHA-256 hashes |
 
