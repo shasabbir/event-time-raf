@@ -19,13 +19,13 @@
 <text x="154.0" y="133.0" class="label" text-anchor="middle" dominant-baseline="middle">county monitors</text>
 <text x="154.0" y="154" class="mono" text-anchor="middle" dominant-baseline="middle">coverage=0.9997</text>
 <rect x="52" y="208" width="204" height="72" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
-<text x="154.0" y="223.0" class="label" text-anchor="middle" dominant-baseline="middle">NOAA weather</text>
+<text x="154.0" y="223.0" class="label" text-anchor="middle" dominant-baseline="middle">NOAA GHCNh</text>
 <text x="154.0" y="245.0" class="label" text-anchor="middle" dominant-baseline="middle">station 72297023129</text>
-<text x="154.0" y="266" class="mono" text-anchor="middle" dominant-baseline="middle">coverage=0.9942</text>
+<text x="154.0" y="266" class="mono" text-anchor="middle" dominant-baseline="middle">coverage=0.9923</text>
 <rect x="52" y="320" width="204" height="72" rx="10" fill="#DDECF8" stroke="#263238" stroke-width="1.7"/>
 <text x="154.0" y="335.0" class="label" text-anchor="middle" dominant-baseline="middle">NOAA events</text>
 <text x="154.0" y="357.0" class="label" text-anchor="middle" dominant-baseline="middle">hash + manifest</text>
-<text x="154.0" y="378" class="mono" text-anchor="middle" dominant-baseline="middle">117 event days</text>
+<text x="154.0" y="378" class="mono" text-anchor="middle" dominant-baseline="middle">127 event days</text>
 <rect x="52" y="432" width="204" height="88" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
 <text x="154.0" y="455.0" class="label" text-anchor="middle" dominant-baseline="middle">Availability and</text>
 <text x="154.0" y="477.0" class="label" text-anchor="middle" dominant-baseline="middle">duplicate checks</text>
@@ -81,11 +81,11 @@
 <polyline points="1069,206 1069,226" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <rect x="812" y="372" width="330" height="90" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
 <text x="977.0" y="407.0" class="label" text-anchor="middle" dominant-baseline="middle">Chronological partitions</text>
-<text x="977.0" y="448" class="mono" text-anchor="middle" dominant-baseline="middle">70% train | 15% val | 15% test</text>
+<text x="977.0" y="448" class="mono" text-anchor="middle" dominant-baseline="middle">45,784 train | 7,950 val | 2,460 test</text>
 <line x1="885" y1="308" x2="885" y2="342" stroke="#263238" stroke-width="1.7"/>
 <line x1="1069" y1="308" x2="1069" y2="342" stroke="#263238" stroke-width="1.7"/>
 <line x1="885" y1="342" x2="1069" y2="342" stroke="#263238" stroke-width="1.7"/>
 <polyline points="977,342 977,372" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<text x="977" y="510" class="mono" text-anchor="middle" dominant-baseline="middle">48,332 valid input-target windows</text>
+<text x="977" y="510" class="mono" text-anchor="middle" dominant-baseline="middle">56,194 valid input-target windows</text>
 <text x="977" y="542" class="small" text-anchor="middle" dominant-baseline="middle">targets are never interpolated</text>
 </svg>
