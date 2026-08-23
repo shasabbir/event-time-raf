@@ -109,7 +109,7 @@
 <line x1="547" y1="452" x2="582" y2="452" stroke="#4E79A7" stroke-width="2.4"/>
 <text x="590.0" y="457.0" text-anchor="start" class="legend">Context ensemble</text>
 <line x1="34" y1="477" x2="69" y2="477" stroke="#B55C7A" stroke-width="2.4" stroke-dasharray="8 4 2 4"/>
-<text x="77.0" y="482.0" text-anchor="start" class="legend">Event-TimeRAF</text>
+<text x="77.0" y="482.0" text-anchor="start" class="legend">Event-feature XGBoost</text>
 <line x1="205" y1="477" x2="240" y2="477" stroke="#B8860B" stroke-width="2.4"/>
 <text x="248.0" y="482.0" text-anchor="start" class="legend">TRACE-RAF</text>
 <line x1="376" y1="477" x2="411" y2="477" stroke="#7A5195" stroke-width="2.4" stroke-dasharray="2 4"/>

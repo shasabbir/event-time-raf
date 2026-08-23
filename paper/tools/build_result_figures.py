@@ -18,7 +18,7 @@ MODELS = {
     "C01_ridge_context": "Ridge",
     "C05_lightgbm_context": "LightGBM",
     "C06_context_ensemble": "Context ensemble",
-    "M09_event_timeraf_full": "Event-TimeRAF",
+    "M09_event_timeraf_full": "Event-feature XGBoost",
     "M13_trace_raf": "TRACE-RAF",
     "M10_frozen_chronos": "Chronos-Bolt",
 }

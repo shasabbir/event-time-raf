@@ -88,9 +88,9 @@ part of the forecasting evidence rather than as unrelated metadata.
 
 This study introduces TRACE-RAF, a Trust-gated Residual Analog Correction
 mechanism for auditable event-aware PM2.5 forecasting under distribution shift.
-The surrounding TRACE-RAF framework adapts the retrieval principle of
-TimeRAF to official environmental records without claiming to reproduce its
-learned retriever or Channel Prompting mechanism. Four modules define the
+The framework uses retrieval augmentation in an environmental forecasting
+setting while remaining architecturally distinct from TimeRAF's learned
+retriever and Channel Prompting mechanism. Four modules define the
 implemented pipeline: a Source-Audited Context Builder (SACB), a Leakage-Safe
 Event-Context Retriever (LSER), the TRACE residual-correction core, and a
 Drift-Aware Forecast and Evidence Head (DFEH). Together they address four
@@ -375,8 +375,8 @@ a supervised context ensemble into an analogue residual memory and learns when
 those residuals are trustworthy. The Drift-Aware Forecast and Evidence Head
 (DFEH) exposes the final forecast, comparison paths, shift indicators, and a
 machine-readable evidence record. All modules operate on one-dimensional time
-series or tabular features; no image operator, internal TimeRAF Channel
-Prompting, or test-time parameter fitting is implied.
+series or tabular features; no image operator, internal TSFM Channel Prompting,
+or test-time parameter fitting is implied.
 
 \subsection{Framework Overview and Forward Pass}
 
@@ -507,8 +507,8 @@ Thus, Equation~(\ref{eq:context_vector}) fixes both feature orderings: the
 85-dimensional event-aware context used by LSER and event-conditioned controls.
 
 All normalization statistics are fitted on the training split only. Query and
-candidate windows use identical normalization, following the TimeRAF principle
-that retrieved and input sequences must share a preprocessing convention. The
+candidate windows use the same preprocessing convention so that similarity is
+not confounded by inconsistent scaling. The
 reported run contains 56,194 valid windows with
 $X\in\mathbb{R}^{56194\times168}$ and
 $Y\in\mathbb{R}^{56194\times24}$. Of these, 45,784 belong to training,
@@ -530,7 +530,7 @@ score from overriding the temporal constraint.
 \caption{Leakage-Safe Event-Context Retriever. A strict candidate-target
 embargo and training-history restriction are applied before hybrid ranking.
 The top eight candidates provide aligned future trajectories and a
-51-dimensional retrieval summary.}
+53-dimensional retrieval summary.}
 \label{fig:retrieval_timeline}
 \end{figure*}
 
@@ -747,12 +747,12 @@ u_{t,h}=[q_t\,\|\,\rho(G_t)\,\|\,d_t\,\|\,c_{t+h}],
 \qquad \hat{y}^{X}_{t+h}=f_h(u_{t,h}),
 \label{eq:direct_heads}
 \end{equation}
-where $u_{t,h}\in\mathbb{R}^{151}$ for the M09 comparison model and each $f_h$ is an
+where $u_{t,h}\in\mathbb{R}^{153}$ for the M09 comparison model and each $f_h$ is an
 XGBoost regressor trained with squared-error objective. This design gives each
 forecast horizon a separate supervised function while retaining a common
 origin representation.
-Equation~(\ref{eq:direct_heads}) accounts for the verified 151 features:
-85 context, 51 retrieval, six drift, and nine future-calendar values. The drift
+Equation~(\ref{eq:direct_heads}) accounts for the verified 153 features:
+85 context, 53 retrieval, six drift, and nine future-calendar values. The drift
 score and binary flag support regime analysis and the evidence record; they do
 not adaptively select a forecaster in the reported experiment.
 
@@ -1039,7 +1039,8 @@ P00--P01 & Chronos fused with climatology or persistence placebos \\
 
 \subsection{Implementation and Hyperparameters}
 The experiment was executed in a cloud-hosted Linux 6.12.90 environment using
-Python 3.12.13. The runtime was 6,915.3 seconds. Key package versions recorded in the
+Python 3.12.13. The publication pipeline recorded 6,915.3 seconds of internal
+runtime. Key package versions recorded in the
 run manifest include NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost
 3.2.0, LightGBM 4.6.0, PyTorch 2.10.0+cu128, Transformers 4.57.6, and
 chronos-forecasting 2.3.1. Table
@@ -1062,7 +1063,7 @@ SACB missing-data rule & Past-only filling for gaps up to 3 hours; no target int
 LSER retrieval & $k=8$, sensitivity for $k \in \{1,4,8,16\}$ \\
 LSER knowledge base & 1,824 windows at 24-hour primary stride; 6/1-hour sweeps \\
 LSER similarity weights & time series 0.5, weather 0.2, calendar 0.1, event 0.2 \\
-DFEH direct input & 151 features for each of 24 horizon regressors \\
+DFEH direct input & 153 features for each of 24 horizon regressors \\
 DFEH XGBoost & 350 estimators, max depth 6, learning rate 0.05, subsample 0.85,
 colsample 0.85, $\lambda=1.0$ \\
 TRACE base ensemble & LightGBM weight 0.6521; XGBoost weight 0.3479 \\
@@ -1082,7 +1083,7 @@ Inference & 5,000 paired resamples; 168-hour blocks/HAC lags; Holm correction \\
 
 \subsection{Evaluation Metrics and Statistical Checks}
 The primary metrics are MSE, MAE, RMSE, MAPE, sMAPE, and $R^2$. MSE is retained
-for comparability with the TimeRAF evaluation, while MAE and RMSE provide more
+as the primary squared-error criterion, while MAE and RMSE provide more
 interpretable PM2.5 error scales. For $n$ observed forecast values $y_j$ and
 predictions $\hat{y}_j$, the principal error metrics are
 \begin{equation}
@@ -1174,7 +1175,7 @@ B00 DLinear & 40.305 & 4.097 & 6.349 & 0.441 \\
 B01 PatchTST & 40.766 & 4.111 & 6.385 & 0.435 \\
 B02 LSTM & 39.978 & 4.095 & 6.323 & 0.445 \\
 C06 context ensemble & 40.115 & 4.156 & 6.334 & 0.444 \\
-M09 feature-level Event-TimeRAF & 41.193 & 4.148 & 6.418 & 0.429 \\
+M09 event-feature XGBoost & 41.193 & 4.148 & 6.418 & 0.429 \\
 \emph{M13 TRACE-RAF} & \emph{40.062} & \emph{4.134} & \emph{6.329} & \emph{0.444} \\
 A03 TRACE-RAF without events & 40.062 & 4.135 & 6.329 & 0.444 \\
 M10 frozen Chronos-Bolt & 47.534 & 4.202 & 6.894 & 0.341 \\
@@ -1467,8 +1468,9 @@ Drift & 0.268 & 0.125 \\
 
 \subsection{Computational Cost and Reproducibility}
 
-The three notebooks executed sequentially without cell errors and completed in
-6,915.3 seconds in a Linux environment using Python 3.12.13. The recorded
+The publication pipeline recorded 6,915.3 seconds of internal runtime in a
+Linux environment using Python 3.12.13. All three notebooks completed without
+cell errors. The recorded
 versions include NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost 3.2.0,
 LightGBM 4.6.0, PyTorch 2.10.0+cu128, Transformers 4.57.6, and
 \texttt{chronos-forecasting} 2.3.1. The archive contains 42 result tables with
@@ -1488,7 +1490,7 @@ is not interpreted as a hardware-normalized efficiency result.
 Item & Recorded value \\
 \midrule
 Run identifier & \texttt{20260821T143600090063Z} \\
-Runtime & 6,915.3 seconds \\
+Pipeline runtime & 6,915.3 seconds \\
 Platform & Linux 6.12.90 \\
 Python & 3.12.13 \\
 Forecast horizon & 24 hours \\
@@ -1503,7 +1505,7 @@ Code availability & \url{https://github.com/shasabbir/event-time-raf} \\
 
 The main interpretation is that supervised context models are unusually strong
 for this Los Angeles County task. TRACE-RAF improves on context XGBoost and is
-nominally better than its LightGBM base in both MSE and MAE, but Ridge remains
+nominally better than the LightGBM comparator in both MSE and MAE, but Ridge remains
 best overall and no favorable TRACE contrast survives family-wise adjustment.
 The nearly identical event-free ablation further shows that the aggregate TRACE
 result comes from conservative residual correction, not measurable event
@@ -1587,7 +1589,7 @@ embargo; TRACE retrieves out-of-fold residual analogues and applies a learned
 reliability gate; and DFEH retains prediction-level evidence and drift
 diagnostics. On the final 2025 holdout of 2,460 origins, TRACE-RAF obtains MSE
 40.062, MAE 4.134, RMSE 6.329, and $R^2=0.444$. This improves context XGBoost
-and is nominally better than its LightGBM base, while Ridge remains strongest at
+and is nominally better than the LightGBM comparator, while Ridge remains strongest at
 MSE 39.144. No favorable TRACE comparison survives Holm adjustment, and the
 event-free TRACE ablation is effectively unchanged. The supported contribution
 is therefore a reproducible, trust-gated residual-retrieval architecture and an
