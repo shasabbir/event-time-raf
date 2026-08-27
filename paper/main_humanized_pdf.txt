@@ -1,0 +1,1452 @@
+Digital Object Identifier
+
+
+
+
+TRACE-RAF: Trust-Gated Residual Analog
+Correction with Evidence-Preserving Retrieval for
+Auditable PM2.5 Forecasting
+SABBIR HOSSAIN1 , MD. IFTEKHARUL MOBIN1 , and MAHAMODUL HASAN MAHADI1
+1
+    Department of Computer Science, Faculty of Science and Technology, American International University-Bangladesh, Dhaka 1229, Bangladesh
+Corresponding author: Md. Iftekharul Mobin.
+
+
+
+
+      ABSTRACT In the short horizon PM2.5 forecasting, the role of pollutant persistence, meteorology, calendar
+      effects, as well as sparsity of environmental events and temporal shift in distribution, should be incorporated
+      together without introducing leakage. In this study, a supervised TRACE-RAF, (Trust-gated Residual Analog
+      Correction method) for the 24-hour forecasting with auditing is presented. The Source-Audited Context
+      Builder integrates the EPA PM2.5 data, NOAA GHCNh weather, calendar and hash-checked NOAA Storm
+      Events data. A Leakage-Safe Event-Context Retriever is leakage-safe because it enforces a candidate-
+      target embargo; TRACE-RAF does not retrieve raw futures but, instead, out-of-fold base-model residual
+      trajectories. Each correction is done by a reliability gate that scales it based on retrieval quality, model
+      disagreement, correction spread, event context and distribution-shift evidence - all using 18 variables.
+      A Drift-Aware Forecast and Evidence Head saves prediction level evidence and diagnostics. Evaluation
+      includes Los Angeles County from 2019 to 2025 and 168-hour lookback and chronological splits of 45,784
+      origins of training, 7,950 validation, and 2,460 test. TRACE-RAF obtains MSE 40.062, MAE 4.134,
+      and RMSE 6.329. It achieves 4.63% lower MSE than context XGBoost and is within 0.07% of context
+      LightGBM, although Ridge achieves the lowest MSE of 39.144. Even though this nominal effect is not
+      significant after Holm correction, TRACE-RAF reduces MAE by 0.021 compared to its base ensemble.
+      Validation gives no weight to the raw-analogue fusion and to a global residual correction, while ungated
+      residual transfer records MSE 44.959. The event-free TRACE-RAF variant is nearly identical, so an event-
+      specific gain is not established. A significant degradation of the tested frozen Chronos-Bolt MAE is observed
+      when conditioned on events, after multiplicity adjustment, which does not hold true for retrieval-augmented
+      time-series foundation models. Since Storm Events doesn’t have machine-readable publication times, all the
+      results that are event-conditioned are still retrospective sensitivity analyses.
+
+
+      INDEX TERMS Air quality forecasting, PM2.5, retrieval-augmented forecasting, residual correction, time-
+      series foundation models, distribution-shift diagnostics, auditable forecasting.
+
+
+I. INTRODUCTION                                                                                    The recent time-series foundation models (TSFMs) hope to
+                                                                                                be able to transfer the learned forecasting capabilities to new
+T     HE fine particulate matter (PM2.5) is a significant urban
+      air-quality risk factor, due to its association with respira-
+tory and cardiovascular health impacts [1]. Short-term PM2.5
+                                                                                                domains by being pre-trained on a large time-series corpora
+                                                                                                to improve forecasting generalization. Examples are the mod-
+predictions can be useful for public-health alerts, reduction                                   els TimesFM, Moirai, MOMENT, Chronos and Tiny Time
+of exposure, planning of transportation, and environmental                                      Mixers [2]–[6]. Meanwhile, non-parametric memory has also
+operations. However, in Los Angeles County, the dynamics of                                     been demonstrated to provide useful external knowledge
+PM2.5 is not easily modeled using pollutant history. Higher                                     to foundation models during inference time (via retrieval-
+and lower concentrations may occur due to wind speed,                                           augmented generation) [7], [8]. TimeRAF brings these two
+boundary-layer conditions, precipitation, holidays, wildfire                                    together, and for zero-shot time-series forecasting, retrieves
+smoke, and rare or unusual storm and high wind events dur-                                      sequences from a curated knowledge base and then inject into
+ing the season. All these make it a temporal and contextual                                     a frozen TSFM via Channel Prompting [9].
+problem in forecasting.                                                                            The question of retrieval for air-quality forecasting in-
+
+VOLUME XX, 2026                                                                                                                                              1
+                                                                                 S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+volves a domain-specific retrieval question which is not fully      tion equals causation.
+answered by numerical time-series retrieval. A historical
+PM2.5 window can be one that is similar to the current win-         II. LITERATURE REVIEW AND RELATED WORK
+dow, but under different weather or event conditions. On the        A. STATISTICAL, MACHINE-LEARNING, AND DEEP
+other hand, if a window is moderately numerically similar, but      FORECASTERS
+shares high wind, rain, holiday or stagnant or smoke context,       Forecasting techniques vary in terms of inductive bias, data
+the window is potentially more informative. This encourages         requirements, and computational requirements. Autoregres-
+a retrieval approach that makes records of sources as well          sive and seasonal models are still useful baseline models due
+as weather and calendar data and distribution-shift indicators      to straightforward failure modes. With an extension of this
+part of the evidence for making forecasts.                          setting, tree ensembles like XGBoost and LightGBM can be
+   This paper proposes a Trust-gated Residual Analog Cor-           used to model nonlinear lag, rolling, weather, and calendar in-
+rection mechanism (TRACE-RAF) for PM2.5 forecasting                 teractions without the need for a sequence encoder [10], [11].
+with event context as an auxiliary evidence channel under           Recurrent LSTM and GRU models, on the other hand, acquire
+temporal distribution shift for auditable applications. The         stateful temporal representations [12], [13]. However, sys-
+framework is based on retrieval augmentation in an environ-         tematic studies warn that one shouldn’t blindly replace power-
+mental forecasting context and it does not share the same           ful statistical baselines with the recurrent networks, and they
+architecture as the learned retriever and Channel Prompt-           should be carefully preprocessed and evaluated [14]. DeepAR
+ing of TimeRAF. The implemented pipeline consists of four           is an extension of the recurrent formulation to the probabilis-
+modules: Source-Audited Context Builder (SACB), Leakage-            tic forecast of related series [15]. A set of large benchmark
+Safe Event-Context Retriever (LSER), TRACE residual-                archives, such as the Monash Forecasting Repository, also al-
+correction core and Drift-Aware Forecast and Evidence Head          lows for reproducible comparison of different heterogeneous
+(DFEH). They collectively answer four questions: how of-            domains of time-series [16]. Transformer families promote
+ficial records can be reorganized to be retrieval compatible;       longer dependencies, including Informer with reduced atten-
+how candidates can be selected without temporal leakage;            tion cost, Autoformer and FEDformer with decomposition,
+how analogue residuals can correct a good supervised forecast       Crossformer and iTransformer with cross-variable structure,
+without supplanting it; and, how each forecast can maintain         and TimesNet with temporal variation reorganized to pattern
+evidence of retrieval, event, drift and uncertainty.                in 2D [17]–[22]. The benefits of these gains do not mean
+   The main contributions are as follows:                           that more complicated architecture is always required. Simple
+                                                                    decomposition or patch-based inductive biases are shown to
+    • Source-Audited Context Builder: A reproducible mech-          be still very competitive by DLinear [23] or PatchTST [24],
+      anism to align EPA PM2.5, NOAA weather, calendar,             while explicit multiscale decomposition and mixing are used
+      and hash-verified NOAA Storm Events records, retain-          by TimeMixer [25]. So, a deep backbone doesn’t automat-
+      ing source identity, coverage checks, and the declared        ically win the evaluation; rather, the evaluation keeps the
+      event-availability assumption.                                seasonal and boosted tree baselines. This option is in line with
+    • Leakage-Safe Event-Context Retriever: Under the em-
+                                                                    recent surveys of journals that focus on the fact that criterion
+      bargo where every candidate target ends before the query      for selecting a model should not be based on the novelty of the
+      lookback begins, PM2.5 shape, weather, calendar, and          model structure but should consider the horizon, the structure
+      event similarity are combined for historical analogue         of covariables, the uncertainty requirement, and the size of
+      retrieval.                                                    the data set [26], [27].
+    • TRACE residual correction: Out-of-fold residual mem-
+      ory and validation-trained reliability gate for selectively   B. TIME-SERIES FOUNDATION MODELS
+      applying analogue corrections to a convex LightGBM–           Instead of having to learn the representation of a time series
+      XGBoost context ensemble.                                     from scratch, TSFMs aim for transfer of learning between
+    • Drift-Aware Forecast and Evidence Head: An evalua-
+                                                                    time series. TimesFM features a decoder-only forecasting
+      tion layer that provides direct, residual-corrected, and      design, Moirai learns a universal forecasting Transformer,
+      frozen Chronos-Bolt paths, transparent shift indicators,      MOMENT can be used for a variety of time-series tasks,
+      probabilistic diagnostics, and machine-readable forecast      Chronos represents values as tokens, and Tiny Time Mix-
+      evidence.                                                     ers focuses on compact zero- and few-shot transfer [2]–[6].
+   The evaluation is a final chronological holdout, and fea-        Timer, Timer-XL, UniTime, and Time-LLM are about gen-
+tures linear, boosted tree, neural, retrieval-only, placebo-        erative pretraining, long-context scaling, crossdomain unifi-
+fusion and frozen-TSFM baselines. Paired inference is per-          cation, or language-model reprogramming [28]–[31]. Frozen
+formed with 168-hour blocks, 5,000 bootstrap replications,          pretrained models have also been assessed for general com-
+HAC-corrected Diebold–Mariano tests and Holm adjustment             putation engines for time-series analysis [32]. All of these
+for the set of comparison tests in the declared comparison          studies encourage the study of zero-shot evaluation, yet they
+family. This design allows you to see negative evidence as          also demonstrate that input representation and domain shift
+well as positive evidence and doesn’t assume event associa-         affect the transfer performance. This way, the present study
+2                                                                                                                            VOLUME XX, 2026
+S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+makes only comparisons on the same forecast origins between        saliency allows checking counterfactuals of probabilistic pre-
+frozen Chronos-Bolt and locally supervised models, and does        dictions [44]. The evidence layer that has been implemented
+not presume the superiority of the foundation models.              is more restricted: signed XGBoost effects, retrieved cases,
+                                                                   event identifiers, drift components, proxy for uncertainty.
+C. RETRIEVAL-AUGMENTED FORECASTING                                 While these records help traceability, they can not be used
+Retrieval augmentation is a disentanglement of parametric          to prove causal effects of weather or events.
+knowledge from an external memory. The concept of retrieve-
+then-condition set the example in natural-language process-        III. CRITICAL GAPS AND LIMITATIONS OF PREVIOUS
+ing for RAG and Dense Passage Retrieval [7], [8]. Diffusion        STUDIES
+forecasting of time series and time series assisted generation     Four gaps in the event sensitive urban air-quality forecasting
+workflows have been explored as means of retrieval in time         are left by previous work. First, temporal forecasters and
+series [33], [34]. TimeRAF offers the most relevant method-        numerical retrieval systems do not always carry over the
+ological reference as they build a time-series knowledge base,     assumptions of provenance, coverage and availability of local
+train an MLP dual-encoder retriever, select top-k candidates       contextual records. A numerically equivalent PM2.5 window
+and add them to a frozen TSFM by using Channel Prompting           can be present in a different weather or event regime and
+[9]. It ablations retrieval quality, integration, candidate no.,   a retrospective event label may be confused with informa-
+knowledge-base composition and backbone choice.                    tion provided at the time of forecast. The SACB answers to
+   The current framework is still based on the external-           this gap, bringing together the official records under explicit
+memory principle, but it poses a different experimental ques-      source, coverage and availability audits.
+tion. It relies on transparency (no learned dual encoder), ran-       Second, the historical retrieval may lead to the look-ahead
+dom similarity, cosine similarity, and event-context similarity.   bias if the candidate input or candidate target overlaps the
+Instead of using Channel Prompting, it uses a historical model     query context. The fact that it is similar does not mean that
+residuals path and a learned trust gate as its main TRACE-         the same future cannot be in retrieved evidence. The LSER
+RAF path, while its second path, Chronos-Bolt, evaluates           fills this void with a temporal embargo, a training-history
+output space fusion. It’s not a copy of TimeRAF, therefore.        restriction, and separately auditable PM2.5, weather, calendar
+It is an audited environmental adaptation to investigate the       and event similarity terms.
+effects of contextual analogues as additional information after       Third, raw analogue futures can be redundant or contra-
+strong local forecasts have been generated.                        dictory to information that is already obtained by a robust
+                                                                   supervised model. To overcome this gap, TRACE-RAF stores
+D. AIR-QUALITY FORECASTING AND OFFICIAL CONTEXT                    only strictly out-of-fold residual trajectories, and it learns a
+The pollutants history, temperature, humidity, wind, precip-       trust gate at the origin level from a validation-only correction
+itation and pressure are all commonly used to help forecast        utility. So it is asking whether an analogue accounts for the
+PM2.5. Recent reviews report that a change has occurred            unexplained error and not whether the raw future should
+from single-station recurrent models to attention-based, hy-       supplant the base forecast.
+brid, and spatiotemporal models [35], [36]. For instance Air-         Fourth, retrieval gains are often reported without testing
+Former, which models spatiotemporal evolutions determin-           whether they remain stable when the distribution changes,
+istically at national scale and stochastically for uncertainty     are not due to a simple placebos of forecast-averaging, or are
+estimation [37]. This multi-station approach tackles spatial       attributable to stored evidence. The DFEH fills this gap by
+dependence and the current study analyzes an aggregate of          using direct evidence, residual-corrected evidence, and frozen
+counties and the origin of contextual evidence. Observations       evidence of Chronos-Bolt paths on common origins, evidence
+of regulated PM2.5 are provided by EPA AirData and hourly          that is both machine-readable and made available by the
+meteorology data are provided by NOAA GHCNh, while                 DFEH. This component provides comparison and auditabil-
+NOAA Storm Events provides structured records of hazards           ity, but not a causal explanation that makes the contextual
+[38]–[40]. Smoke evidence could be added to NOAA Hazard            association.
+Mapping System products but were not reported during the              These mappings delimit the novelty of the study. TRACE-
+run [41].                                                          RAF is lacking in a learned dual-encoder retriever as well as
+                                                                   an inbuilt Channel Prompting and the current experiment on a
+E. DISTRIBUTION SHIFT AND FORECAST EVIDENCE                        single county does not provide for geographic generalization.
+Means, variances and input-output relationships may change
+                                                                   IV. CORE CONTRIBUTIONS
+with temporal nonstationarity. Instead, TRACE-RAF tack-
+les this issue by using interpretable shift indicators to audit    The proposed framework provides four mechanisms that have
+regimes, without claiming shift has been eliminated, and by        a one-to-one relationship with the gaps listed above:
+estimating statistics at local temporal scales [42]. Explana-        •   Source-Audited Context Builder (SACB): builds an
+tions can also be more or less general. SHAP attributes pre-             aligned 85 dimensional context from official PM2.5,
+dictions to model parameters [43] and information-theoretic              meteorological, calendar and event records, preserving
+VOLUME XX, 2026                                                                                                                  3
+                                                                                     S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+      the metadata of the sources and availability of these            TABLE 1. Main Symbols Used in the Proposed Formulation
+      records.
+   • Leakage-Safe Event-Context Retriever (LSER): re-                         Symbol      Meaning
+      trieves training-history analogues after enforcing a                    L           Lookback window length
+      candidate-target embargo, and displays the contribution                 H           Forecast horizon
+                                                                              Xt          Historical PM2.5 sequence at time t
+      by each similarity channel and retrieved trajectory evi-                Wt          Weather covariates
+      dence.                                                                  Ct          Calendar/context features
+   • Trust-gated Residual Analog Correction (TRACE): pro-                     Et          Event context available at the forecast origin
+                                                                              Rts         Retrieved time-series knowledge
+      vides an embargoed memory of out-of-fold forecast                       Rev
+                                                                                 t
+                                                                                          Retrieved event knowledge
+                                                                                 t
+      residuals, scales the retrieved residuals to match the                  Dt          Drift indicators
+      query scales, and applies a validation-trained reliability              qBt         Non-event base context in R46
+      gate instead of simply replacing the forecast.                          qt          SACB context vector in R85
+                                                                              Gt          LSER top-k retrieved set
+   • Drift-Aware Forecast and Evidence Head (DFEH): com-                      ρ(Gt )      Retrieval summary in R51
+      bines direct horizon models, TRACE-RAF, frozen-                         ŶtB        Convex context-ensemble forecast
+      TSFM controls, drift-state analysis, and evidence of                    ∆t          Retrieved residual correction in RH
+                                                                              zt          TRACE reliability vector in R18
+      forecast in one chronological evaluation contract.                      gt          Validation-calibrated TRACE gate in [0, 1]
+   The empirical contribution is intentionally qualified.                     Ot          Machine-readable DFEH evidence record
+TRACE-RAF improves on its context ensemble in nominal                         Ŷt+1:t+H   Predicted future PM2.5 values
+MAE inference and remains competitive with the strongest
+nonlinear baseline, but the event channel itself has no veri-
+fied all-origin effect and no favorable component comparison           These values of explicit cutoffs result in 45,784, 7,950, and
+survives family-wise Holm correction.                                  2,460 windows, respectively. For feature fitting the ordering
+                                                                       is also kept in (4) as well as for retrieval eligibility, model
+V. PROBLEM FORMULATION                                                 selection and final evaluation; the test partition is not used to
+We will use xt to represent the measurement of PM2.5 at                preserve a nominal percentage.
+time t. The air-quality lookback window for forecast time t               The basic notation has been summarized in Table 1.
+is defined by the Equation (1).
+                                                                       VI. METHODOLOGY
+                Xt = [xt−L+1 , xt−L+2 , . . . , xt ],            (1)   The TRACE-RAF is carried out in 4 coordinated modules.
+                                                                       The Source-Audited Context Builder (SACB) transforms the
+where L is the lookback length. We can now represent the
+                                                                       different types of official records into a chronological context
+weather covariates, Wt , with time aligned with the lookback
+                                                                       with hourly time and preserves provenance and availability
+window, calendar features, Ct , and event context, Et is avail-
+                                                                       information. Leakage-Safe Event-Context Retriever (LSER)
+able at the point when the forecast is made, under the recorded
+                                                                       is used to build an embargoed historical memory and retrieve
+source assumption. In Equation (2), it is the target that is
+                                                                       analogues based on PM2.5 similarity, weather similarity,
+defined for the input in Equation (1).
+                                                                       calendar similarity and event similarity. The TRACE core
+             Yt+1:t+H = [xt+1 , xt+2 , . . . , xt+H ],           (2)   maps residual memory from out-of-fold errors in a super-
+                                                                       vised context ensemble to an analogue memory and trains
+where, H is a forecasting horizon. Thus, Equation (2) repre-           to recognize when the residual memory is valid. The Drift-
+sents the 24-step vector at each of the valid origins.                 Aware Forecast and Evidence Head (DFEH) reveals the final
+   The forecasting function is given by the following Equa-            forecast, comparison paths, shift indicators and a machine-
+tion (3):                                                              readable evidence record. No image operator, internal TSFM
+         Ŷt+1:t+H = Fθ (Xt , Wt , Ct , Et , Rtst , Rev                Channel Prompting or test-time parameter fitting is implied,
+                                                     t , Dt ),   (3)
+                                                                       all modules work with one dimensional time series or tabular
+where Rtst is the knowledge retrieved time-series, Rev
+                                                     t is the          features.
+knowledge retrieved events, and Dt is the distribution-shift
+indicators. L = 168 hours and H = 24 hours are imple-                  A. FRAMEWORK OVERVIEW AND FORWARD PASS
+mented target setting. The complete information interface is           All the dataflow is summarized in figure 1. The first set of
+given in Equation (3) and the modules implemented to build             records to enter the SACB are EPA PM2.5, NOAA GHCNh
+the arguments are described in the section below.                      weather, calendar and NOAA Storm Events records that are
+   The split based on time is given in Equation (4).                   audited, aligned and transformed into query contexts, and
+                       Ttrain < Tval < Ttest ,                   (4)   input/target windows. The LSER is applied before the eli-
+                                                                       gible candidates are ranked, so that the historical embargo
+where training origins span January 8, 2019–August 23, 2024,           is applied. At the same time, expanding-window XGBoost
+validation origins span August 25, 2024–August 23, 2025,               and LightGBM models generate strictly-out-of-fold (SOOF)
+and test origins span August 25, 2025–December 30, 2025.               residuals for the training memory. TRACE-RAF is able to
+4                                                                                                                                VOLUME XX, 2026
+S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+retrieve and align those residuals, and estimate their reliability                   1) Dataset Construction
+and add a gated correction to the context ensemble. Forecast,                        The hourly PM2.5 data are collected from US EPA Air-
+retrieval cases, event identifiers, drift evidence and uncer-                        Data/AQS parameter 88101 within the boundaries of Los
+tainty fields are recorded with the DFEH and frozen Chronos-                         Angeles County [38]. For coverage and continuity data, the
+Bolt is a separately evaluated benchmark path.                                       data audit will pick one monitoring site where one monitor-
+   The full forecast for every origin t is given by Equation (5).                    ing site meets the coverage criterion. Since no one monitor
+                                                                                    qualified for this criterion, the criterion is the hourly median
+        Ŷt+1:t+H = Fθ,ψ ϕ(Xt , Wt , Ct , Et ), Gt , Dt , R ,                  (5)   for all of the official Los Angeles County AQS monitors.
+                                                                                     Timestamps are converted to America/Los_Angeles,
+where ϕ(·) is the tabular feature construction, Gt is the re-                        handling daylight-saving time explicitly. Target(s) are never
+trieved historical evidence, Dt is the drift evidence and R is                       interpolated into short input gaps, only observations from
+an out-of-fold residual memory. The main methodological                              previous time periods can be used. The nearest appropri-
+limitation is that all of the candidate targets and all of the                       ate NOAA Global Historical Climatology Network hourly
+residuals in Gt and R precede the start of the query lookback.                       (GHCNh) station [39] provides the weather covariates. Fea-
+The below forward pass is the expanded form of Equation (5).                         tures of Calendar include cyclic hour, weekday, and month
+   The implemented forward pass is extended to the case of a                         terms, weekend status, US federal holidays, and California
+batch of B origins in tensor notation as shown in Equation (6).                      holidays.
+                                                                                        The Equation (7) specifies the concatenation of the group
+                  QB = SACBB (X , W , C) ∈ RB×46 ,                                   of features at each of the origins.
+                   Q = [QB ∥ E] ∈ RB×85 ,                                                   qBt = [pt ∥ wt ∥ ct ] ∈ R23+14+9 = R46 ,
+                                                                                                                                                 (7)
+                  Gr = LSER(Q, R) ∈ RB×8×24 ,                                                qt = [pt ∥ wt ∥ ct ∥ et ] ∈ R23+14+9+39 = R85 .
+         (Ŷ L , Ŷ X ) = H(QB , C + ) ∈ (RB×24 )2 ,                                 The vectors pt , wt , ct and et denote the PM2.5 feature vector,
+                   B           L
+                  Ŷ = η Ŷ + (1 − η)Ŷ ∈ R   X             B×24
+                                                                   ,                 weather feature vector, calendar feature vector and event fea-
+                                                                               (6)
+                                   r   B          B×24           B×18
+                                                                                     ture vector respectively. There are fixed lags, rolling moments
+            (∆, Z ) = A(G , Ŷ , D) ∈ R                     ×R             ,         and extrema, differences, the current value and a fill flag
+                                                               B×1
+                   g = λ clip(hψ (Z ), 0, 1) ∈ [0, 1]                  ,             in the PM2.5 group. There are 24-hour rolling means of
+                           B
+                  U = Ŷ + g ⊙ ∆ ∈ R             B×24
+                                                        ,                            the weather group, which includes the measured variables,
+                                                                                     a precipitation-missing flag, derived condition flags, and a
+                                             r
+            (Ŷ , O) = DFEH(U , D, G ) ∈ RB×24 × E.                                  stagnation proxy. The event group includes the counts for 1
+                                                                                     hour and active, 24/72/168 hours, 72 hours by event category
+where η = 0.6521 is the out-of-fold-selected LightGBM
+                                                                                     and the event-burst ratio. Therefore, Equation (7) corrects
+weight, ∆ is the aligned residual correction, Z is the 18 target-
+                                                                                     both feature ordering, the 46 dimensional base context for
+free reliability features, and λ = 0.25 is the validation-
+                                                                                     C01, M04, C05 and C06 and the 85 dimensional event-aware
+selected correction strength. E is the schema for an evidence
+                                                                                     context for LSER and event-conditioned controls.
+record O. H is the paired context heads and A is the residual-
+                                                                                        Normalization statistics are only fit on the training split.
+alignment stage. The 23 PM2.5 features, the 14 weather
+                                                                                     To avoid this problem of differing scaling, the same prepro-
+features and the nine calendar features are present in QB while
+                                                                                     cessing convention is used for query and candidate windows.
+the 39 event features are included in Q but not in either of the
+                                                                                     The reported run contains 56,194 valid windows with X in
+base heads. There are 9 known future-calendar terms added
+                                                                                     R56194×168 and Y in R56194×24 . Of these, 45,784 are allo-
+to QB at each horizon, for a total of 55 inputs to each base
+                                                                                     cated for training, 7,950 for validation and 2,460 for the final
+regressor. The feature level M09 and the frozen Chronos-Bolt
+                                                                                     test holdout.
+arms are not included in TRACE-RAF but will be carried out
+as a controlled comparison as defined by Equation (6).                               C. LEAKAGE-SAFE EVENT-CONTEXT RETRIEVER
+                                                                                     Temporal eligibility is separated from relevance in the LSER.
+B. SOURCE-AUDITED CONTEXT BUILDER                                                    The embargo is first illustrated in Figure 3: a candidate will
+The SACB does so because of a desire to maintain data                                only be considered if its full target is before the start of the
+provenance and temporality prior to model fitting. In figure 2                       query lookback. The qualified candidates are then compared
+you see that it is source specific checks before feature con-                        over four similarity channels that are stored separately. Future
+struction. EPA monitor data is rolled up to an hourly county                         set is chosen to match the scale of the query & summarized for
+median, NOAA weather data is synced from the weather                                 the forecasting head. This ordering is necessary so that such a
+station of choice, the event data is hash checked against an                         high similarity score will not override the temporal constraint.
+event manifest, and calendar information is calculated from
+the local time. The resulting context is then windowed and                           1) Time-Series Knowledge Base
+broken up chronologically—no interpolations are done for the                         PM2.5 windows from the past are stored in the time-series
+target values.                                                                       knowledge base. A window identifier, start time, end time,
+VOLUME XX, 2026                                                                                                                                    5
+                                                                                                              S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+
+     Official source records               SACB: context construction                   LSER: historical retrieval                 TRACE + DFEH
+
+
+           EPA AirData                                                                                                                  Context base ensemble
+          PM2.5 records                           Audit and align                             Training-history
+               T x 1                              hourly records                              knowledge base                                 B x 55 -> B x 24
+
+                                                 UTC + local time                                 N_K=1,824
+
+
+                                                                           train only                                                      Residual analogue
+          NOAA GHCNh
+                                                                                                                                               alignment
+            weather
+                                                  Causal feature                query                                                             B x 8 x 24
+               T x 6                                                                          Embargo filter +
+                                                   construction                                hybrid ranking        residual IDs
+                                                    q_t in R^85
+                                                                                         k=8; alpha,beta,gamma,delta
+                                                                                                                                              Reliability gate
+       NOAA Storm Events
+                                                                                                                                              and correction
+         verified cache
+                                                                                                                                           z: B x 18; g: B x 1
+           127 event days
+
+                                                  Chronological                               Retrieved futures
+                                                   windowing                                   and summaries
+          Calendar rules                         X: Bx168; Y: Bx24                              Bx8x24 -> Bx53
+                                                                                                                                          Forecast + evidence
+               T x 9
+                                                                                                                                            Yhat_TRACE: B x 24
+
+
+
+                                                                                                      q_B, C+
+                               Every candidate target precedes its query; event inputs obey the declared retrospective availability assumption.
+
+
+FIGURE 1. Proposed TRACE-RAF pipeline. Official records pass through SACB, training-history candidates are filtered and ranked by LSER, out-of-fold
+residual analogues are scaled by the TRACE trust gate, and DFEH produces the 24-hour forecast with traceable evidence. Tensor annotations show the
+manifest-backed configuration.
+
+
+
+
+     Source audit                              Hourly context construction                                           Window and split contract
+
+
+             EPA PM2.5                            PM2.5 lags, rolling               Weather values,
+                                                   and differences                flags, rolling means                             Aligned hourly panel
+           county monitors
+            coverage=0.9997                           23 features                       14 features                                      T x (1 + 85)
+
+
+
+           NOAA GHCNh
+        station 72297023129                         Cyclic calendar              Event counts, active
+            coverage=0.9923                          and holidays                 states, burst ratio                       Lookback                  Future target
+                                                       9 features                       39 features
+                                                                                                                           X_t: 168 x 1                 Y_t: 24 x 1
+
+
+            NOAA events
+           hash + manifest
+            127 event days
+                                                                           ||
+                                                                                                                                 Chronological partitions
+
+                                                                                                                          45,784 train | 7,950 val | 2,460 test
+            Availability and
+           duplicate checks                                    Origin context vector
+          event-start caveat                                          q_t in R^85                                           56,194 valid input-target windows
+
+                                                  Fitted and checked on chronological training history                           targets are never interpolated
+
+
+
+
+FIGURE 2. Source-Audited Context Builder. Source checks feed four feature groups that form an 85-dimensional origin vector. The aligned panel is
+converted into 168-hour inputs and 24-hour targets before the chronological split.
+
+
+
+input values, future values, weather summary, calendar sum-                                 has 24 hours of origin stride, and 1824 training windows.
+mary, normalized window vector, split and normalization                                     The sensitivity arms take 6 hour and 1 hour strides and have
+identifier are stored in each record. The main knowledge base                               7,608 and 45,784 candidates respectively. The query specific
+6                                                                                                                                                                 VOLUME XX, 2026
+S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+
+      Temporal eligibility                                        Hybrid similarity and top-k                                       Retrieved evidence
+
+      past                                query time
+
+                                                                        PM2.5 shape                    Weather context                      Aligned candidate
+                                                                             s_ts                            s_w
+                                                                                                                                            future trajectories
+             candidate
+                             target         query                                                                                               B x 8 x 24
+               input
+               168 h          24 h          168 h
+
+
+                                  strict gap                          Calendar context                  Event context
+                                                                             s_c                             s_e                         Uniform / score-weighted
+                                                                                                                                                 forecast
+                                                                                                                                              Yhat_R: B x 24
+                    Eligibility set A_t                                                     sum
+                                                                                                                         candidate IDs
+               candidate_end < query_start                                0.5 s_ts + 0.2 s_w + 0.1 s_c + 0.2 s_e
+
+                                                                                                                                            Trajectory, spread,
+                                                                                                                                             similarity, count
+                                                                              TopK over eligible candidates
+               Training-history restriction                                                                                                  rho(G_t): B x 53
+                                                                                          G_t: B x 8
+                validation/test queries
+
+
+
+
+FIGURE 3. Leakage-Safe Event-Context Retriever. A strict candidate-target embargo and training-history restriction are applied before hybrid ranking. The
+top eight candidates provide aligned future trajectories and a 53-dimensional retrieval summary.
+
+
+
+embargo in Equation (9) is not relaxed if there is overlap                                   2) Event Knowledge Base
+between the candidates.                                                                      The event knowledge base consists of records about events
+  Equation (8) formally defines the knowledge base.                                          noteworthy to Los Angeles County which are source pre-
+                                                                                             serving. While NOAA Hazard Mapping System fire/smoke
+                       K = {(ui , Xi , Yi , mi , ci , ei )}Ni=1 ,                   (8)      records are still considered an unmeasured optional extension
+where ui is the window candidate that defines the origin, Xi                                 [40], [41], NOAA Storm Events is the required structured
+and Yi are the window candidates that define the lookback and                                source. The information-availability assumption, location,
+future windows, mi is a weather summary, ci is a calendar                                    category, source, source URL, title and summary are all stored
+summary, and ei is the window candidate that defines the                                     fields. The reported records include information for the cat-
+event context within the origin window ui . The set of equa-                                 egories of wildfire, high wind, heavy rain, flood, and other
+tions which are temporally eligible for an origin t of a query                               weather categories – the slots for missing categories are set
+are defined by Equation (9).                                                                 to zero.
+                                                                                                The model inputs consist of hourly counts, 24-hour, 72-
+             At = {i : ui + H < t − L + 1, i ∈ Ttrain },                            (9)      hour and 168-hour rolling counts, 72-hour counts by event
+                                                                                             category, counts of events in progress and an event-burst
+Use for queries and test and validation. Strict inequality in                                ratio. The more recent source identifiers are kept as forecast
+(9) prevents that a candidate’s target period ends after query                               evidence. Target-horizon overlap is only a post hoc subset
+input period starts. The training-history condition in (9) is                                label and never is used as a model input. There is no machine-
+also applied in the process of validation and test retrieval.                                readable publication time for NOAA Storm Events, which
+Equation (8) and (9) represent the stored candidate schema                                   is used in the implementation as a retrospective availability
+and the admissible subset at query time, respectively.                                       assumption. If the operation is very strict, it is necessary to
+   The time-series retriever returns the records under query                                 have the records of the real publication or issue time.
+window Xt as defined in Equation (10).
+                                                                                             3) Hybrid Ranking and Future Alignment
+                          Rtst = {rt,1
+                                   ts     ts
+                                       , rt,2            ts
+                                              , . . . , rt,k },                    (10)
+                                                                                             Both query and candidate PM2.5 windows are normalized
+where k is number of candidates retrieved. The default is k                                  by their respective means and standard deviations and unit
+= 8, with sensitivity analysis for k ∈ {1, 4, 8, 16}. Equa-                                  length. Weather and calendar groups are standardized using
+tion (10) represents the returned records prior to summariza-                                candidate statistics, and their cosine similarities are mapped
+tion of the future trajectory of the records.                                                to [0, 1]. Event similarity is clipped to [0, 1] with special
+VOLUME XX, 2026                                                                                                                                                     7
+                                                                                       S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+handling of zero vectors. The hybrid retrieval score in Equa-            audit shows 22,728 and 34,154 fit origins, 11,446 prediction
+tion (11) includes all of the scores from the above: time-series         origins/block, and a passed embargo in both cases.
+similarity, weather relevance, calendar relevance and event                 The out-of-fold candidate’s stored residual is defined by
+relevance.                                                               Equation (15).
+    s(q, i) = αsts (q, i) + βsw (q, i) + γsc (q, i) + δse (q, i), (11)                       εi = Yi − ŶiB,OOF ∈ RH .                       (15)
+In which sts denotes time-series similarity, sw denotes weather          The residuals are independently horizon clipped at the 0.01
+similarity, sc denotes calendar similarity and se denotes event          and 0.99 quantiles of the training only data. There are 909
+relevance. The implemented weights are α = 0.5, β = 0.2,                 valid 24-hour residual-memory stride candidates, with addi-
+γ = 0.1, and δ = 0.2. These are the primary weights                      tional 3,795 and 22,892 residual candidates at the 6-hour and
+which were predeclared and not a test-selected optimum, but              1-hour strides for evaluation during validation. The last stride
+Equation (11) still allows us to see each relevance channel              is selected prior to test retrieval.
+so that we can consider the contribution of each without a
+learned latent scoring function.
+                                                                         2) Residual Retrieval and Scale Alignment
+   The retrieval of the set is defined in Equation (12).
+                                                                         LSER scores residual-memory candidates according to the
+                      Gt = TopKi∈At s(t, i).                     (12)    same eligibility rule in time as Equation (9). Equation (16)
+                                                                         combines the candidate residuals by transferring them into
+At is only applied to Equation (12) after it’s been evaluated.
+                                                                         the query scale and uses the non-negative normalized retrieval
+The restoration of future candidates to the query scale is
+                                                                         weight at,i .
+defined in Equation (13).
+                                                                                     X           σt              X
+                           Yi − µi                                            ∆t,h =       at,i             εi,h ,     at,i = 1.   (16)
+         Yt,i = µt + σt
+         e                              ,      i ∈ Gt ,   (13)                                  max(σi , ϵ)
+                          max(σi , ϵ)                                                  i∈G
+                                                                                         t                         i∈G      t
+
+
+where µt , σt is query lookback statistics, and µi , σi is can-          The same aligned residuals are used to give a spread vector
+didates lookback statistics. Forecasts are made on average,              per horizon. The difference between Equation (13) and Equa-
+using retrieval only, uniformly or by non-negative normalized            tion (16) is that the former passes a historical model error
+scores, Yet,i . The feature-level path is still the mean trajectory,     while the latter passes a historical target level.
+horizon-wise spread, mean time-series similarity, maximum
+time-series similarity, and number of candidates, thus giving            3) Reliability Gate
+R51 for ρ(Gt ). The shape of the candidate trajectory is main-           For every origin, there is an 18-dimensional target-free vector
+tained by the affine transformation in Equation (13) which               zt which contains the base-forecast mean, standard deviation
+brings back the local scale of the query.                                and maximum; correction mean, standard deviation and max-
+                                                                         imum absolute magnitude; correction-spread mean and max-
+D. TRUST-GATED RESIDUAL ANALOG CORRECTION                                imum; mean and maximum retrieval similarity; number of
+TRACE-RAF alters the "what" that is retrieved. The part of               selected and eligible candidates using the log count; selected-
+the candidate future that is already predictable from the given          event fraction and whether event conditioning was applied;
+context is dubbed the "raw" part. Therefore, adding such a               mean and maximum LightGBM–XGBoost disagreement as
+future to the powerful supervised forecast can double count              well as the continuous and binary drift indicators. The ideal
+predictable structure. TRACE-RAF, on the other hand, builds              scalar correction coefficient which is used only during the
+a memory of out-of-fold residual trajectories and infers an              validation is defined in Equation (17).
+origin-level trust coefficient for the retrieved correction. This                                                            !
+remaining route of the two context models into the remaining                            ∗            ⟨Yt − ŶtB , ∆t ⟩
+                                                                                       gt = clip                       , 0, 1 .     (17)
+memory, trust gate, final forecast and evidence record is                                                ∥∆t ∥22
+depicted in figure 4.
+                                                                         This coefficient is learned by a depth-2 histogram gradient-
+1) Out-of-Fold Base Forecasts and Residual Memory                        boosting regressor hψ (zt ). The first 67% of validation origins
+The base forecast is obtained by convex combination of the               fit the provisional gate; the remaining 33% select λ in 0, 0.25,
+LightGBM and XGBoost context models as shown in Equa-                    0.5, 0.75, 1. The 24-hour residual-memory stride and λ =
+tion (14).                                                               0.25 are chosen, and the gate is then reattached to the entire
+                                                                         validation partition (no test targets). The final forecast is given
+            ŶtB = η ŶtL + (1 − η)ŶtX ,     0 ≤ η ≤ 1,         (14)    by Equation (18).
+where the fitted value of η is based on only the expanding-                         ŶtTRACE = ŶtB + λ clip(hψ (zt ), 0, 1)∆t .             (18)
+window out-of-fold (OOF) training predictions. There are
+two OOF prediction blocks: [0.50, 0.75) and [0.75, 1.00) of              Equation (17) and (18) dis-entangle validation supervision
+the training sequence. Each block has all the fitting targets            from test time inference; that is, Yt is needed during training
+finish prior to the start of the first prediction input. The             of the gate but not used in any of the test reliability features.
+8                                                                                                                                  VOLUME XX, 2026
+S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+E. DRIFT-AWARE FORECAST AND EVIDENCE HEAD                                    The standardised weather in the weather term are tempera-
+The DFEH is the common output and audit layer of the direct                  ture, relative humidity, pressure and wind speed with respect
+feature model, TRACE-RAF (validation only drift router),                     to training medians and standard deviations. In Equation (22),
+and the frozen Chronos-Bolt benchmark. The proposed path                     each component rt,j is scaled using the training median and
+is an ensemble of contexts with a gated residual update as de-               median absolute deviation (MAD), which is done robustly.
+picted in Figure 4. Separate branches maintain M09 feature-                                                                       
+                                                                                       1              rt,j − medtr (rj )
+level conditioning and Chronos-Bolt forecast fusion to be able                 dt,j = clip                                   , 0, 6 . (22)
+to test their effects independently of TRACE. Drift scores                             6        max(1.4826 MADtr (rj ), ϵ)
+and flags remain as reliability inputs, subset definitions and               The continuous score and binary flag are defined in Equa-
+evidence fields—the final TRACE gate is locked prior to                      tion (23).
+opening the test partition.
+                                                                                         5
+                                                                                     1X
+1) Feature-Level Forecasting and Drift Diagnostics
+                                                                              St =         dt,j ,   Dt = I[St ≥ Q0.90 ({Sv : v ∈ Tval })] .
+                                                                                     5 j=1
+The direct model input and prediction for the horizon h is                                                                               (23)
+defined by Equation (19).                                                    Equation (21)–(23) are in line with the detector used: training
+                                                                             data are used as the reference statistics, 0.90-quantile thresh-
+    ut,h = [qt ∥ ρ(Gt ) ∥ dt ∥ ct+h ],         ŷXt+h = fh (ut,h ),   (19)
+                                                                             old is set using the validation data set, and the test data are
+In R153 for the M09 comparison model and for each fh is an                   transformed without refitting. The diagnostic regime analysis
+XGBoost regressor trained with squared-error objective. This                 and forecast evidence are saved as a binary Dt .
+design permits using different supervised functions for each
+forecast horizon, but allows for a common origin representa-                 4) Evidence Record and Uncertainty Proxy
+tion. The 153 features verified so far (85 context, 53 retrieval,            The evidence module takes as input the signed contributions
+six drift and nine future-calendar values) are accounted for in              from local XGBoost models for each of the 24 direct models,
+Equation (19). The drift score and binary flag are only used to              weather flags, top three retrieved windows, calendar context,
+analyse the regimes and the evidence record and not to select                forecast direction, and component-level drift evidence. Its
+the forecaster adaptively for the reported experiment.                       uncertainty proxy is given by Equation (24).
+                                                                                                           q
+2) Frozen-TSFM Forecast Fusion                                                                  uproxy
+                                                                                                  t     = σ̄R,t2 + ē2 ,
+                                                                                                                     val             (24)
+Retrieval variant of the Chronos-Bolt that employs forecast-
+level fusion instead of internal Channel Prompting. Let ŶtC be              The mean horizon-wise spread of the retrieved trajectories,
+the frozen Chronos forecast and ŶtR be the retrieved historical             σ̄R,t , and the validation residual RMSE, ēval , are displayed.
+forecast. The fused prediction is given by Equation (20).                    This means they produce a diagnostic scale rather than a cal-
+                                                                             ibrated prediction interval. Every evidence record is created
+                   ŶtCR (ω) = ω ŶtC + (1 − ω)ŶtR ,                 (20)   from a stored field and not an open language model, and each
+                                                                             of the event statements is still contextual and not causal. Only
+where ω ∈ {0, 0.25, 0.5, 0.75, 1.0} is selected on the val-
+                                                                             as an evidence-field definition, Equation (24) will not be used
+idation split. Validation selected ω = 0.25. This branch
+                                                                             for the construction of confidence intervals.
+does not modify Chronos-Bolt embeddings or weights since
+fusion takes place after both of the forecasts are made. So
+                                                                             F. RELATIONSHIP TO TIMERAF
+Equation (20) is not a prompting operation in the TSFM but
+an output space interpolation.                                               TimeRAF leverages a learned MLP dual encoder to retrieve
+                                                                             top-k time-series windows, and combines candidate embed-
+3) Distribution-Shift Diagnostics                                            dings with a frozen TSFM via Channel Prompting [9]. Table 2
+                                                                             lists the principles which are carried over and mechanisms
+The implementation is distribution shift and is done with
+                                                                             which differ. This comparison does not rank the studies, but
+transparent indicators and not claiming verified concept-
+                                                                             is methodological because of different datasets, horizons and
+drift identification. These indicators include the recent mean
+                                                                             protocols.
+shift, recent variance shift, retrieval similarity drop, weather-
+pattern shift, and event-burst ratio. The raw drift vector which
+is used by the code is defined by Equation (21).                             VII. EXPERIMENTAL SETUP
+                                                                            This section describes the final experiment named 20260827T04345754
+                                    σ24,t + ϵ                                which has a manifest. All the model, retrieval-density, fusion,
+ rt = |µ24,t − µ168,t |, log                   , 1 − clip(s̄ts,t , 0, 1),
+                                    σ168,t + ϵ                               gate and threshold selections were made before the final
+         v
+         u 4                        !2                                       test partition was tested and were based on the training and
+                              e trℓ
+         u 1 X wt,ℓ − w                                     
+         t                             ,  max(b event,t , 0) ,               validation data. Here the source, configuration, predictions,
+           4           strw,ℓ                                                tables, evidence records, and figures have been archived as a
+              ℓ=1
+                                                                     (21)    package.
+VOLUME XX, 2026                                                                                                                               9
+                                                                                                               S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+
+        Conditioning tensors                             Trust-gated residual correction                                                 DFEH evidence output
+
+                                                   q_B
+              Base origin context                              Context XGBoost                  Context LightGBM                             Base feature effects
+                                                               24 horizon heads                 24 horizon heads
+                     q_B: B x 46                                                                                                                  top fields
+                                                                 Yhat_X: B x 24                   Yhat_L: B x 24
+
+
+
+                                                     C+
+                                                                                                                                            Residual window IDs
+                  Future calendar
+                                                                                      base                                                      top 8 analogues
+                   C+: B x 24 x 9
+
+                                                                           0.3479 Yhat_X + 0.6521 Yhat_L
+
+                                                                                                                                              Linked event IDs
+              Residual neighbours                                                                                                                 prior 72 h
+                                                                Robust residual
+                 Delta_G: B x 8 x 24                                                            Depth-2 trust gate
+                                                                  alignment
+                                                                    r_t: B x 24                     g_t: B x 1
+                                                                                                                                            Gate, drift, uncertainty
+                                                                                                                                               machine-readable
+                  Reliability inputs
+                     z_t: B x 18                                                        +
+                                                                                                                                            2,460 evidence records
+                                                                                                                              forecast
+                                                                           Yhat_TRACE = Yhat_B + g_t r_t
+
+
+
+
+FIGURE 4. TRACE-RAF and the Drift-Aware Forecast and Evidence Head. Out-of-fold LightGBM and XGBoost predictions form a context ensemble, LSER
+returns aligned residual analogues, and an 18-variable reliability gate scales the correction. The final forecast is accompanied by feature effects, retrieved
+cases, event identifiers, drift components, and uncertainty evidence.
+
+
+TABLE 2. Methodological Comparison of TimeRAF and TRACE-RAF
+
+
+     Aspect                            TimeRAF                                                             TRACE-RAF
+     Primary objective              Improve zero-shot forecasting by augmenting a frozen                   Evaluate source-audited, event-context residual retrieval for
+                                    TSFM with external time-series knowledge.                              local PM2.5 forecasting under temporal shift.
+     Forecasting domain             Multi-domain benchmark datasets.                                       Los Angeles County hourly PM2.5, 2019–2025.
+     Knowledge base                 Curated, consistently normalized time-series windows.                  1,824 primary training windows, dense-memory sweeps up to
+                                                                                                           45,784 windows, and 909 selected OOF residual candidates.
+     Retriever                         Learned MLP dual encoder with forecaster-guided training.           Random, cosine, and transparent hybrid similarity; no learned
+                                                                                                           retriever.
+     Knowledge integration             Internal Channel Prompting of candidate embeddings.                 Trust-gated residual correction; feature- and forecast-level fu-
+                                                                                                           sion are comparison arms.
+     Backbone                          Frozen TSFM, principally TTM-Base.                                  Convex LightGBM–XGBoost context ensemble; frozen
+                                                                                                           amazon/chronos-bolt-small is a benchmark.
+     Leakage control                Non-overlapping knowledge windows and cross-dataset                    Candidate target must end before query lookback; validation
+                                    training constraints.                                                  and test retrieval use training history only.
+     Event handling                 Not an explicit module.                                                Availability-tagged NOAA Storm Events features and source-
+                                                                                                           record evidence, reported retrospectively.
+     Drift and evidence                Retrieved-case inspection.                                          Five-component drift audit, reliability-gated residuals, signed
+                                                                                                           feature effects, retrieved IDs, event IDs, and uncertainty evi-
+                                                                                                           dence.
+     Implementation scope              Learned retriever and Channel Prompting are implemented.            Those mechanisms are not implemented and remain future
+                                                                                                           extensions.
+
+
+
+A. DATASET DESCRIPTION AND AUDIT                                                             PM2.5 unit was always measured in µg/m3 .
+The study period is 2019–2025. The PM2.5 data were ob-                                          Weather covariates were taken from NOAA GHCNh an-
+tained from the US EPA AirData/AQS parameter 88101 for                                       nual archives [39]. Station, Long Beach / Daugherty Field /
+Los Angeles County [38]. The official Los Angeles County                                     Airport with station ID 72297023129, was selected which is
+AQS target series is the hourly County median from official                                  located 10.36 km away from the centroid of the PM2.5 target
+Los Angeles County AQS monitoring sites, not a single indi-                                  area. The full weather-feature coverage post short-gap filling
+vidual site. This fall-back selected 06-037-COUNTY with                                      (allowing past feature) was 0.9923, while the raw measured
+61,353 target hours observed, 191,284 contributing source                                    core coverage was 0.9882. Every individual year’s coverage
+records observed and observed coverage of 0.9998. The                                        was over 0.980 and the record was kept till 31 December
+10                                                                                                                                                             VOLUME XX, 2026
+S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+TABLE 3. Data-Readiness Audit                                      to August 23, 2024; validation has 7,950 origins from August
+                                                                   25, 2024 to August 23, 2025; and the frozen test holdout has
+             Gate                            Value      Status     2,460 origins from August 25 to December 30, 2025. It will
+             PM2.5 observed coverage         0.9998      Pass      run through December 31, 2025 and generate 59,040 assessed
+             Weather complete coverage       0.9923      Pass      hourly points for its targets. Random splitting is not done; test
+             Event days                        127       Pass
+             Event overlap days              2,557       Pass      targets are not used to select the model or threshold.
+             Qualifying event categories        4        Pass
+             Strict event availability        False     Caveat     D. MODELS
+                                                                   The base set includes seasonal rules, regularized linear re-
+                                                                   gression, boosted trees, neural sequence models, retrieval-
+2025.                                                              only forecasts, and a "frozen" TSFM. A comparison be-
+   Environmental events were downloaded from the NOAA              tween the proposed M13 TRACE-RAF model, its C06 con-
+Storm Events annual detail files verified using hash compar-       text ensemble and the event-free A03 gate. The drift in null
+ison [40]. This experiment used a locally staged cache of un-      hypothesis p-values presented in this report is not a post-
+altered NOAA annual archives, and a source metadata file (a        hoc effect but rather a drift router separately selected by
+manifest) with official NOAA URLs, byte count, and official        M12. Chronos placebos combine the same frozen TSFM
+SHA-256 hashes since direct access to the NCEI in the execu-       forecast with climatology and persistence, enabling the av-
+tion environment was not available. The delivery mode used         eraging of forecast information to be separated from the
+for the audit was verified_official_noaa_cache.                    retrieval. The foundation-model evaluation is carried out by
+The event audit identified 127 event days, 2,557 days of           amazon/chronos-bolt-small. The assessed config-
+source overlap and four qualifying event categories. Records       urations are listed in Table 6 according to their forecast-
+in the table are divided into categories of high-wind, flood,      ing/retrieval functions.
+heavy-rain, other-weather and wildfire. Event-aware outputs
+assume that there is a retrospective availability of the event
+                                                                   E. IMPLEMENTATION AND HYPERPARAMETERS
+start time, which is not exposed by NOAA Storm Events.
+                                                                   The experimental setup was implemented on cloud with
+They don’t necessarily predict an event in real-time. The
+                                                                   python 3.12.13 and Linux 6.12.90. The publication pipeline
+resulting readiness status is as shown in Table 3. The source
+                                                                   spent a total of 7,432.7 seconds in the pipeline. The main
+audit and the window contract are represented in Figure 2.
+                                                                   packages that are documented in the run manifest are NumPy
+   Table 4 summarizes the scope that has been evaluated and
+                                                                   2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost 3.2.0, Light-
+the contribution of each source in the forecasting pipeline.
+                                                                   GBM 4.6.0, PyTorch 2.10.0+cu128, Transformers 4.57.6,
+   The hourly source panel is used to reconcile with the model
+                                                                   and chronos-forecasting 2.3.1. The main hyperparameters are
+population in the origin-level attrition audit in Table 5. The
+                                                                   listed in table VII.
+most significant decrease is when it is required that all causal
+origin features have finite values; 56,194 of 61,177 bounded
+                                                                   F. EVALUATION METRICS AND STATISTICAL CHECKS
+causal origin features are retained (91.85%). The 24 target
+values for a retained origin are directly observed.                The main metric measurements are MSE, MAE, RMSE,
+                                                                   MAPE, sMAPE and R2 . MSE is still used as the main squared
+B. DATA AND CODE AVAILABILITY                                      error metric, with MAE and RMSE offering intuitive error
+                                                                   scales for PM2.5. The most common error measures are given
+The raw public records and download pages are available
+                                                                   in Equation (25) for n observations yj of a forecast and ŷj of
+from EPA AirData, NOAA GHCNh, and NOAA Storm
+                                                                   predictions.
+Events [38]–[40]. NOAA Storm Events was not directly ac-                                          n
+                                                                                              1X
+cessible in the experiment execution environment, so a locally                        MSE =         (yj − ŷj )2 ,
+staged NOAA Storm Events cache was used instead (all of                                       n j=1
+the files in the NOAA Storm Events cache were verified                                              n
+                                                                                                                               (25)
+                                                                                           1X
+against the created source manifest). You can find source                             MAE =      |yj − ŷj |,
+                                                                                           n j=1
+code from https://github.com/shasabbir/event-time-raf. The
+                                                                                           √
+implementation is done in Python 3.12.13 using the packages                          RMSE = MSE,
+numpy, pandas, scikit-learn, xgboost, pytorch and chronos-
+forecasting; the pipeline and the configuration, notebooks,        Equation (26) summarizes explained variance.
+source modules and tests to reproduce the pipeline are pro-                                 Pn                 2
+                                                                                    2          j=1 (yj − ŷj )
+vided if source files are publicly available.                                      R = 1 − Pn                 2
+                                                                                                                 .             (26)
+                                                                                                j=1 (yj − ȳ)
+
+C. FORECASTING TASK AND SPLIT                                      The overall result is obtained by aggregating the forecasts
+The forecasting task is designed to forecast PM2.5 one to 24       across all forecast origins and horizons as in Equation (25),
+hours ahead and have a look-back window of 168 hours. The          while Equation (26) uses the same set of points. MAPE and
+training set encompasses 45,784 origins from January 8, 2019       sMAPE are provided in machine-readable outputs but are not
+VOLUME XX, 2026                                                                                                                  11
+                                                                                               S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+TABLE 4. Dataset and Source Summary
+
+
+     Data group                    Source                                      Evaluated scope                 Use in pipeline
+     PM2.5                         EPA AirData/AQS hourly parameter 88101      Los Angeles County, 2019–       Target sequence and lag/rolling features
+                                                                               2025; 61,353 observed tar-
+                                                                               get hours
+     Weather                       NOAA GHCNh, station 72297023129             2019–2025; 0.9923 usable        Temperature, humidity, wind, pressure,
+                                                                               core coverage                   and rain features
+     Events                        NOAA Storm Events annual detail archives    127 event days; four qualify-   Retrospective event-start features and
+                                                                               ing categories                  forecast evidence
+     Calendar                      Generated from timestamps and public hol-   2019–2025 hourly calendar       Hour, weekday, weekend, month, sea-
+                                   iday rules                                                                  son, and holiday features
+
+
+
+TABLE 5. Forecast-Origin Attrition Audit                                       median target and late-2025 holdout are good for regularized
+                                                                               linear structure.
+        Stage                               Origins   Retained (%)                The frozen Chronos-Bolt evaluation completed success-
+        Bounded candidate origins           61,177         100.00              fully and validation selected a TSFM weight of 0.25. Event-
+        Chronological split eligible        61,129          99.92              retrieval fusion increases MSE from 47.534 to 48.609 and
+        Complete 168-hour lookback          61,121          99.91
+        Complete observed target            60,953          99.63
+                                                                               MAE from 4.202 to 4.574. The MAE increase of 0.372
+        Complete causal origin features     56,194          91.85              remains significant after Holm adjustment (adjusted boot-
+        Final retained windows              56,194          91.85              strap p = 0.046; adjusted DM p = 0.035). Furthermore, the
+                                                                               persistence-fusion placebo reaches MSE 46.964, lower than
+                                                                               both M10 and M11. In this way, this run provides evidence
+used for the main ranking due to unstable percentage errors                    against attributing a generic averaging effect to event re-
+when PM2.5 values are low. Subset metrics are reported                         trieval. Chronos native quantiles remain useful diagnosti-
+only when at least 50 forecast origins are available. The 72-                  cally: M10 attains approximate CRPS 3.187, mean absolute
+hour event-context subset contains 70 origins and the drift                    calibration error 0.017, and 0.761 empirical coverage for the
+subset contains 407; the 33 target-event and eight active-                     nominal 0.80 interval, whereas M11 degrades those values to
+event origins are retained in counts but suppressed from                       4.120, 0.176, and 0.206.
+performance tables. Pairwise comparisons use 5,000 paired
+moving-block bootstrap resamples with 168-hour blocks and                      B. ABLATION STUDY
+Diebold–Mariano tests with 168 HAC lags. Both raw and                          Table 10 dissociates the residual-memory hypothesis from its
+Holm-adjusted p-values are stored. AQI threshold decisions                     integration rule. All the selected values are on the last 2,624
+are evaluated at 35.4 and 55.4 µg/m3 , while Chronos quan-                     origins of the validation partition starting on May 3, 2025 and
+tiles are evaluated by interval coverage, an approximate                       excluding the test partition. The raw-future fusion (A04) and
+quantile-grid CRPS, and calibration error.                                     the global residual scale (A06) both pick zero, and reduce
+                                                                               exactly to C06. This is not a failure of implementation, it’s
+G. COMPARISON WITH EXISTING STUDIES                                            a validation outcome. The fixed (ungated) residual update
+                                                                               (A05) has a MSE of 44.959 whilst the learned origin-specific
+Because of the differences in datasets, forecast horizons, vari-
+                                                                               gate has strength of 0.25 and a MSE of 40.062. Therefore,
+ables and evaluation protocols, direct numerical comparison
+                                                                               ablation will confirm the gate’s conservative control function
+of the results of this paper with existing TSFM and air-quality
+                                                                               but not a statement that there is always a benefit from a
+papers is not possible. Thus, Table 8 is a comparison of
+                                                                               residual retrieval.
+methodological coverage, not a dominance in performance
+                                                                                  The paired MSE contrasts declared in Table 11 favor the
+across papers.
+                                                                               first model in the pair (negative differences). The nominal
+                                                                               M04 improvements are for the cosine retrieval features and
+VIII. RESULTS AND DISCUSSION                                                   the matched feature-count placebo was nominally outper-
+A. OVERALL COMPARISON WITH BASELINES                                           formed by the raw event features. The MSE of TRACE-RAF
+The results for the final-holdout are presented in Table 9.                    is almost the same as its base ensemble and LightGBM. Its
+The ridge regression with context features has the best overall                MAE differences are -0.021 versus C06 (unadjusted 95%
+performance with MSE of 39.144, MAE of 4.079, RMSE of                          block-bootstrap CI [-0.038, -0.005]) and -0.017 versus C05
+6.257, and R2 = 0.457. TRACE-RAF obtains MSE 40.062,                           (unadjusted 95% block-bootstrap CI [-0.031, -0.001]). The
+MAE 4.134, and RMSE 6.329. It is 4.63% less than MSE                           respective Holm adjusted bootstrap and DM p-values are
+of M04 XGBoost context and is just 0.07% more than C05                         0.355 and 0.490, and 0.381 and 0.516. There is no difference
+LightGBM context, but it is less than Ridge and LSTM. This                     between the M13-A03 contrast (which is near zero), demon-
+ranking is significant: The proposed correction is a com-                      strating that event conditioning was not directly revealed
+petitor to nonlinear context models, and the smooth county-                    by the aggregation of TRACE-RAF’s result. After applying
+12                                                                                                                                         VOLUME XX, 2026
+S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+TABLE 6. Evaluated Model Families
+
+
+   ID                             Description
+   C00–C06                        Hour–month climatology; Ridge and LightGBM context; calendar and event retrieval; raw-event XGBoost; convex
+                                  context ensemble
+   M00–M02                        Persistence, daily seasonal, and weekly seasonal naive baselines
+   M03–M09                        PM2.5/context XGBoost; retrieval-only controls; feature-level retrieval, event, and drift variants
+   B00–B02                        DLinear, PatchTST, and LSTM trained on the same PM2.5 windows
+   M10–M12                        Frozen Chronos-Bolt, Chronos retrieval fusion, and validation-only drift router
+   M13                            Proposed TRACE-RAF trust-gated residual analogue correction
+   A00–A03                        Event-free, random-retrieval, matched feature-count placebo, and event-free TRACE ablations
+   P00–P01                        Chronos fused with climatology or persistence placebos
+
+
+TABLE 7. Experimental Hyperparameters and Runtime Settings
+
+
+             Component                     Setting
+             Study period                  2019–2025
+             Lookback and horizon          L = 168 hours, H = 24 hours
+             Split                         45,784 train; 7,950 validation; 2,460 final-test origins
+             SACB feature groups           23 PM2.5, 14 weather, 9 calendar, 39 event features
+             SACB missing-data rule        Past-only filling for gaps up to 3 hours; no target interpolation
+             LSER retrieval                k = 8, sensitivity for k ∈ {1, 4, 8, 16}
+             LSER knowledge base           1,824 windows at 24-hour primary stride; 6/1-hour sweeps
+             LSER similarity weights       time series 0.5, weather 0.2, calendar 0.1, event 0.2 (predeclared primary)
+             DFEH direct input             153 features for each of 24 horizon regressors
+             DFEH XGBoost                  350 estimators, max depth 6, learning rate 0.05, subsample 0.85, colsample 0.85, λ = 1.0
+             TRACE base ensemble           LightGBM weight 0.6521; XGBoost weight 0.3479
+             TRACE residual memory         OOF boundaries 0.50/0.75/1.00; 909 selected candidates
+             TRACE trust gate              18 inputs; depth 2; 100 iterations; learning rate 0.05; selected strength 0.25
+             DFEH drift detector           5 components; 24-hour recent window, 168-hour reference window, 0.90 validation quantile threshold
+             DFEH Chronos path             amazon/chronos-bolt-small, batch size 64
+             DFEH fusion weights           {0, 0.25, 0.5, 0.75, 1.0}; selected ω = 0.25
+             Neural optimization           AdamW; seed 42; batch 256; at most 30 epochs; patience 5; learning rate 0.001; weight decay 0.0001
+             DLinear                       moving-average kernel 25; selected epoch 6
+             LSTM                          hidden size 64; 2 layers; dropout 0.1; selected epoch 2
+             PatchTST                      patch/stride 24/12; 3 layers; d = 64; 4 heads; FFN 128; selected epoch 4
+             Forecast evidence record      Top 3 feature effects, windows, and recent event IDs
+             Inference                     5,000 paired resamples; 168-hour blocks/HAC lags; Holm correction
+
+
+TABLE 8. Methodological Comparison with Related Forecasting Work
+
+
+             Method family                   TSFM       Retrieval   Events        Evidence          Comment
+             PatchTST-style Transform-          No         No        No            Limited    Strong sequence modeling, but event con-
+             ers [24]                                                                         text is not central.
+             Chronos [5]                     Yes       No          No          Limited        Frozen zero-shot baseline used in this
+                                                                                              study.
+            TimeRAF [9]                      Yes       Yes         No       Retrieval cases   Base retrieval-augmented TSFM method;
+                                                                                              does not target official event-context
+                                                                                              PM2.5.
+            XGBoost context baseline         No        No          No     Feature importance  Strong supervised tabular baseline for local
+            [10]                                                                              PM2.5.
+            TRACE-RAF                        No a      Yes        Yes    Evidence-grounded    Adds official-source audit, OOF residual
+                                                                                              retrieval, a trust gate, drift diagnostics, and
+                                                                                              stored evidence.
+   a Chronos-Bolt is evaluated as a frozen benchmark, but the proposed TRACE-RAF forecast is a supervised residual-correction model rather than a
+   foundation model.
+
+
+
+Holm corrections for the entire 29-comparison family for                        correction.
+each metric, only the negative M11–M10 MAE contrast is
+significant.                                                                       The results of the k sensitivity test presented in Table 12
+                                                                                indicate that within the tested range, the more neighbors that
+   The ablation does not form a monotone accuracy progres-                      are included for the retrieval-only cosine baseline, the more
+sion. Validation faithfulness is mainly influenced by PM2.5                     accurate the baseline is. The best retrieval-only configuration
+history, weather and calendar features. The paper thus con-                     among k ∈ {1, 4, 8, 16} is k = 16, with MSE 51.316. The
+cludes that the behavior of TRACE-RAF is not due to a                           predefined default value of k = 8 was used for the feature
+proven general event effect, but due to selective residual                      models reported.
+VOLUME XX, 2026                                                                                                                                     13
+                                                                                                    S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+TABLE 9. Manifest-Backed Overall Test Results for 24-Hour PM2.5 Forecasting
+
+
+                                        Model                                    MSE        MAE      RMSE          R2
+                                        C00 hour–month climatology              73.915      6.398     8.597     -0.025
+                                        M00 persistence                         57.327      4.840     7.571      0.205
+                                        M03 XGBoost PM2.5                       44.547      4.317     6.674      0.382
+                                        M04 XGBoost context                     42.006      4.233     6.481      0.417
+                                        C01 Ridge context                       39.144      4.079     6.257      0.457
+                                        C05 LightGBM context                    40.089      4.151     6.332      0.444
+                                        B00 DLinear                             40.305      4.097     6.349      0.441
+                                        B01 PatchTST                            40.766      4.111     6.385      0.435
+                                        B02 LSTM                                39.978      4.095     6.323      0.445
+                                        C06 context ensemble                    40.115      4.156     6.334      0.444
+                                        M09 event-feature XGBoost               41.193      4.148     6.418      0.429
+                                        M13 TRACE-RAF                           40.062      4.134     6.329      0.444
+                                        A03 TRACE-RAF without events            40.062      4.135     6.329      0.444
+                                        M10 frozen Chronos-Bolt                 47.534      4.202     6.894      0.341
+                                        M11 Chronos + event retrieval           48.609      4.574     6.972      0.326
+                                        M12 validation drift router             41.466      4.190     6.439      0.425
+
+
+TABLE 10. Validation-Selected TRACE-RAF Mechanism Ladder on the Final Holdout
+
+
+                     ID       Forecast integration                Retrieval target     Integration control                   MSE     MAE
+                     C06      Base ensemble                       None                 None                                 40.115   4.156
+                     A04      Base + raw analogue                 Raw future           Weight 0.00 (validation)             40.115   4.156
+                     A05      Base + residual analogue            OOF residual         Strength 1.00 (fixed)                44.959   4.250
+                     A06      Base + residual analogue            OOF residual         Strength 0.00 (validation)           40.115   4.156
+                     M13      Base + gated residual analogue      OOF residual         Gate strength 0.25 (validation)      40.062   4.134
+
+
+TABLE 11. Selected 168-Hour Paired Block-Bootstrap Ablations
+
+
+                 Comparison                                    MSE diff.    Unadj. 95% CI low        Unadj. 95% CI high        Holm-adjusted p
+                 M04 − M03: weather/calendar                      -2.542                   -6.695                   0.940               1.000
+                 M07 − M04: cosine retrieval features             -1.071                   -2.280                  -0.041               1.000
+                 M08 − M07: event-conditioned ranking              0.151                   -0.447                   0.789               1.000
+                 C04 − A02: event signal/placebo                  -0.524                   -0.983                  -0.142               0.389
+                 M09 − M08: drift features                         0.107                   -0.386                   0.502               1.000
+                 M13 − C06: TRACE residual gate                   -0.052                   -0.393                   0.353               1.000
+                 M13 − A03: TRACE event channel                  -0.0001                   -0.006                   0.008               1.000
+                 M13 − C05: proposed/best tree                    -0.027                   -0.350                   0.353               1.000
+                 M11 − M10: Chronos retrieval                      1.075                   -7.177                   6.712               1.000
+                 M12 − M04: drift router                          -0.540                   -1.112                  -0.066               0.747
+
+
+
+TABLE 12. Cosine Retrieval Sensitivity to k                                          C. EVENT-SIMILARITY WEIGHT SENSITIVITY
+                                                                                     The main event LSER coefficient (δ = 0.2) was used in
+                      k     MSE      MAE      RMSE                                   the configuration prior to final-test evaluation. Table 14 gives
+                     1     84.602    5.868      9.198                                the full sweep performed with the time-series, weather and
+                     4     57.092    5.011      7.556                                calendar coefficients fixed. The learned M08 validation MSE
+                     8     53.549    4.860      7.318
+                    16     51.316    4.773      7.164                                are only in the range 35.081 - 35.278 and less than 2.9% of
+                                                                                     test queries are affected by the change of event term in the
+                                                                                     set of retrieval candidates with respect to ∆ = 0. The learned
+                                                                                     M08 model is numerically lowest at δ = 1.0 on validation
+   The density of the knowledge-base has a non-monotone                              and test while the lowest retrieval only event-context MSE
+effect. Table 13 indicates that feature-level event-aware and                        is at the primary value. The fixed primary value is thus not
+retrieval-only variants of the event-aware memory achieve                            alleged to be optimum. Most significantly, no stable event-
+6-hour memory best, so admitting all hourly candidates is                            specific accuracy gain is apparent in the sweep and the paper’s
+suboptimal. The results show that event-conditioned retrieval                        qualified event conclusion remains the same.
+outperforms cosine retrieval by 1.669 MSE at stride 6 hours,
+but underperforms at 24- and 1-hour stride. This interaction                         D. EVENT AND DRIFT SUBSETS
+encourages reliability gating, as opposed to an assumption                           Two pre-specified subsets which meet the 50-origin gate are
+that similarity of events is always good.                                            reported in Table 15. Within the larger 72-hour event-context
+14                                                                                                                                               VOLUME XX, 2026
+S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+TABLE 13. Knowledge-Base Density Sensitivity on the Final Holdout
+
+
+                                   Stride (h)   Candidates     Cosine MSE    Event-retrieval MSE                  M08 MSE        M09 MSE
+                                          24        1,824          53.549                      54.098               41.085            41.193
+                                           6        7,608          49.524                      47.855               40.520            40.886
+                                           1       45,784          52.738                      54.253               41.172            41.749
+
+
+TABLE 14. Sensitivity to the LSER Event-Similarity Weight; the Primary Configuration is Marked and Test Values Were Not Used for Selection
+
+
+                  Event weight δ     M08 validation MSE      M08 test MSE    Event-context retrieval MSE                 Candidate change vs. δ = 0 (%)
+                            0.0                   35.227            40.842                                    12.487                                            0.00
+                  0.2 (primary)                   35.201            41.085                                    11.961                                            2.70
+                            0.5                   35.278            40.690                                    12.151                                            2.78
+                            0.8                   35.110            40.858                                    13.735                                            2.79
+                            1.0                   35.081            40.620                                    14.322                                            2.83
+
+
+
+set, there are 70 origins; direct target-event overlap contains                           80
+
+33 origins, so it is not scored. The mean and variance of                                 70
+event-context targets is 6.26 and 11.26, respectively, whereas
+                                                                                          60
+for the rest of the targets it is 11.14 and 73.20. Thus, the
+                                                                                          50
+magnitude of the MSE on a cross-subset is not regarded as                           MSE
+the level of difficulty for this event. Even in the same origins                          40
+
+of events, it is not possible to distinguish TRACE-RAF and                                30
+
+its event-free ablation. The drift subset of 407 origins with                             20
+the DFEH validation-calibrated threshold shows much higher
+                                                                                          10
+target variance (105.34) and thus a high absolute error, partly
+                                                                                          0
+due to that.                                                                                   1              4          8              12                 16      20                24
+                                                                                                                                Forecast horizon (hours)
+   The composite detector detects 407 test origins at 0.2132
+                                                                                                Persistence             Ridge                   LightGBM               Context ensemble
+and a validation-calibrated two-sample KS benchmark de-                                         Event-feature XGBoost   TRACE-RAF               Chronos-Bolt
+tects 348 test origins at 0.4523. They have a Jaccard agree-
+ment of just 0.117. The composite flag, therefore, is regarded                     FIGURE 5. MSE by forecast horizon on the Los Angeles County test set.
+as a model-specific regime label, rather than a definition
+of drift, per se. The separately selected M12 router does
+likewise for M04, nominally – but not after Holm correction                      making, but these results are not adequate for a stand-alone
+– which makes this cautious interpretation seem all the more                     alerting claim.
+appropriate.
+                                                                                  F. HORIZON-WISE AND RETRIEVAL DIAGNOSTICS
+E. SITE-LEVEL AND DECISION SENSITIVITY                                           Horizon-wise test error of comparators (principal supervised,
+The county median is the target of interest, since no monitor                    feature retrieval and frozen TSFM and TRACE-RAF) is
+is at the 0.70 coverage gate. Three monitor-level arms were                      shown in Fig. 5 and Fig. 6. All models show a late-horizon
+trained to evaluate if aggregation alone is the only determinant                 failure, but no model has an isolated failure that would be
+to event finding; no changes to the temporal protocol were                       disqualifying for the aggregate comparison since the ranking
+made. Heterogeneous effects are seen in Table 16, with poorer                    changes with lead time. The DFEH score and fixed threshold
+performance at site 1103, and slightly better performance at                     (DFT) are plotted on the test timeline in Fig. 7. Figures 8 and 9
+sites 4009 and 9035. Event-only site subsets have between                        show examples of ordinary and event-context figures, respec-
+10-33 origins and will not be scored. The checks are inter-                      tively, which are used to check rather than select models. All
+nal checks for target-sensitivity and not external geographic                    plots are regenerated from run 20260827T043457543402Z.
+validation.
+   Only 37 of 2,460 test origins are exceedances at the 24-                       G. FORECAST EVIDENCE AND AUDITABILITY ANALYSIS
+hour-mean threshold of 35.4 µg/m3 ; none of the test origins                     In the DFEH, a source-grounded forecast evidence record is
+exceed 55.4 µg/m3 . The recall of physical-threshold fore-                       kept and not a full causal explanation. The pipeline stores
+casts is very low. LightGBM achieves precision 0.234, recall                     the run and window identifiers, the origin time, retrieved
+0.405, and F1 0.297 while TRACE-RAF achieves 0.213,                              historical windows, linked event records, leading feature
+0.351, and 0.265, respectively, with validation calibrated                       effects and drift components, retrieval spread, validation
+decision thresholds. These sparse-event results are reported                     residual RMSE, uncertainty proxy, drift flag, and event-
+to link to the regression objective in air-quality decision-                     availability mode for each of the 2,460 test origins. The
+VOLUME XX, 2026                                                                                                                                                                           15
+                                                                                                                            S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+TABLE 15. Representative Event and Drift Subset Results
+
+
+                                                             Subset                 Model                       Origins         MSE       MAE
+                                                             Event context          C01 Ridge context                  70      5.624      1.925
+                                                             Event context          C06 context ensemble               70      6.568      2.101
+                                                             Event context          M13 TRACE-RAF                      70      6.552      2.097
+                                                             Event context          A03 TRACE without events           70      6.553      2.095
+                                                             Non-drift              C01 Ridge context               2,053     38.808      3.989
+                                                             Non-drift              M13 TRACE-RAF                   2,053     38.085      3.955
+                                                             Drift                  C01 Ridge context                 407     40.843      4.536
+                                                             Drift                  C06 context ensemble              407     50.267      5.077
+                                                             Drift                  M13 TRACE-RAF                     407     50.033      5.039
+                                                             Drift                  A03 TRACE without events          407     50.047      5.039
+
+
+
+TABLE 16. Monitor-Level Event-Retrieval Sensitivity
+
+
+        Site                     Coverage          Origins         M04 MSE            M08 MSE
+        06-037-1103                    0.558          1,631                68.281         69.898
+        06-037-4009                    0.510          1,732                73.506         73.095
+        06-037-9035                    0.374            547                17.682         17.371
+
+
+
+         6.0
+                                                                                                         FIGURE 8. Representative 24-hour forecast from the final holdout. Model
+                                                                                                         traces are plotted against the observed hourly target without post-test
+         5.0
+                                                                                                         adjustment.
+         4.0
+  MAE
+
+
+
+
+         3.0
+
+
+         2.0
+
+
+         1.0
+
+
+         0.0
+               1             4           8              12                 16        20             24
+                                                Forecast horizon (hours)
+
+               Persistence              Ridge                   LightGBM              Context ensemble
+               Event-feature XGBoost    TRACE-RAF               Chronos-Bolt
+
+                                                                                                         FIGURE 9. Representative forecast whose target lies within the declared
+ FIGURE 6. MAE by forecast horizon on the Los Angeles County test set.                                   72-hour event-context window. The event designation is retrospective
+                                                                                                         because Storm Events files do not expose publication timestamps.
+
+
+                                                                                                         TABLE 17. Lossless TRACE Forecast-Contribution Decomposition
+
+
+                                                                                                           Subset                      Origins    Mean g    Mean |∆|      Mean |g∆|
+                                                                                                           All                          2,460      0.090        1.708           0.149
+                                                                                                           Event context                   70      0.082        0.736           0.060
+                                                                                                           Non-event context            2,390      0.090        1.736           0.152
+                                                                                                           Distribution shift             407      0.076        2.386           0.175
+                                                                                                           No distribution shift        2,053      0.093        1.573           0.144
+FIGURE 7. Composite drift score and the validation-calibrated threshold
+on the final holdout. The flag defines a diagnostic regime rather than
+verified distribution-shift ground truth.
+                                                                                                         retrieved time-series window, an official event record, or a
+                                                                                                         drift component. It’s not a proof of causality: event evidence
+explanations.parquet file thus corresponds 1:1 to the                                                    is presented as contextual support and drift flag is used as a
+forecasts that have been evaluated. It’s main local fields are                                           warning of uncertainty. Faithfulness is assessed by perturbing
+typically current PM2.5, and recent rolling concentrations,                                              entire families of features in the model used for the fit (M09
+and analogue and event identifiers reveal information for the                                            model). As seen in Table 19, the history of PM2.5 is by far
+correction mechanism.                                                                                    the most important one, followed by weather and calendar
+   The evidence layer is summarized in Table 18. This design                                             information. Permutations of events and retrievals lead to
+keeps track of the auditability of each evidence statement by                                            an increase in MSE, and a negative median-deletion effect.
+linking the evidence statement to either a model feature, a                                              These mixed signs preclude a more ambitious assertion: each
+16                                                                                                                                                                      VOLUME XX, 2026
+S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+TABLE 18. Forecast Evidence Stored by TRACE-RAF                             TABLE 20. Computational and Reproducibility Summary
+
+
+ Evidence field                Interpretation role                            Item                  Recorded value
+ Top feature effects           Local model drivers from the direct fore-      Run identifier        20260827T043457543402Z
+                               caster.                                        Pipeline runtime      7,432.7 seconds
+ Retrieved windows             Historical analogues used by the retrieval     Platform              Linux 6.12.90
+                               module.                                        Python                3.12.13
+ Event evidence IDs            Official storm-event context linked to the     Forecast horizon      24 hours
+                               origin.                                        Lookback window       168 hours
+ Drift components              Mean, variance, weather, similarity, and       Bootstrap resamples   5,000 in 168-hour blocks
+                               event-burst shift signals.                     Multiple testing      Holm adjustment over the comparison family
+ Uncertainty proxy             Combined retrieval spread and validation       Chronos checkpoint    amazon/chronos-bolt-small
+                               residual error.                                Code availability     https://github.com/shasabbir/event-time-raf
+
+
+TABLE 19. M09 Feature-Family Faithfulness Perturbations
+                                                                            wise adjustment and Ridge is best overall in both MSE and
+    Feature family     Permutation ∆MSE         Median deletion ∆MSE        MAE. The mechanism ladder additionally demonstrates that
+    PM2.5 history                   25.575                     13.531
+                                                                            validation rejects raw and globally scaled analogue fusion,
+    Weather                          3.440                      3.089       while the learned gate applies only a small fraction of the
+    Calendar                         3.548                      2.481       retrieved residual. The result of the whole TRACE, which is
+    Events                           1.162                     -0.442
+    Retrieval                        0.964                     -0.551
+                                                                            almost identical to the event-free ablation, is due to conser-
+    Drift                            0.268                      0.125       vative residual correction and not to measurable conditioning
+                                                                            by events. In contrast, the addition of event retrieval to frozen
+                                                                            Chronos-Bolt causes a huge degradation in MAE after Holm
+type of stored evidence is a stable causal explanation.                     correction. The resulting boundary is thus a reproducible
+   The lossless prediction archive also allows to reconstruct               negative and positive one: trust-gated residual analogues are
+the final TRACE update Ŷ (TRACE) = Ŷ B + g∆ directly. The                 competitive, as is event-conditioned output-space fusion with
+effective origin-level coefficient g is applied to this value as a          frozen Chronos-Bolt-small, yet a holdout does not support
+result of the validation selection of strength of 0.25. The quan-           this latter boundary. This score does not reflect the gen-
+tity of each component is quantified in Table 17. The learned               eral performance of internal TSFM prompting nor retrieval-
+gate leads to a mean absolute raw residual analogue of 1.708,               augmented TSFMs.
+whereas the mean absolute applied correction is only 0.149                     There is a pre-specified stress analysis for January 2025,
+µg/m3 for all the test origins. The mean applied correction                 with 622 origins, and is only included as development evi-
+for event-context origins is the smallest, 0.060 µg/m3 . These              dence as it is part of the validation period. Ridge, Chronos-
+values reveal the information that went into determining the                Bolt, the context ensemble, and TRACE-RAF obtain MSE
+final forecast value; they are not causal attribution to the event          118.300, 116.012, 123.305, and 123.643, respectively. It is
+records.                                                                    not an extra test set, and does not affect the final ranking of
+                                                                            the model.
+H. COMPUTATIONAL COST AND REPRODUCIBILITY                                      Lastly and most importantly, it is necessary to read all
+The publication pipeline had an internal runtime of 7432.7                  event-aware interpretations with an availability disclaimer.
+seconds in a Linux environment with Python 3.12.13. All                     NOAA Storm Events are hash verified and official, but the
+the three notebooks done correctly without cell errors.                     timeline of publication is not provided in machine-readable
+The recorded versions include NumPy 2.0.2, pandas 2.3.3,                    format. The availability time is set as the event start in the
+scikit-learn 1.6.1, XGBoost 3.2.0, LightGBM 4.6.0, PyTorch                  experiment and all results relating to the event are retrospec-
+2.10.0+cu128, Transformers 4.57.6, and chronos-forecasting                  tive sensitivity results. In order to perform a strict operational
+2.3.1. There are 43 result tables in the archive, along with one            study, it would be necessary to use an event or smoke source
+run identifier, configuration and artifact hashes, prediction               with ‘‘true’’ issue or publication times, such as an audited
+level outputs, evidence records and an independent claim                    NOAA HMS cache or alert product archive.
+verification notebook. The stored subset inference predictions
+are matched up to a max abs error of 9.85 × 10−17 with the                  IX. LIMITATIONS
+TRACE subset-inference reconstruction. No hardware identi-                  The first restriction is on the availability of events. The NOAA
+fiers or Git commit were found in the notebook environment,                 Storm Events detail files are officially verified and using hash
+so the runtime is not considered to be a hardware-normalized                but the publication time is not machine-readable from the de-
+efficiency result.                                                          tail files. The SACB therefore considers the results in event-
+   Our primary interpretation of this is that the supervised                conditioned scenarios as retrospective sensitivity analysis and
+context models are quite strong for this Los Angeles County                 not operational forecasts; the availability proxy is therefore
+task. Although context XGBoost and TRACE-RAF have                           based on the event start.
+lower errors, no favourable TRACE contrasts survive family-                    Geographic validation is the second limitation. There is one
+VOLUME XX, 2026                                                                                                                                   17
+                                                                                   S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+county-level PM2.5 aggregate for the experiment 2019-2025.         XI. CONCLUSION
+The monitor level analysis suggests that there is a change         In this study, TRACE-RAF, a Trust-Gated Residual Analog
+of sign across sites but not necessarily a transfer to another     Correction approach for auditable 24-hour PM2.5 forecasting
+county, climate or emissions regime.                               is introduced. SACB keeps the official records of PM2.5,
+   The third restriction is the make-up of the holdout. Only       GHCNh weather, calendar, and Storm Events; LSER en-
+33 target-event origins and 37 threshold exceedances are ob-       forces a strict historical embargo; TRACE retrieves out-of-
+served and no test origin exceeds 55.4 µg/m3 . The qualifying      fold residual analogues and applies a learned reliability gate;
+category analysis spans the larger 70-origin event-context         and DFEH provides prediction-level evidence and drift diag-
+subset, which includes flood, heavy-rain, and other-weather        nostics. On the final 2025 holdout of 2,460 origins, TRACE-
+contexts, but not a wildfire, smoke, or high-wind query. The       RAF obtains MSE 40.062, MAE 4.134, RMSE 6.329, and
+high-error period in January 2025 is not an external confir-       R2 = 0.444. This marks the lowest error of the context
+mation, but validation evidence. Reports of serious smoke          XGBoost and nominally beats the LightGBM comparator and
+episodes or alerts to the operation would thus be more than        Ridge is still best at MSE 39.144. Both raw-future fusion and
+what is supported by observations of the tests.                    a global residual scale are rejected by the mechanism ladder,
+   The fourth restriction is on targets building. A county         the learned gate provides a conservative reduction in the
+median minimizes the number of missing monitors, flattens          residual update and gives a nominal MAE improvement. No
+out local peaks and is dependent on the number of monitors         favorable TRACE comparison survives the Holm adjustment
+that are active. The lower-coverage monitor arms show some         and the event-free TRACE ablation is essentially the same.
+level of heterogeneity but are not dense enough to perform         The supported contribution is thus a reproducible, trust-gated
+event-subset inference.                                            residual-retrieval architecture and an auditable assessment
+   The fifth restriction is with regard to the empirical power.    of event-conditioned residual retrieval and a single output-
+The performance of TRACE-RAF is not better than Ridge and          fusion (frozen Chronos-Bolt-small) configuration, not about
+both the residual-gate contrast and the event-channel contrast     retrieval-augmented TSFMs in general or universal baseline
+are not significant after Holm adjustment. There is no faith-      superiority. Event issue times, geographic testing outside of
+fulness perturbation on evidence records, they are auditable,      the system and smoke specific validation are still required
+but the faithfulness perturbations for the event and retrieval     prior to operational deployment.
+families are mixed and are not useful for causal interpretation.
+   The 6th limitation is model integration. LSER is an open        REFERENCES
+                                                                   [1] World Health Organization, ‘‘WHO global air quality guidelines:
+similarity retriever, not a learned dual encoder and Chronos-          Particulate matter (PM2.5 and PM10), ozone, nitrogen dioxide,
+Bolt is an external benchmark, not an internal backbone for            sulfur dioxide and carbon monoxide,’’ 2021. [Online]. Available:
+prompting. It should not be marketed as an alternate of the            https://www.who.int/publications/i/item/9789240034228
+                                                                   [2] A. Das, W. Kong, R. Sen, and Y. Zhou, ‘‘A decoder-only foundation
+TimeRAF Channel Prompting mechanism.                                   model for time-series forecasting,’’ in Proceedings of the 41st International
+   Lastly, there were no hardware identifiers, peak mem-               Conference on Machine Learning, ser. Proceedings of Machine Learning
+ory or a Git commit inside the extracted run environment.              Research, vol. 235, 2024, pp. 10 148–10 167.
+                                                                   [3] G. Woo, C. Liu, A. Kumar, C. Xiong, S. Savarese, and D. Sahoo, ‘‘Unified
+Package versions, configuration hashes, archive hashes and             training of universal time series forecasting transformers,’’ in Proceedings
+prediction-level verification allow for more reproducible              of the 41st International Conference on Machine Learning, ser. Proceed-
+runs, but the reported runtimes are not hardware-normalized            ings of Machine Learning Research, vol. 235, 2024, pp. 53 140–53 164.
+                                                                   [4] M. Goswami, K. Szafer, A. Choudhry, Y. Cai, S. Li, and A. Dubrawski,
+efficiency figures.                                                    ‘‘MOMENT: A family of open time-series foundation models,’’ in Pro-
+                                                                       ceedings of the 41st International Conference on Machine Learning, ser.
+                                                                       Proceedings of Machine Learning Research, vol. 235, 2024, pp. 16 115–
+X. FUTURE WORK                                                         16 152.
+Operational event studies should use archives that provide         [5] A. F. Ansari, L. Stella, C. Turkmen, X. Zhang, P. Mercado, H. Shen,
+real time of publication/issue of the event and, if the event          O. Shchur, S. S. Rangapuram, S. P. Arango, S. Kapoor, J. Zschiegner, D. C.
+                                                                       Maddix, H. Wang, M. W. Mahoney, K. Torkkola, A. G. Wilson, M. Bohlke-
+transport mechanism is a wildfire, should add smoke-specific           Schneider, and Y. Wang, ‘‘Chronos: Learning the language of time series,’’
+sources to replace the event-start proxies. External validation        Transactions on Machine Learning Research, 2024.
+should be: application of the frozen protocol to a second          [6] V. Ekambaram, A. Jati, P. Dayama, S. Mukherjee, N. H. Nguyen, W. M.
+                                                                       Gifford, C. Reddy, and J. Kalagnanam, ‘‘Tiny time mixers (TTMs): Fast
+US county with different meteorology and emissions and                 pre-trained models for enhanced zero/few-shot forecasting of multivari-
+monitor density. Then, spatial or site-aware forecasting can           ate time series,’’ in Advances in Neural Information Processing Systems,
+be used to investigate whether event effects are hidden in             vol. 37, 2024, pp. 74 147–74 181.
+                                                                   [7] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Kuttler,
+the aggregation over counties. Future research could assess a          M. Lewis, W. tau Yih, T. Rocktaschel, S. Riedel, and D. Kiela, ‘‘Retrieval-
+learned residual retriever, more expressive event embedding,           augmented generation for knowledge-intensive NLP tasks,’’ in Advances
+an internally conditioned TSFM and calibrated exceedance               in Neural Information Processing Systems, vol. 33, 2020, pp. 9459–9474.
+                                                                   [8] V. Karpukhin, B. Oguz, S. Min, P. Lewis, L. Wu, S. Edunov, D. Chen,
+probabilities. The extension needs to be pre-registered with a         and W. tau Yih, ‘‘Dense passage retrieval for open-domain question an-
+third party holdout, and components need to be ablated under           swering,’’ in Proceedings of the 2020 Conference on Empirical Methods in
+the same time embargo.                                                 Natural Language Processing, 2020, pp. 6769–6781.
+                                                                   [9] H. Zhang, C. Xu, Y.-F. Zhang, Z. Zhang, L. Wang, and J. Bian, ‘‘TimeRAF:
+                                                                       Retrieval-augmented foundation model for zero-shot time series forecast-
+
+18                                                                                                                                  VOLUME XX, 2026
+S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+     ing,’’ IEEE Transactions on Knowledge and Data Engineering, vol. 37,             [30] X. Liu, J. Hu, Y. Li, S. Diao, Y. Liang, B. Hooi, and R. Zimmermann,
+     no. 9, pp. 5654–5665, 2025.                                                           ‘‘UniTime: A language-empowered unified model for cross-domain time
+[10] T. Chen and C. Guestrin, ‘‘XGBoost: A scalable tree boosting system,’’                series forecasting,’’ in Proceedings of the ACM Web Conference, 2024, pp.
+     in Proceedings of the 22nd ACM SIGKDD International Conference on                     4095–4106.
+     Knowledge Discovery and Data Mining, 2016, pp. 785–794.                          [31] M. Jin, S. Wang, L. Ma, Z. Chu, J. Y. Zhang, X. Shi, P.-Y. Chen, Y. Liang,
+[11] G. Ke, Q. Meng, T. Finley, T. Wang, W. Chen, W. Ma, Q. Ye, and T.-Y.                  Y.-F. Li, S. Pan, and Q. Wen, ‘‘Time-LLM: Time series forecasting by
+     Liu, ‘‘LightGBM: A highly efficient gradient boosting decision tree,’’ in             reprogramming large language models,’’ in Proceedings of the 12th Inter-
+     Advances in Neural Information Processing Systems, vol. 30, 2017.                     national Conference on Learning Representations, 2024.
+[12] S. Hochreiter and J. Schmidhuber, ‘‘Long short-term memory,’’ Neural             [32] T. Zhou, P. Niu, X. Wang, L. Sun, and R. Jin, ‘‘One fits all: Power general
+     Computation, vol. 9, no. 8, pp. 1735–1780, 1997.                                      time series analysis by pretrained LM,’’ in Advances in Neural Information
+[13] K. Cho, B. van Merrienboer, C. Gulcehre, D. Bahdanau, F. Bougares,                    Processing Systems, vol. 36, 2023.
+     H. Schwenk, and Y. Bengio, ‘‘Learning phrase representations using RNN           [33] J. Liu, L. Yang, H. Li, and S. Hong, ‘‘Retrieval-augmented diffusion models
+     encoder–decoder for statistical machine translation,’’ in Proceedings of the          for time series forecasting,’’ in Advances in Neural Information Processing
+     2014 Conference on Empirical Methods in Natural Language Processing,                  Systems, vol. 37, 2024, pp. 2766–2786.
+     2014, pp. 1724–1734.                                                             [34] Y. Ang, Y. Bao, Q. Huang, A. K. H. Tung, and Z. Huang, ‘‘TSGAssist: An
+[14] H. Hewamalage, C. Bergmeir, and K. Bandara, ‘‘Recurrent neural networks               interactive assistant harnessing LLMs and RAG for time series generation
+     for time series forecasting: Current status and future directions,’’ Interna-         recommendations and benchmarking,’’ Proceedings of the VLDB Endow-
+     tional Journal of Forecasting, vol. 37, no. 1, pp. 388–427, 2021.                     ment, vol. 17, no. 12, pp. 4309–4312, 2024.
+[15] D. Salinas, V. Flunkert, J. Gasthaus, and T. Januschowski, ‘‘DeepAR: Prob-       [35] S. Zhou, W. Wang, L. Zhu, Q. Qiao, and Y. Kang, ‘‘Deep-learning architec-
+     abilistic forecasting with autoregressive recurrent networks,’’ International         ture for PM2.5 concentration prediction: A review,’’ Environmental Science
+     Journal of Forecasting, vol. 36, no. 3, pp. 1181–1191, 2020.                          and Ecotechnology, vol. 21, p. 100400, 2024.
+                                                                                      [36] Z. Zhang and S. Zhang, ‘‘Modeling air quality PM2.5 forecasting using
+[16] R. Godahewa, C. Bergmeir, G. I. Webb, R. J. Hyndman, and P. Montero-
+                                                                                           deep sparse attention-based transformer networks,’’ International Journal
+     Manso, ‘‘Monash time series forecasting archive,’’ in Proceedings of the
+                                                                                           of Environmental Science and Technology, vol. 20, pp. 13 535–13 550,
+     Neural Information Processing Systems Track on Datasets and Bench-
+                                                                                           2023.
+     marks, 2021.
+                                                                                      [37] Y. Liang, Y. Xia, S. Ke, Y. Wang, Q. Wen, J. Zhang, Y. Zheng, and
+[17] H. Zhou, S. Zhang, J. Peng, S. Zhang, J. Li, H. Xiong, and W. Zhang,
+                                                                                           R. Zimmermann, ‘‘AirFormer: Predicting nationwide air quality in china
+     ‘‘Informer: Beyond efficient transformer for long sequence time-series
+                                                                                           with transformers,’’ in Proceedings of the AAAI Conference on Artificial
+     forecasting,’’ in Proceedings of the AAAI Conference on Artificial Intel-
+                                                                                           Intelligence, vol. 37, no. 12, 2023, pp. 14 329–14 337.
+     ligence, vol. 35, no. 12, 2021, pp. 11 106–11 115.
+                                                                                      [38] US Environmental Protection Agency, ‘‘AirData: Pre-generated air quality
+[18] H. Wu, J. Xu, J. Wang, and M. Long, ‘‘Autoformer: Decomposition                       data files,’’ https://aqs.epa.gov/aqsweb/airdata/download_files.html, 2026,
+     transformers with auto-correlation for long-term series forecasting,’’ in             accessed: 2026-07-17.
+     Advances in Neural Information Processing Systems, vol. 34, 2021.                [39] NOAA National Centers for Environmental Information, ‘‘Global histori-
+[19] T. Zhou, Z. Ma, Q. Wen, X. Wang, L. Sun, and R. Jin, ‘‘FEDformer:                     cal climatology network-hourly (GHCNh), version 1,’’ https://doi.org/10.
+     Frequency enhanced decomposed transformer for long-term series fore-                  25921/jp3d-3v19, 2024, accessed: 2026-08-23.
+     casting,’’ in Proceedings of the 39th International Conference on Machine        [40] ——, ‘‘Storm events database: Bulk data download,’’ https://www.ncei.
+     Learning, ser. Proceedings of Machine Learning Research, vol. 162, 2022,              noaa.gov/stormevents/ftp.jsp, 2026, accessed: 2026-07-17.
+     pp. 27 268–27 286.                                                               [41] NOAA Office of Satellite and Product Operations, ‘‘Hazard mapping
+[20] Y. Zhang and J. Yan, ‘‘Crossformer: Transformer utilizing cross-dimension             system fire and smoke product,’’ https://ospo.noaa.gov/products/land/hms.
+     dependency for multivariate time series forecasting,’’ in Proceedings of the          html, 2026, accessed: 2026-07-17.
+     11th International Conference on Learning Representations, 2023.                 [42] Z. Liu, M. Cheng, Z. Li, Z. Huang, Q. Liu, Y. Xie, and E. Chen, ‘‘Adap-
+[21] Y. Liu, T. Hu, H. Zhang, H. Wu, S. Wang, L. Ma, and M. Long, ‘‘iTrans-                tive normalization for non-stationary time series forecasting: A temporal
+     former: Inverted transformers are effective for time series forecasting,’’ in         slice perspective,’’ in Advances in Neural Information Processing Systems,
+     Proceedings of the 12th International Conference on Learning Represen-                vol. 36, 2023, pp. 14 273–14 292.
+     tations, 2024.                                                                   [43] S. M. Lundberg and S.-I. Lee, ‘‘A unified approach to interpreting model
+[22] H. Wu, T. Hu, Y. Liu, H. Zhou, J. Wang, and M. Long, ‘‘TimesNet: Tempo-               predictions,’’ in Advances in Neural Information Processing Systems,
+     ral 2d-variation modeling for general time series analysis,’’ in Proceedings          vol. 30, 2017.
+     of the 11th International Conference on Learning Representations, 2023.          [44] C. Raman, A. Nonnemaker, A. Villegas-Morcillo, H. Hung, and M. Loog,
+[23] A. Zeng, M. Chen, L. Zhang, and Q. Xu, ‘‘Are transformers effective                   ‘‘Why did this model forecast this future? information-theoretic saliency
+     for time series forecasting?’’ in Proceedings of the AAAI Conference on               for counterfactual explanations of probabilistic regression models,’’ in
+     Artificial Intelligence, vol. 37, no. 9, 2023, pp. 11 121–11 128.                     Advances in Neural Information Processing Systems, vol. 36, 2023.
+[24] Y. Nie, N. H. Nguyen, P. Sinthong, and J. Kalagnanam, ‘‘A time series is
+     worth 64 words: Long-term forecasting with transformers,’’ in Proceedings
+     of the 11th International Conference on Learning Representations, 2023.
+[25] S. Wang, H. Wu, X. Shi, T. Hu, H. Luo, L. Ma, J. Y. Zhang, and J. Zhou,
+     ‘‘TimeMixer: Decomposable multiscale mixing for time series forecast-
+     ing,’’ in Proceedings of the 12th International Conference on Learning           SABBIR HOSSAIN received the B.Sc. degree in computer science and engi-
+     Representations, 2024.                                                           neering, with a major in software engineering, from American International
+[26] B. Lim and S. Zohren, ‘‘Time-series forecasting with deep learning: A            University-Bangladesh, Dhaka, Bangladesh, in 2023, where he is currently
+     survey,’’ Philosophical Transactions of the Royal Society A: Mathematical,       pursuing a master’s degree. In 2023, he joined the Dr. Anwarul Abedin Insti-
+     Physical and Engineering Sciences, vol. 379, no. 2194, p. 20200209, 2021.        tute of Innovation as a research assistant and has since continued academic
+[27] K. Benidis, S. S. Rangapuram, V. Flunkert, Y. Wang, D. Maddix, C. Turk-          research and applied software-development work. His current research inter-
+     men, J. Gasthaus, M. Bohlke-Schneider, D. Salinas, L. Stella, F.-X. Aubet,       ests include time-series forecasting, retrieval-augmented learning, machine
+     L. Callot, and T. Januschowski, ‘‘Deep learning for time series forecasting:     learning, and data-driven environmental intelligence.
+     Tutorial and literature survey,’’ ACM Computing Surveys, vol. 55, no. 6, pp.
+     1–36, 2023.
+[28] Y. Liu, H. Zhang, C. Li, X. Huang, J. Wang, and M. Long, ‘‘Timer:
+     Generative pre-trained transformers are large time series models,’’ in Pro-
+     ceedings of the 41st International Conference on Machine Learning, ser.
+     Proceedings of Machine Learning Research, vol. 235, 2024, pp. 32 369–            MD. IFTEKHARUL MOBIN received the B.Sc. degree from the Islamic
+     32 399.                                                                          University of Technology, Gazipur, Bangladesh, and the Ph.D. degree from
+[29] Y. Liu, G. Qin, X. Huang, J. Wang, and M. Long, ‘‘Timer-XL: Long-context         Queen Mary University of London, London, U.K., in 2014. He is currently
+     transformers for unified time series forecasting,’’ in Proceedings of the 13th   an Assistant Professor with the Department of Computer Science, American
+     International Conference on Learning Representations, 2025.                      International University-Bangladesh, Dhaka, Bangladesh.
+
+VOLUME XX, 2026                                                                                                                                                    19
+                                                                           S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+MAHAMODUL HASAN MAHADI received the B.Sc. degree in computer
+science and engineering and the M.Sc. degree in computer science from
+American International University-Bangladesh, Dhaka, Bangladesh. He is
+currently a Lecturer with the Department of Computer Science at the same
+university.
+
+
+
+
+20                                                                                                                     VOLUME XX, 2026
+
