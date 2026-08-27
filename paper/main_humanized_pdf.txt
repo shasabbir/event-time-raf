@@ -1391,51 +1391,60 @@ the same time embargo.                                                 Natural L
                                                                                       [38] US Environmental Protection Agency, ‘‘AirData: Pre-generated air quality
 [18] H. Wu, J. Xu, J. Wang, and M. Long, ‘‘Autoformer: Decomposition                       data files,’’ https://aqs.epa.gov/aqsweb/airdata/download_files.html, 2026,
      transformers with auto-correlation for long-term series forecasting,’’ in             accessed: 2026-07-17.
-     Advances in Neural Information Processing Systems, vol. 34, 2021.                [39] NOAA National Centers for Environmental Information, ‘‘Global histori-
-[19] T. Zhou, Z. Ma, Q. Wen, X. Wang, L. Sun, and R. Jin, ‘‘FEDformer:                     cal climatology network-hourly (GHCNh), version 1,’’ https://doi.org/10.
-     Frequency enhanced decomposed transformer for long-term series fore-                  25921/jp3d-3v19, 2024, accessed: 2026-08-23.
-     casting,’’ in Proceedings of the 39th International Conference on Machine        [40] ——, ‘‘Storm events database: Bulk data download,’’ https://www.ncei.
-     Learning, ser. Proceedings of Machine Learning Research, vol. 162, 2022,              noaa.gov/stormevents/ftp.jsp, 2026, accessed: 2026-07-17.
-     pp. 27 268–27 286.                                                               [41] NOAA Office of Satellite and Product Operations, ‘‘Hazard mapping
-[20] Y. Zhang and J. Yan, ‘‘Crossformer: Transformer utilizing cross-dimension             system fire and smoke product,’’ https://ospo.noaa.gov/products/land/hms.
-     dependency for multivariate time series forecasting,’’ in Proceedings of the          html, 2026, accessed: 2026-07-17.
-     11th International Conference on Learning Representations, 2023.                 [42] Z. Liu, M. Cheng, Z. Li, Z. Huang, Q. Liu, Y. Xie, and E. Chen, ‘‘Adap-
-[21] Y. Liu, T. Hu, H. Zhang, H. Wu, S. Wang, L. Ma, and M. Long, ‘‘iTrans-                tive normalization for non-stationary time series forecasting: A temporal
-     former: Inverted transformers are effective for time series forecasting,’’ in         slice perspective,’’ in Advances in Neural Information Processing Systems,
-     Proceedings of the 12th International Conference on Learning Represen-                vol. 36, 2023, pp. 14 273–14 292.
-     tations, 2024.                                                                   [43] S. M. Lundberg and S.-I. Lee, ‘‘A unified approach to interpreting model
-[22] H. Wu, T. Hu, Y. Liu, H. Zhou, J. Wang, and M. Long, ‘‘TimesNet: Tempo-               predictions,’’ in Advances in Neural Information Processing Systems,
-     ral 2d-variation modeling for general time series analysis,’’ in Proceedings          vol. 30, 2017.
-     of the 11th International Conference on Learning Representations, 2023.          [44] C. Raman, A. Nonnemaker, A. Villegas-Morcillo, H. Hung, and M. Loog,
-[23] A. Zeng, M. Chen, L. Zhang, and Q. Xu, ‘‘Are transformers effective                   ‘‘Why did this model forecast this future? information-theoretic saliency
-     for time series forecasting?’’ in Proceedings of the AAAI Conference on               for counterfactual explanations of probabilistic regression models,’’ in
-     Artificial Intelligence, vol. 37, no. 9, 2023, pp. 11 121–11 128.                     Advances in Neural Information Processing Systems, vol. 36, 2023.
-[24] Y. Nie, N. H. Nguyen, P. Sinthong, and J. Kalagnanam, ‘‘A time series is
-     worth 64 words: Long-term forecasting with transformers,’’ in Proceedings
-     of the 11th International Conference on Learning Representations, 2023.
+     Advances in Neural Information Processing Systems, vol. 34, 2021.                [39] M. Menne, S. Noone, N. Casey, R. Dunn, S. McNeill, D. Kantor, P. W.
+[19] T. Zhou, Z. Ma, Q. Wen, X. Wang, L. Sun, and R. Jin, ‘‘FEDformer:                     Thorne, K. Orcutt, S. Cunningham, and N. Risavi, ‘‘Global historical cli-
+     Frequency enhanced decomposed transformer for long-term series fore-                  matology network-hourly (GHCNh), version 1,’’ https://doi.org/10.25921/
+     casting,’’ in Proceedings of the 39th International Conference on Machine             jp3d-3v19, 2024, NOAA National Centers for Environmental Information.
+     Learning, ser. Proceedings of Machine Learning Research, vol. 162, 2022,              Accessed: 2026-08-23.
+     pp. 27 268–27 286.                                                               [40] NOAA National Centers for Environmental Information, ‘‘Storm events
+[20] Y. Zhang and J. Yan, ‘‘Crossformer: Transformer utilizing cross-dimension             database: Bulk data download,’’ https://www.ncei.noaa.gov/stormevents/
+     dependency for multivariate time series forecasting,’’ in Proceedings of the          ftp.jsp, 2026, accessed: 2026-07-17.
+     11th International Conference on Learning Representations, 2023.                 [41] NOAA Office of Satellite and Product Operations, ‘‘Hazard mapping
+[21] Y. Liu, T. Hu, H. Zhang, H. Wu, S. Wang, L. Ma, and M. Long, ‘‘iTrans-                system fire and smoke product,’’ https://ospo.noaa.gov/products/land/hms.
+     former: Inverted transformers are effective for time series forecasting,’’ in         html, 2026, accessed: 2026-07-17.
+     Proceedings of the 12th International Conference on Learning Represen-           [42] Z. Liu, M. Cheng, Z. Li, Z. Huang, Q. Liu, Y. Xie, and E. Chen, ‘‘Adap-
+     tations, 2024.                                                                        tive normalization for non-stationary time series forecasting: A temporal
+[22] H. Wu, T. Hu, Y. Liu, H. Zhou, J. Wang, and M. Long, ‘‘TimesNet: Tempo-               slice perspective,’’ in Advances in Neural Information Processing Systems,
+     ral 2d-variation modeling for general time series analysis,’’ in Proceedings          vol. 36, 2023, pp. 14 273–14 292.
+     of the 11th International Conference on Learning Representations, 2023.          [43] S. M. Lundberg and S.-I. Lee, ‘‘A unified approach to interpreting model
+[23] A. Zeng, M. Chen, L. Zhang, and Q. Xu, ‘‘Are transformers effective                   predictions,’’ in Advances in Neural Information Processing Systems,
+     for time series forecasting?’’ in Proceedings of the AAAI Conference on               vol. 30, 2017.
+     Artificial Intelligence, vol. 37, no. 9, 2023, pp. 11 121–11 128.                [44] C. Raman, A. Nonnemaker, A. Villegas-Morcillo, H. Hung, and M. Loog,
+[24] Y. Nie, N. H. Nguyen, P. Sinthong, and J. Kalagnanam, ‘‘A time series is              ‘‘Why did this model forecast this future? information-theoretic saliency
+     worth 64 words: Long-term forecasting with transformers,’’ in Proceedings             for counterfactual explanations of probabilistic regression models,’’ in
+     of the 11th International Conference on Learning Representations, 2023.               Advances in Neural Information Processing Systems, vol. 36, 2023.
 [25] S. Wang, H. Wu, X. Shi, T. Hu, H. Luo, L. Ma, J. Y. Zhang, and J. Zhou,
      ‘‘TimeMixer: Decomposable multiscale mixing for time series forecast-
-     ing,’’ in Proceedings of the 12th International Conference on Learning           SABBIR HOSSAIN received the B.Sc. degree in computer science and engi-
-     Representations, 2024.                                                           neering, with a major in software engineering, from American International
-[26] B. Lim and S. Zohren, ‘‘Time-series forecasting with deep learning: A            University-Bangladesh, Dhaka, Bangladesh, in 2023, where he is currently
-     survey,’’ Philosophical Transactions of the Royal Society A: Mathematical,       pursuing a master’s degree. In 2023, he joined the Dr. Anwarul Abedin Insti-
-     Physical and Engineering Sciences, vol. 379, no. 2194, p. 20200209, 2021.        tute of Innovation as a research assistant and has since continued academic
-[27] K. Benidis, S. S. Rangapuram, V. Flunkert, Y. Wang, D. Maddix, C. Turk-          research and applied software-development work. His current research inter-
-     men, J. Gasthaus, M. Bohlke-Schneider, D. Salinas, L. Stella, F.-X. Aubet,       ests include time-series forecasting, retrieval-augmented learning, machine
-     L. Callot, and T. Januschowski, ‘‘Deep learning for time series forecasting:     learning, and data-driven environmental intelligence.
+     ing,’’ in Proceedings of the 12th International Conference on Learning
+     Representations, 2024.
+[26] B. Lim and S. Zohren, ‘‘Time-series forecasting with deep learning: A
+     survey,’’ Philosophical Transactions of the Royal Society A: Mathematical,
+     Physical and Engineering Sciences, vol. 379, no. 2194, p. 20200209, 2021.
+[27] K. Benidis, S. S. Rangapuram, V. Flunkert, Y. Wang, D. Maddix, C. Turk-
+     men, J. Gasthaus, M. Bohlke-Schneider, D. Salinas, L. Stella, F.-X. Aubet,
+     L. Callot, and T. Januschowski, ‘‘Deep learning for time series forecasting:
      Tutorial and literature survey,’’ ACM Computing Surveys, vol. 55, no. 6, pp.
      1–36, 2023.
-[28] Y. Liu, H. Zhang, C. Li, X. Huang, J. Wang, and M. Long, ‘‘Timer:
-     Generative pre-trained transformers are large time series models,’’ in Pro-
-     ceedings of the 41st International Conference on Machine Learning, ser.
-     Proceedings of Machine Learning Research, vol. 235, 2024, pp. 32 369–            MD. IFTEKHARUL MOBIN received the B.Sc. degree from the Islamic
-     32 399.                                                                          University of Technology, Gazipur, Bangladesh, and the Ph.D. degree from
-[29] Y. Liu, G. Qin, X. Huang, J. Wang, and M. Long, ‘‘Timer-XL: Long-context         Queen Mary University of London, London, U.K., in 2014. He is currently
-     transformers for unified time series forecasting,’’ in Proceedings of the 13th   an Assistant Professor with the Department of Computer Science, American
-     International Conference on Learning Representations, 2025.                      International University-Bangladesh, Dhaka, Bangladesh.
+[28] Y. Liu, H. Zhang, C. Li, X. Huang, J. Wang, and M. Long, ‘‘Timer:                SABBIR HOSSAIN received the B.Sc. degree in computer science and engi-
+     Generative pre-trained transformers are large time series models,’’ in Pro-      neering, with a major in software engineering, from American International
+     ceedings of the 41st International Conference on Machine Learning, ser.          University-Bangladesh, Dhaka, Bangladesh, in 2023, where he is currently
+     Proceedings of Machine Learning Research, vol. 235, 2024, pp. 32 369–            pursuing a master’s degree. In 2023, he joined the Dr. Anwarul Abedin Insti-
+     32 399.                                                                          tute of Innovation as a research assistant and has since continued academic
+[29] Y. Liu, G. Qin, X. Huang, J. Wang, and M. Long, ‘‘Timer-XL: Long-context         research and applied software-development work. His current research inter-
+     transformers for unified time series forecasting,’’ in Proceedings of the 13th   ests include time-series forecasting, retrieval-augmented learning, machine
+     International Conference on Learning Representations, 2025.                      learning, and data-driven environmental intelligence.
 
 VOLUME XX, 2026                                                                                                                                                    19
                                                                            S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
+
+
+
+MD. IFTEKHARUL MOBIN received the B.Sc. degree from the Islamic
+University of Technology, Gazipur, Bangladesh, and the Ph.D. degree from
+Queen Mary University of London, London, U.K., in 2014. He is currently
+an Assistant Professor with the Department of Computer Science, American
+International University-Bangladesh, Dhaka, Bangladesh.
+
 
 
 
