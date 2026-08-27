@@ -1,3 +1,11 @@
+> **Archived review - not a current result source.** This document evaluates the
+> pre-revision 10 August 2026 manuscript and its obsolete experiment. Its model
+> names, dimensions, dates, and numerical values must not be cited as current.
+> The authoritative evidence is run `20260827T043457543402Z`; see
+> `main.tex`, `submission_audit.md`, and `verification_log.pdf` for the resolved
+> manuscript and remaining limitations. The review body is retained unchanged
+> as an audit trail.
+
 # Peer Review — *Event-TimeRAF: Event-Aware Retrieval-Augmented Foundation Model for Explainable Air Quality Forecasting Under Concept Drift*
 
 **Reviewer role assumed:** senior reviewer, IEEE Transactions–tier journal (TKDE / TNNLS / IEEE TGRS / *Environmental Modelling & Software* class).

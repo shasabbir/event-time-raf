@@ -1,61 +1,74 @@
-# Event-TimeRAF Faculty Submission
+# TRACE-RAF Faculty Submission
 
-## Deliverables
+## Authoritative Evidence
 
-- Executed notebook: `notebooks/03_paper_claim_verification.ipynb`
-- Corrected paper: `paper/main.pdf`
-- Overleaf source: `event_timeraf_verified_overleaf.zip`
+- Run ID: `20260827T043457543402Z`
+- Immutable evidence archive:
+  `event_timeraf_publication_candidate_20260827T043457543402Z.zip`
+- Repository: <https://github.com/shasabbir/event-time-raf>
+- Paper source: `paper/main.tex`
+- Paper PDF: `paper/main.pdf`
+- Journal format: official May 13, 2026 IEEE Access LaTeX template
 - AI verification log: `paper/verification_log.pdf`
-- Presentation: `presentation/Event-TimeRAF_Verified_Presentation.pptx`
-- Presentation notes: `presentation/presenter_notes.md`
-- Immutable evidence: `event_timeraf_final_run.zip` (kept as a separate file
-  because it is approximately 492 MB)
+- Overleaf package: `event_timeraf_verified_overleaf.zip`
 
-## Live notebook run
+`paper/main_humanized.tex` is not part of this synchronized submission.
 
-Place `event_timeraf_final_run.zip` in the repository root, open
-`notebooks/03_paper_claim_verification.ipynb`, restart the kernel, and run all
-cells. The verified local runtime is approximately 142 seconds. The final cell
-must print:
+## Reproducible Notebook Order
 
-```text
-FINAL VERIFICATION STATUS: PASS WITH EXPLICIT LIMITATIONS
-```
+1. `notebooks/01_event_timeraf_kaggle_pipeline.ipynb` rebuilds the experiment
+   from the attached official datasets.
+2. `notebooks/02_results_and_figures.ipynb` verifies all manifest hashes,
+   recomputes metrics and statistical tests, checks the TRACE decomposition,
+   and regenerates publication figures. This is the primary live-verification
+   notebook.
+3. `notebooks/03_paper_claim_verification.ipynb` performs a final cross-table
+   run-ID and completeness audit and displays the claim-supporting tables.
 
-The notebook checks all 43 manifest hashes, reconstructs the saved dataset and
-retrieval evidence, reruns M00--M11, recomputes every manuscript metric and
-ablation, regenerates all nine figures, and applies source-level claim gates.
-It uses archived trained models so that a live run is short. The full original
-training experiment remains in `notebooks/01_event_timeraf_kaggle_pipeline.ipynb`.
+Notebook 02 checks all 106 manifest-listed artifacts by SHA-256, reconciles all
+43 result tables, verifies 56,194 windows and their 45,784/7,950/2,460
+chronological split, reconstructs 59,040 test forecast points, and checks the
+exact TRACE forecast decomposition.
 
-## Kaggle
+## Results That May Be Reported
 
-Upload the repository/project ZIP and `event_timeraf_final_run.zip` as private
-Kaggle datasets. Open the verification notebook and run all cells with Internet
-disabled. If automatic discovery fails, set these variables in the setup cell:
+The strongest tested model is C01 Ridge:
 
-```python
-import os
-os.environ["PROJECT_ROOT_OVERRIDE"] = "/kaggle/working/event_timeraf"
-os.environ["FINAL_RUN_ZIP_OVERRIDE"] = "/kaggle/input/<dataset>/event_timeraf_final_run.zip"
-```
+- MSE 39.144
+- MAE 4.079
+- RMSE 6.257
+- R-squared 0.457
 
-## Overleaf
+M13 TRACE records MSE 40.062, MAE 4.134, RMSE 6.329, and R-squared 0.444. It
+improves nominally over the C06 base ensemble but the difference is not
+significant after Holm correction across the 29-comparison family.
 
-Upload `event_timeraf_verified_overleaf.zip` as a new project. The ZIP has
-`main.tex` at its root and uses forward-slash archive paths. Compile with
-pdfLaTeX/BibTeX. Replace `Author Name` before creating and submitting the
-Overleaf share link.
+The mechanism ladder is fully measured:
 
-## Presentation position
+- A04 raw-target analogue fusion selects weight 0.
+- A05 ungated residual transfer increases MSE to 44.959.
+- A06 constant residual transfer selects strength 0.
+- M13 selects trust-gate strength 0.25 and limits the mean absolute applied
+  correction to 0.149.
 
-The strongest verified result is M04 context XGBoost, not full M09:
+The event-free comparison is nearly identical to TRACE and only 70 test origins
+have event context. Event awareness must therefore be described as investigated,
+not demonstrated. Chronos-Bolt is a separate frozen TSFM baseline; the negative
+result applies only to the tested event-conditioned output-space fusion.
 
-- M04: MSE 26.185, MAE 3.125, RMSE 5.117, R-squared 0.379
-- M09: MSE 26.712
-- M10 frozen Chronos-Bolt: MSE 28.941
-- M11 Chronos + retrieval: MSE 28.709, with a paired interval crossing zero
+## Claims That Must Not Be Made
 
-Do not report M12 as a final result. It was created after the immutable run and
-is excluded from the corrected paper. Event findings are retrospective because
-NOAA Storm Events does not expose machine-readable publication timestamps.
+- TRACE-RAF is not a foundation model.
+- TRACE does not beat all baselines; Ridge is better on every headline metric.
+- The TRACE-versus-base gain is not multiplicity-adjusted significant.
+- The experiment does not establish an event-specific forecasting benefit.
+- NOAA Storm Events does not provide strict machine-readable issue timestamps.
+- The distribution-shift score is not proof of general concept-drift adaptation.
+- One Los Angeles County aggregate does not establish geographic generalization.
+- Runtime is not hardware-normalized.
+
+## Submission Check
+
+Before submitting, confirm that the Overleaf PDF matches `paper/main.pdf`, add
+the final Overleaf link, and ensure the presentation uses the run ID and values
+above. Do not include an older Event-TimeRAF deck or any July evidence archive.

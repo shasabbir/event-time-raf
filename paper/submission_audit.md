@@ -1,47 +1,52 @@
-# Submission Checklist Audit
+# TRACE-RAF Submission Audit
 
-Audit date: 5 August 2026
+Audit date: 27 August 2026
+Evidence run: `20260827T043457543402Z`
 
-| Requirement | Status | Where it is | What I changed |
+| Requirement | Status | Where it is | Verification / action taken |
 |---|---|---|---|
-| Title | Present | `main.tex` | Retained the method-forward Event-TimeRAF title. |
-| Abstract, 200-250 words | Present | `main.tex` | Names SACB, LSER, and DFEH and reports only manifest-backed M04, M09, M10, and M11 values. |
-| Introduction with contribution bullets | Present | `sections/01_introduction.tex` | Added task motivation, scoped objectives, and one mechanism-focused bullet for each named module. |
-| Related Work, thematic and comparative | Present | `sections/02_related_work.tex` | Reorganized into thematic subsections and added comparative discussion instead of paper-by-paper summaries. |
-| Critical Gaps and Limitations of Previous Studies | Present | `sections/03_critical_gaps_contributions.tex` | Added explicit provenance, temporal leakage, event-context, drift, and evidence gaps. |
-| Core Contributions | Present | `sections/03_critical_gaps_contributions.tex` | Added a separate contribution section with one-to-one responses to the stated gaps. |
-| Problem formulation | Present | `sections/03_problem_formulation.tex` | Standardized symbols, tensor meanings, chronological split, and explicit equation references. |
-| Methodology and pipeline overview | Present | `sections/04_methodology.tex` | Rebuilt around a compact tensor forward pass and three named, code-faithful modules. |
-| Custom model design | Weak | `sections/04_methodology.tex` | SACB, LSER, and DFEH form a custom integrated framework, but the forecasters are XGBoost and frozen Chronos-Bolt; there is no learned retriever or internal TimeRAF Channel Prompting. |
-| Mathematical formulation | Present | `sections/03_problem_formulation.tex`; `sections/04_methodology.tex` | Preserved prior equations, added tensor shapes and implementation equations, numbered them, and referenced each in prose. |
-| Dataset Description | Present | `sections/05_experimental_setup.tex` | Added official sources, study period, station/target construction, counts, coverage, split, preprocessing, and event-availability caveat. |
-| Dataset links | Present | `sections/05_experimental_setup.tex`; `references.bib` | Linked official EPA, NOAA Global Hourly, and NOAA Storm Events source pages. |
-| Code Availability | Present | `sections/05_experimental_setup.tex` | Added `https://github.com/shasabbir/event-time-raf`, language, package versions, and repository contents. |
-| Experimental Setup | Weak | `sections/05_experimental_setup.tex` | Added a complete model and hyperparameter table. Exact CPU, GPU, RAM, and peak-memory identifiers were not captured by the run. |
-| Evaluation Metrics | Present | `sections/05_experimental_setup.tex` | Added justified MSE, MAE, RMSE, and R-squared equations plus subset and bootstrap rules. |
-| Comparison with Existing Studies | Weak | `sections/04_methodology.tex`; `sections/05_experimental_setup.tex` | Added methodological comparison tables. A numerical cross-paper ranking is intentionally omitted because datasets and protocols differ. |
-| Ablation Study | Present | `sections/06_results_discussion.tex` | Retained every measured value and mapped comparisons to SACB, LSER, and DFEH. Results are honestly non-monotonic. |
-| Explainability Analysis | Present | `sections/06_results_discussion.tex` | Documented signed XGBoost effects, retrieved IDs, event IDs, drift components, and the uncertainty proxy for 7,199 records. |
-| Results and Discussion | Present | `sections/06_results_discussion.tex` | Interprets overall, horizon, event, drift, retrieval, uncertainty, and computational evidence without claiming uniform superiority. |
-| Metric consistency | Present | Abstract, Results, Conclusion; verification notebook | Recomputed all values from 7,199 test origins. Corrected 85/151 dimensions and removed unsupported M12 values. |
-| Limitations | Present | `sections/07_limitations_future_work.tex` | Documents retrospective event timing, single-region scope, no learned TimeRAF integration, excluded M12 lineage, missing hardware identifiers, and NumPy-sensitive random replay. |
-| Future Work | Present | `sections/07_limitations_future_work.tex` | Specifies a complete drift-gate rerun, second-region validation, issue-time event sources, and learned retrieval as future extensions. |
-| Conclusion | Present | `sections/07_conclusion.tex` | Synchronized module names, unchanged values, caveats, and supported takeaway. |
-| References | Present | `references.bib` | Exactly 40 entries; 28 (70%) are from 2023-2026. Year distribution: 1997: 1, 2014: 1, 2016: 1, 2017: 2, 2020: 2, 2021: 4, 2022: 1, 2023: 9, 2024: 13, 2025: 2, 2026: 4. |
-| Figures and tables | Present | `figures/`; all manuscript sections | Four vector methodology figures plus five notebook-generated empirical figures. All 9 figures and 13 tables are numbered, captioned below, and referenced in body text. |
-| External validation | Missing | Limitations and Future Work | No second city, county, or external dataset has been evaluated; this cannot be supplied without a new run. |
-| Page numbers and IEEE journal format | Present | `main.tex` | Preserved `IEEEtran` journal class and enabled plain page numbering. |
-| Writing quality and originality check | Weak | Entire manuscript | Removed classroom/process wording and tightened scientific register. The author must still verify every sentence, citation, and originality requirement before submission. |
+| Title | Present | `main.tex` | Identifies TRACE-RAF, residual analogue correction, and PM2.5 forecasting. |
+| Abstract | Present | `main.tex` | States scope, mechanism, current headline metrics, adjusted inference, and limitations without superiority language. |
+| Keywords | Present | `main.tex` | Uses domain, forecasting, retrieval, and auditability terms. |
+| Introduction | Present | `main.tex` | Motivates the task and separates methodological novelty from empirical ranking. |
+| Contribution statements | Present | Introduction | Names out-of-fold residual memory, leakage controls, trust gating, and evidence-preserving evaluation. |
+| Related work | Present | `main.tex` | Organized thematically and distinguishes supervised forecasting, retrieval, TSFMs, events, and drift. |
+| Critical gaps and limitations | Present | `main.tex` | Maps leakage, raw-target transfer, weak event timing, shift claims, and auditability to the method. |
+| Problem formulation | Present | `main.tex` | Defines inputs, 24-step target, residuals, retrieval, and final forecast. |
+| Methodology | Present | `main.tex` | Gives a full forward pass, named modules, algorithm, tensor dimensions, and implementation details. |
+| Dataset description | Present | `main.tex` | Documents EPA PM2.5, NOAA GHCNh weather, Storm Events, provenance, coverage, and retrospective event timing. |
+| Experimental setup | Present | `main.tex` | Reports chronological splits, model families, selection protocol, hyperparameters, seeds, and runtime scope. |
+| Evaluation metrics | Present | `main.tex` | Defines MSE, MAE, RMSE, R-squared, event subsets, bootstrap, DM tests, and Holm correction. |
+| Baseline comparison | Present | `main.tex` | Includes conventional supervised, neural, frozen Chronos-Bolt, and retrieval variants. |
+| Ablation study | Present | `main.tex` | Includes the measured raw analogue, ungated residual, constant residual, gated residual, and event-free ladder. |
+| Explainability / auditability | Present | `main.tex` | Uses evidence records and exact base-plus-gated-residual decomposition; avoids a causal explanation claim. |
+| Results and discussion | Present | `main.tex` | Reports Ridge as best and TRACE as competitive; event and TSFM conclusions are explicitly scoped. |
+| Limitations | Present | `main.tex` | Covers retrospective events, one county, spatial compression, statistical uncertainty, and runtime limits. |
+| Future work | Present | `main.tex` | Prioritizes a second county, true issue timestamps, richer event exposure, and stronger prospective tests. |
+| Conclusion | Present | `main.tex` | Matches the verified evidence and does not claim universal superiority. |
+| Code availability | Present | `main.tex` | Links the public GitHub repository and identifies the executable notebooks. |
+| References | Present | `references.bib` | 44 entries: 39 from 2020--2026; no arXiv/preprint entry detected. |
+| Figures and tables | Present | `main.tex`, `figures/` | 9 figures and 20 tables are captioned, labeled, and referenced; method diagrams are vector PDF/SVG. |
+| Equation formatting | Present | `main.tex` | 30 equation/align environments use consistent notation and labels. |
+| Numeric reproducibility | Present | Notebooks 02 and 03 | 106 hashes and 43 tables verified; all headline values reconcile to the final archive. |
+| AI verification log | Present | `verification_log.tex/.pdf` | One-page claim-by-claim log marks confirmed, corrected, and unverified statements. |
+| Journal template | Present | `main.tex` and official template assets | Converted to the official May 13, 2026 IEEE Access `ieeeaccess` class; the 19-page paper is within the journal's recommended sub-20-page length, and the Overleaf package includes the required class, style, logo, and font files. |
+| Journal declarations | Missing | N/A | Author must supply funding, competing-interest, contribution, acknowledgment, and required AI-use statements. |
+| External validation | Missing | N/A | No second county has been run; keep all geographic claims local. |
+| Operational event timestamps | Missing | N/A | NOAA Storm Events lacks the required issue-time field; keep the retrospective caveat. |
+| Presentation sync | Pending | `presentation/` | Presenter notes are current; the legacy Event-TimeRAF PPTX must not be submitted until rebuilt against this run. |
 
-## Reference Recency
+## Cross-Artifact Consistency
 
-The bibliography meets the numerical target of 40-60 entries. Of 40 entries, 28 are dated 2023-2026, so recent work forms a 70% majority. The remaining older sources are retained for established methods, datasets, metrics, and foundational forecasting literature.
+- Headline data counts: 56,194 windows; 45,784/7,950/2,460 split; 59,040
+  horizon-level test predictions.
+- Headline model values: Ridge MSE 39.144 and TRACE MSE 40.062.
+- Inference family: 29 comparisons per metric, 5,000 resamples, 168-hour blocks,
+  Holm-adjusted bootstrap and DM p-values.
+- TRACE mechanism: selected gate strength 0.25, mean effective gate 0.090,
+  mean absolute applied residual correction 0.149.
+- Evidence source: only run `20260827T043457543402Z` is authoritative.
 
-## Audit Conclusion
-
-The manuscript is internally consistent with the executed verification notebook
-and contains no post-manifest M12 result. It remains intentionally scoped to one
-county, retrospective Storm Events availability, and non-normalized runtime.
-Those are reported limitations rather than unsupported claims. Author metadata,
-the authenticated Overleaf link, and final human originality review remain user
-actions.
+No unsupported claim of event-specific improvement, foundation-model identity,
+general concept-drift adaptation, geographic generalization, or universal model
+superiority remains in `main.tex`.

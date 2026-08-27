@@ -1,51 +1,46 @@
-# Verified Manuscript Changelog
+# Paper Changelog
 
-## Claim verification
+## 27 August 2026 - Final Run Synchronization
 
-- Added `notebooks/03_paper_claim_verification.ipynb`, an executed top-to-bottom
-  companion that verifies all 43 manifest hashes, reconstructs the test data and
-  retrieval knowledge base, reruns M00--M11, recomputes metrics and ablations,
-  regenerates all nine manuscript figures, and ends with a claim gate.
-- Corrected the SACB origin vector from 86 to 85 features and the M09
-  per-horizon input from 152 to 151. The saved composition is 23 PM2.5, 14
-  weather, nine calendar, and 39 event features; M09 adds 51 retrieval, six
-  drift, and nine future-calendar fields.
-- Removed M12 from the abstract, results, tables, discussion, and conclusion.
-  M12 is absent from the immutable manifest and appears only in post-manifest
-  edited artifacts.
-- Replaced the generic drift formulation with the implemented five raw
-  statistics, training median/MAD scaling, clipping, and validation 0.90
-  quantile threshold.
-- Added the cross-version random-retrieval limitation. M05 and A01 are
-  reconstructed from checksum-verified evidence because NumPy 2.4.1 does not
-  reproduce the NumPy 2.0.2 selection stream.
+- Set run `20260827T043457543402Z` as the sole numerical source of truth.
+- Reconciled `main.tex` with 106 manifest-listed artifacts, 43 result tables,
+  56,194 windows, and 59,040 test forecast points.
+- Updated every headline metric to the executed results: Ridge MSE 39.144 and
+  TRACE MSE 40.062, with Ridge identified as the strongest tested model.
+- Added the complete mechanism ladder: base ensemble, raw-target analogue
+  fusion, ungated residual transfer, constant residual transfer, and gated
+  residual TRACE.
+- Added exact forecast decomposition results: selected gate strength 0.25,
+  mean effective gate 0.090, raw mean absolute residual 1.708, and applied mean
+  absolute correction 0.149.
+- Corrected statistical language to distinguish unadjusted bootstrap intervals
+  from Holm-adjusted bootstrap and Diebold-Mariano p-values across the
+  29-comparison family.
+- Reframed the event channel as an investigated retrospective component. The
+  event-free ablation is nearly identical and only 70 test origins contain
+  event context.
+- Clarified that TRACE-RAF is a supervised residual-correction model. The
+  Chronos-Bolt result is limited to one frozen TSFM and one event-conditioned
+  output-space fusion configuration.
+- Replaced general concept-drift terminology with distribution-shift diagnostic
+  or model-specific regime label where warranted.
+- Replaced causal explainability language with auditable evidence and exact
+  forecast decomposition.
+- Updated the one-page AI verification log, faculty README, submission audit,
+  and presenter notes to the current run.
+- Added the executed LSER event-weight sensitivity table and explicitly marked
+  the primary coefficient as predeclared rather than optimal.
+- Added DLinear, LSTM, PatchTST, optimizer, seed, and selected-epoch details to
+  the reproducibility table.
+- Reduced the abstract from 318 to 248 words without changing reported results.
+- Kept `main_humanized.tex` unchanged by explicit instruction.
 
-## Manuscript
+## Remaining Submission Actions
 
-- Synchronized the abstract, contributions, methodology, experimental setup,
-  results, limitations, and conclusion with the verified model ladder.
-- Retained the verified headline: M04 MSE 26.185, MAE 3.125, RMSE 5.117, and
-  R-squared 0.379. M09 records MSE 26.712. M11 changes Chronos-Bolt MSE from
-  28.941 to 28.709, with a paired interval that crosses zero.
-- Added the direct M09-versus-A00 event-context ablation and kept all reported
-  confidence intervals tied to real prediction-level runs.
-- Regenerated the five empirical PNG figures from the verification notebook and
-  the four methodology figures from the shared vector builder.
-- Compiled `main.pdf` with IEEE journal formatting and no undefined references
-  or citations.
-
-## Submission support
-
-- Added `verification_log.tex` and the one-page `verification_log.pdf`.
-- Added `presentation/Event-TimeRAF_Verified_Presentation.pptx`, its PDF export,
-  source builder, and presenter Q&A notes.
-- Added a faculty-submission README and Overleaf-ready source ZIP. An actual
-  Overleaf share link must be created from the user's account after upload.
-
-## Claim scope
-
-No learned TimeRAF dual encoder, internal Channel Prompting, strict real-time
-event availability, external geographic validation, or hardware-normalized
-efficiency is claimed. SACB, LSER, and DFEH name behavior already present in the
-repository; the names and tensor presentation are manuscript enrichments, not
-unimplemented model modules.
+- Converted the manuscript from generic `IEEEtran` formatting to the official
+  May 13, 2026 IEEE Access `ieeeaccess` class and submission assets.
+- Rebuild the legacy Event-TimeRAF presentation from the synchronized notes.
+- Add an external county only if a new experiment is completed; do not infer
+  geographic generalization from the Los Angeles result.
+- Add operational event evidence only if an archived source with true issue
+  timestamps is obtained.

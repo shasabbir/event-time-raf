@@ -1,68 +1,87 @@
-\documentclass[journal]{IEEEtran}
+\documentclass{ieeeaccess}
 
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath,amssymb,amsfonts}
 \usepackage{array}
 \usepackage{booktabs}
 \usepackage{cite}
 \usepackage{graphicx}
 \usepackage{multirow}
 \usepackage[hidelinks]{hyperref}
-\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{bm}
 
-\title{TRACE-RAF: Trust-Gated Residual Analog Correction with Evidence-Preserving Retrieval for Auditable PM2.5 Forecasting}
+\makeatletter
+\AtBeginDocument{\DeclareMathVersion{bold}
+\SetSymbolFont{operators}{bold}{T1}{times}{b}{n}
+\SetSymbolFont{NewLetters}{bold}{T1}{times}{b}{it}
+\SetMathAlphabet{\mathrm}{bold}{T1}{times}{b}{n}
+\SetMathAlphabet{\mathit}{bold}{T1}{times}{b}{it}
+\SetMathAlphabet{\mathbf}{bold}{T1}{times}{b}{n}
+\SetMathAlphabet{\mathtt}{bold}{OT1}{pcr}{b}{n}
+\SetSymbolFont{symbols}{bold}{OMS}{cmsy}{b}{n}
+\renewcommand\boldmath{\@nomath\boldmath\mathversion{bold}}}
+\makeatother
 
-\author{Sabbir Hossain\thanks{S. Hossain is with American International
-University-Bangladesh, Dhaka, Bangladesh.}}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
 \begin{document}
 
-\maketitle
-\pagestyle{plain}
-\thispagestyle{plain}
+\history{}
+\doi{}
+\vol{XX}
+\year{2026}
+
+\title{TRACE-RAF: Trust-Gated Residual Analog Correction with Evidence-Preserving Retrieval for Auditable PM2.5 Forecasting}
+
+\author{\uppercase{Sabbir Hossain}\authorrefmark{1}}
+
+\address[1]{American International University-Bangladesh, Dhaka, Bangladesh}
+
+\markboth
+{S. Hossain: TRACE-RAF for Auditable PM2.5 Forecasting}
+{S. Hossain: TRACE-RAF for Auditable PM2.5 Forecasting}
 
 \begin{abstract}
-Short-horizon PM2.5 forecasting must reconcile pollutant persistence with
+Short-horizon PM2.5 forecasting must combine pollutant persistence,
 meteorology, calendar effects, sparse environmental events, and temporal
-distribution shift. Existing retrieval-augmented forecasters retrieve similar
-trajectories, but a full analogue future can be harmful when a strong local
-model has already captured the predictable component. This study proposes
-TRACE-RAF, a Trust-gated Residual Analog Correction mechanism embedded in an
-auditable forecasting framework that evaluates event context as auxiliary
-evidence. Official EPA PM2.5, NOAA GHCNh
-weather, calendar, and hash-verified NOAA Storm Events records are aligned by a
-Source-Audited Context Builder. A Leakage-Safe Event-Context Retriever applies
-a strict candidate-target embargo, and TRACE-RAF retrieves out-of-fold residual
-trajectories rather than raw targets. An 18-variable reliability gate uses
-retrieval quality, component disagreement, correction spread, event context,
-and drift evidence to scale each residual update. Evaluation covers Los
-Angeles County from 2019 through 2025 using a 168-hour lookback, a 24-hour
-horizon, 45,784 training origins, 7,950 validation origins, and a frozen final
-holdout of 2,460 origins. TRACE-RAF obtains MSE 40.062, MAE 4.134, and RMSE
-6.329. It improves MSE by 4.63\% over the XGBoost context model and is within
-0.07\% of the stronger LightGBM context model, although Ridge regression
-remains best overall at MSE 39.144. TRACE-RAF reduces MAE relative to its base
-ensemble by 0.021, but this nominal effect does not survive Holm correction.
-Event-conditioned and event-free TRACE-RAF variants are nearly identical.
-Validation assigns zero weight to both raw-analogue fusion and a global
-residual correction, while an unscaled residual correction records MSE 44.959;
-the learned gate provides the only nominal retrieval-based improvement, but it
-does not survive Holm adjustment. Event retrieval significantly worsens the
-Chronos-Bolt MAE after multiplicity adjustment. The results demonstrate a
-conservative, auditable residual-retrieval protocol, but do not establish an
-event-conditioned gain. Event-conditioned output-space fusion with frozen
-Chronos-Bolt-small was not supported in this holdout; this does not establish a
-general result for retrieval-augmented TSFMs. Because Storm Events lacks
-machine-readable publication timestamps, event-conditioned results remain
-retrospective sensitivity analyses.
+distribution shift without introducing leakage. This study proposes TRACE-RAF,
+a supervised Trust-gated Residual Analog Correction method for auditable
+24-hour forecasting. A Source-Audited Context Builder aligns official EPA
+PM2.5, NOAA GHCNh weather, calendar, and hash-verified NOAA Storm Events
+records. A Leakage-Safe Event-Context Retriever enforces a candidate-target
+embargo, while TRACE-RAF retrieves out-of-fold base-model residual trajectories
+rather than raw futures. An 18-variable reliability gate scales each correction
+using retrieval quality, model disagreement, correction spread, event context,
+and distribution-shift evidence. A Drift-Aware Forecast and Evidence Head
+preserves prediction-level evidence and diagnostics. Evaluation covers Los Angeles County from
+2019 through 2025 using a 168-hour lookback and chronological splits of 45,784
+training, 7,950 validation, and 2,460 test origins. TRACE-RAF obtains MSE
+40.062, MAE 4.134, and RMSE 6.329. It improves MSE by 4.63\% over context
+XGBoost and is within 0.07\% of context LightGBM, although Ridge remains best
+overall at MSE 39.144. TRACE-RAF reduces MAE by 0.021 relative to its base
+ensemble, but this nominal effect does not survive Holm correction. Validation
+assigns zero weight to raw-analogue fusion and a global residual correction,
+whereas ungated residual transfer records MSE 44.959. The event-free TRACE-RAF
+variant is nearly identical, so an event-specific gain is not established.
+Event-conditioned output-space fusion significantly worsens the tested frozen
+Chronos-Bolt MAE after multiplicity adjustment; this finding does not
+generalize to retrieval-augmented time-series foundation models. Because Storm
+Events lacks machine-readable publication timestamps, all event-conditioned
+results remain retrospective sensitivity analyses.
 \end{abstract}
 
-\begin{IEEEkeywords}
+\begin{keywords}
 Air quality forecasting, PM2.5, retrieval-augmented forecasting, residual correction, time-series foundation models, distribution-shift diagnostics, auditable forecasting.
-\end{IEEEkeywords}
+\end{keywords}
+
+\titlepgskip=-21pt
+
+\maketitle
 
 \section{Introduction}
 
-Fine particulate matter (PM2.5) is a major urban air-quality risk because it is
+\PARstart{F}{ine} particulate matter (PM2.5) is a major urban air-quality risk because it is
 associated with respiratory and cardiovascular health effects
 \cite{who2021airquality}. Accurate short-term PM2.5 forecasts can support
 public-health alerts, exposure reduction, transport planning, and environmental
@@ -619,7 +638,9 @@ relevance, calendar relevance, and event relevance:
 \end{equation}
 where $s_{ts}$ is time-series similarity, $s_w$ is weather similarity, $s_c$ is
 calendar similarity, and $s_e$ is event relevance. The implemented weights are
-$\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$.
+$\alpha=0.5$, $\beta=0.2$, $\gamma=0.1$, and $\delta=0.2$. These are the
+predeclared primary weights rather than a test-selected optimum; the executed
+event-weight sweep is reported in Section~\ref{sec:event_weight_sensitivity}.
 Equation~(\ref{eq:hybrid_score}) keeps each relevance channel explicit so that
 its contribution can be inspected without a learned latent scoring function.
 
@@ -1070,7 +1091,7 @@ SACB feature groups & 23 PM2.5, 14 weather, 9 calendar, 39 event features \\
 SACB missing-data rule & Past-only filling for gaps up to 3 hours; no target interpolation \\
 LSER retrieval & $k=8$, sensitivity for $k \in \{1,4,8,16\}$ \\
 LSER knowledge base & 1,824 windows at 24-hour primary stride; 6/1-hour sweeps \\
-LSER similarity weights & time series 0.5, weather 0.2, calendar 0.1, event 0.2 \\
+LSER similarity weights & time series 0.5, weather 0.2, calendar 0.1, event 0.2 (predeclared primary) \\
 DFEH direct input & 153 features for each of 24 horizon regressors \\
 DFEH XGBoost & 350 estimators, max depth 6, learning rate 0.05, subsample 0.85,
 colsample 0.85, $\lambda=1.0$ \\
@@ -1082,7 +1103,11 @@ DFEH drift detector & 5 components; 24-hour recent window, 168-hour reference wi
 0.90 validation quantile threshold \\
 DFEH Chronos path & \texttt{amazon/chronos-bolt-small}, batch size 64 \\
 DFEH fusion weights & $\{0,0.25,0.5,0.75,1.0\}$; selected $\omega=0.25$ \\
-Neural baselines & batch 256; at most 30 epochs; patience 5; learning rate 0.001 \\
+Neural optimization & AdamW; seed 42; batch 256; at most 30 epochs; patience 5;
+learning rate 0.001; weight decay 0.0001 \\
+DLinear & moving-average kernel 25; selected epoch 6 \\
+LSTM & hidden size 64; 2 layers; dropout 0.1; selected epoch 2 \\
+PatchTST & patch/stride 24/12; 3 layers; $d=64$; 4 heads; FFN 128; selected epoch 4 \\
 Forecast evidence record & Top 3 feature effects, windows, and recent event IDs \\
 Inference & 5,000 paired resamples; 168-hour blocks/HAC lags; Holm correction \\
 \bottomrule
@@ -1315,6 +1340,38 @@ Stride (h) & Candidates & Cosine MSE & Event-retrieval MSE & M08 MSE & M09 MSE \
 24 & 1,824 & 53.549 & 54.098 & 41.085 & 41.193 \\
 6 & 7,608 & \textbf{49.524} & \textbf{47.855} & \textbf{40.520} & \textbf{40.886} \\
 1 & 45,784 & 52.738 & 54.253 & 41.172 & 41.749 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Event-Similarity Weight Sensitivity}
+\label{sec:event_weight_sensitivity}
+The primary LSER event coefficient $\delta=0.2$ was fixed in the configuration
+before final-test evaluation. Table~\ref{tab:event_weight_sensitivity} reports
+the complete executed sweep while holding the time-series, weather, and calendar
+coefficients fixed. The learned M08 validation MSE varies only from 35.081 to
+35.278, and the event term changes the selected retrieval candidate for fewer
+than 2.9\% of test queries relative to $\delta=0$. The retrieval-only
+event-context MSE is lowest at the primary value, whereas the learned M08 model
+is numerically lowest at $\delta=1.0$ on both validation and test. The fixed
+primary value is therefore not claimed to be optimal. More importantly, the
+sweep does not reveal a stable event-specific accuracy advantage and leaves the
+paper's qualified event conclusion unchanged.
+
+\begin{table*}[!t]
+\centering
+\caption{Sensitivity to the LSER Event-Similarity Weight; the Primary
+Configuration is Marked and Test Values Were Not Used for Selection}
+\label{tab:event_weight_sensitivity}
+\begin{tabular}{rrrrr}
+\toprule
+Event weight $\delta$ & M08 validation MSE & M08 test MSE & Event-context retrieval MSE & Candidate change vs. $\delta=0$ (\%) \\
+\midrule
+0.0 & 35.227 & 40.842 & 12.487 & 0.00 \\
+\textbf{0.2 (primary)} & \textbf{35.201} & \textbf{41.085} & \textbf{11.961} & \textbf{2.70} \\
+0.5 & 35.278 & 40.690 & 12.151 & 2.78 \\
+0.8 & 35.110 & 40.858 & 13.735 & 2.79 \\
+1.0 & 35.081 & 40.620 & 14.322 & 2.83 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -1685,5 +1742,7 @@ Innovation. His current research interests include time-series forecasting,
 retrieval-augmented learning, machine learning, and data-driven environmental
 intelligence.
 \end{IEEEbiographynophoto}
+
+\EOD
 
 \end{document}

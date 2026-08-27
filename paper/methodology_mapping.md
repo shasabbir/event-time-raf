@@ -1,24 +1,32 @@
 # Methodology Structure and Domain Mapping
 
-## Structural Template Extracted from the Sample
+## Structural Template
 
-The sample methodology opens with one framing paragraph that names the model's major components and states how they cooperate. It then gives a pipeline-overview subsection, a compact tensor-notation forward pass, and a figure-led walkthrough. The remaining methodology is divided into named modules. Each module has a motivation, an internal figure, definitions of input and output tensors, numbered equations, and prose that explicitly explains the figure. The notation follows a consistent pattern: uppercase symbols denote tensors or sets, lowercase symbols denote vectors or scalar quantities, dimensions are stated with `B` for batch size, and every figure caption begins with the module name followed by a concise description.
+The methodology opens with a framing paragraph naming the four implemented
+components, followed by an end-to-end tensor forward pass. Each component then
+receives a motivated subsection, an internal figure, input/output definitions,
+numbered equations, and a prose walkthrough. Uppercase symbols denote tensors
+or sets, lowercase symbols denote vectors or scalars, and `B` denotes batch
+size.
 
-## Mapping to Event-TimeRAF
+## TRACE-RAF Domain Mapping
 
-| Structural role in the sample | Event-TimeRAF equivalent | Domain-specific interpretation |
+| Structural role | TRACE-RAF component | Implemented function |
 |---|---|---|
-| Stagewise input encoder and feature preparation | Source-Audited Context Builder (SACB) | Audits and aligns 1-D PM2.5, weather, calendar, and event records into an 85-dimensional origin vector and chronological windows. |
-| Adaptive context extraction and hierarchical evidence refinement | Leakage-Safe Event-Context Retriever (LSER) | Applies temporal eligibility before multi-channel similarity ranking, then returns eight historical 24-hour futures and a 51-dimensional retrieval summary. |
-| Cross-scale fusion and uncertainty-aware dual output | Drift-Aware Forecast and Evidence Head (DFEH) | Produces verified direct-XGBoost and frozen-TSFM forecast paths plus source-grounded evidence records. The later drift gate is excluded pending a complete rerun. |
+| Source alignment and feature construction | Source-Audited Context Builder (SACB) | Aligns PM2.5, weather, calendar, and retrospective event records into 168-hour windows and an 85-variable origin context while retaining provenance and readiness checks. |
+| Historical evidence selection | Leakage-Safe Event-Context Retriever (LSER) | Applies the candidate-target embargo before transparent PM2.5, weather, calendar, and event similarity ranking. |
+| Selective analogue correction | Trust-gated Residual Analog Correction (TRACE) | Builds an out-of-fold residual memory, retrieves residual trajectories, and applies them through a validation-trained reliability gate. |
+| Forecast output and evidence | Drift-Aware Forecast and Evidence Head (DFEH) | Evaluates supervised, TRACE, and frozen-Chronos paths while storing distribution-shift diagnostics and prediction-level evidence. |
 
-This mapping copies only the sample's organizational depth. It does not transfer image convolutions, spatial attention, tumor guidance, or classification heads into the time-series study.
+The mapping transfers only the sample paper's organizational depth. It does not
+import image-domain operations, learned TimeRAF Channel Prompting, or any
+unimplemented neural retriever.
 
 ## Preservation Record
 
-The rewrite retains the implemented Event-TimeRAF functional mapping,
-knowledge-base definition, temporal eligibility rule, retrieved-set definition,
-hybrid similarity score, top-k rule, Chronos forecast fusion, and drift-score
-logic in their original relative order. Numerical claims are restricted to the
-immutable manifest-backed run. The 85/151 feature dimensions were corrected
-from saved feature names, and the post-manifest M12 selector was removed.
+The current methodology preserves the implemented knowledge-base construction,
+temporal eligibility rule, hybrid score, top-k retrieval, out-of-fold residual
+construction, trust gate, Chronos output-fusion control, and distribution-shift
+diagnostic in their code order. Dimensions and numerical claims are tied only
+to run `20260827T043457543402Z`. M12 is retained as a separately
+validation-selected drift-router baseline, not as the proposed model.

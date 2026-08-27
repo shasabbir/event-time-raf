@@ -1,11 +1,11 @@
-\documentclass[9pt]{article}
-\usepackage[letterpaper,landscape,margin=0.42in]{geometry}
+\documentclass{article}
+\usepackage[letterpaper,landscape,margin=0.38in]{geometry}
 \usepackage{array,booktabs,colortbl,tabularx,xcolor}
 \usepackage[hidelinks]{hyperref}
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.08}
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.02}
 \definecolor{confirmed}{HTML}{E8F3EC}
 \definecolor{corrected}{HTML}{FFF2D6}
 \definecolor{flagged}{HTML}{F9E3E3}
@@ -14,48 +14,51 @@
 \newcommand{\F}{\cellcolor{flagged}\textbf{Flagged unverified}}
 
 \begin{document}
-{\Large\bfseries Event-TimeRAF: AI Claim Verification Log}\hfill
-{\small Verified against run \texttt{20260723T112033170131Z}}
+{\Large\bfseries TRACE-RAF: AI Claim Verification Log}\hfill
+{\small Verified against run \texttt{20260827T043457543402Z}}
+\par\fontsize{8.4}{9.7}\selectfont
 
-\vspace{3pt}
-\textbf{Evidence contract.} The executed verification notebook checks all 43
-manifest artifacts by SHA-256, reruns saved predictors, reconstructs metrics
-from 172,776 test forecast points, reruns paired block-bootstrap ablations, and
-regenerates the manuscript figures. The immutable file
-\texttt{event\_timeraf\_final\_run.zip} is the numerical source of truth.
+\vspace{2pt}
+\textbf{Evidence contract.} The executed notebooks validate 106 manifest-listed
+artifacts by SHA-256, reconcile all 43 result tables, reconstruct the reported
+metrics from 59,040 test forecast points, and rerun paired inference with 5,000
+moving-block bootstrap resamples and 168-hour blocks. The immutable archive
+\path{event_timeraf_publication_candidate_20260827T043457543402Z.zip}
+is the numerical source of truth.
 
-\vspace{3pt}
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.27\textwidth}
+\vspace{2pt}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.255\textwidth}
 >{\raggedright\arraybackslash}X
->{\raggedright\arraybackslash}p{0.18\textwidth}}
+>{\raggedright\arraybackslash}p{0.16\textwidth}}
 \toprule
 \textbf{Claim} & \textbf{Checked how} & \textbf{Result} \\
 \midrule
-Run artifacts are unchanged and attributable & Recomputed SHA-256 for all 43 files listed in the archived manifest & \C \\
-48,332 windows; 34,020/7,113/7,199 chronological split & Reconstructed saved NPZ arrays and joined window metadata; asserted shapes and split counts & \C \\
-Context/model dimensions are 86 and 152 & Counted saved feature names and inspected the M09 model: 23+14+9+39=85; 85+51+6+9=151 & \R \\
-M04 reports MSE/MAE/RMSE/$R^2$ of 26.185/3.125/5.117/0.379 & Executed archived M04 on the reconstructed test matrix and recomputed all four metrics & \C \\
-Full M09 improves on M04 & Executed M09; MSE is 26.712 versus 26.185 for M04; paired M09--M04 interval is $[-0.026,1.182]$ & \R \\
-Retrieval improves frozen Chronos-Bolt conclusively & Rebuilt validation-selected fusion; MSE changes 28.941 to 28.709, but paired interval $[-0.665,0.152]$ crosses zero & \R \\
-Component-ablation values are measured & Reran eight prediction-level comparisons with 500-resample, 24-hour paired block bootstrap & \C \\
-M12 drift gating is a verified final result & Checked manifest membership and hashes; M12 appears only in post-manifest edited artifacts and was removed from the paper & \R \\
-Seeded random retrieval is bitwise portable & Compared a NumPy 2.4.1 replay with NumPy 2.0.2 evidence; M05/A01 are reconstructed from checksum-verified evidence & \F \\
-Storm-event context is available in strict real time & Inspected NOAA audit fields; publication timestamps are absent, so event results are retrospective sensitivity analyses & \F \\
-Findings generalize geographically and runtime is hardware-normalized & Checked dataset inventory and manifest hardware fields; only Los Angeles County is evaluated and hardware identifiers are absent & \F \\
+The final bundle is complete and internally attributable & Notebook 02 verifies all 106 manifest hashes; 43 result tables and the publication-completeness gates are present & \C \\
+56,194 windows use a 45,784/7,950/2,460 chronological split & Reconciled saved window metadata, split labels, and the 59,040 horizon-level test predictions & \C \\
+Ridge is the strongest tested forecaster & Recomputed all model metrics: C01 Ridge has MSE 39.144 and MAE 4.079; M13 TRACE has MSE 40.062 and MAE 4.134 & \R \\
+TRACE's mechanism ladder is measured, not assumed & A04 raw fusion selects weight 0; A05 ungated residual has MSE 44.959; A06 constant residual selects strength 0; M13 selects gate strength 0.25 & \C \\
+TRACE significantly improves its C06 base ensemble & M13--C06 MAE difference is $-0.0212$; unadjusted 95\% CI $[-0.0383,-0.0046]$, but Holm-adjusted bootstrap $p=0.355$ and DM $p=0.381$ & \R \\
+The event channel provides a demonstrated improvement & Compared M13 with event-free A03: MAE differs by $-0.0003$ across only 70 event-context test origins; adjusted $p=1.000$ & \F \\
+Output-space retrieval improves the tested frozen Chronos-Bolt configuration & M11 worsens MAE by 0.3718 versus M10; Holm-adjusted bootstrap $p=0.046$ and DM $p=0.035$ & \R \\
+The final forecast is exactly decomposable & Verified pointwise that M13 equals base forecast plus gate times residual; mean effective gate is 0.090 and mean absolute correction is 0.149 & \C \\
+NOAA Storm Events supports strict operational availability & Audited source fields: event start is used as availability because machine-readable issue timestamps are absent & \F \\
+The shift score establishes general concept-drift adaptation & The implemented diagnostic is reproducible, but detector agreement is 11.17\% and no causal change in the predictive relationship is established & \R \\
+Findings generalize geographically and runtime is hardware-normalized & The final evidence covers one Los Angeles County aggregate; no external county or hardware-normalized benchmark is present & \F \\
 \bottomrule
 \end{tabularx}
 
-\vspace{4pt}
+\vspace{3pt}
 \textbf{AI writing removed or corrected (before $\rightarrow$ after).}\par
-\vspace{1pt}
-\begin{tabularx}{\textwidth}{>{\bfseries}p{0.09\textwidth}X X}
-Dimensions & ``86-dimensional context; 40 event features; 152 inputs'' & ``85-dimensional context; 39 event features; 151 per-horizon inputs'' \\
-Headline result & ``M12 is the best final model'' & M12 result removed; M04 is the strongest manifest-backed model \\
-Drift method & Generic weighted drift-score equation & Five implemented raw statistics, validation median/MAD scaling, clipping, and the 0.90 validation quantile \\
-Claim scope & Event-aware findings phrased as operational evidence & Retrospective event sensitivity, one-county validation, and non-normalized runtime stated explicitly \\
+\begin{tabularx}{\textwidth}{>{\bfseries}p{0.105\textwidth}X X}
+Foundation model & ``TRACE-RAF is a foundation model; foundation-model retrieval is unsupported'' & TRACE-RAF is a supervised residual-correction model; only event-conditioned output fusion with the tested frozen Chronos-Bolt configuration is unsupported here \\
+Event awareness & ``Events improve forecasting'' & The retrospective event channel is investigated; this holdout does not establish an event-specific gain \\
+Superiority & ``TRACE beats the baselines'' & Ridge is best numerically; TRACE is competitive, but its base-model gain is not significant after family-wise correction \\
+Shift terminology & ``Concept-drift detector'' & Distribution-shift diagnostic and model-specific regime label, without a causal concept-drift claim \\
+Explainability & ``Causal explanation'' & Auditable evidence records and an exact forecast decomposition into base, residual, and gate terms \\
 \end{tabularx}
 
 \vfill
-{\footnotesize Executable evidence: \texttt{notebooks/03\_paper\_claim\_verification.ipynb}. Repository:
-\url{https://github.com/shasabbir/event-time-raf}. No unsupported M12, real-time-event, external-validation, or hardware-efficiency claim remains in the corrected manuscript.}
+{\footnotesize Executable checks: \texttt{notebooks/02\_results\_and\_figures.ipynb} and
+\texttt{notebooks/03\_paper\_claim\_verification.ipynb}. Repository:
+\url{https://github.com/shasabbir/event-time-raf}. Remaining unverified items are intentionally disclosed rather than presented as results.}
 \end{document}
