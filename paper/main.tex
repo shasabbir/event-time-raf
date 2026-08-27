@@ -62,7 +62,7 @@ and distribution-shift evidence. A Drift-Aware Forecast and Evidence Head
 preserves prediction-level evidence and diagnostics. Evaluation covers Los Angeles County from
 2019 through 2025 using a 168-hour lookback and chronological splits of 45,784
 training, 7,950 validation, and 2,460 test origins. TRACE-RAF obtains MSE
-40.062, MAE 4.134, and RMSE 6.329. It improves MSE by 4.63\% over context
+40.062, MAE 4.134, and RMSE 6.329. It records 4.63\% lower MSE than context
 XGBoost and is within 0.07\% of context LightGBM, although Ridge remains best
 overall at MSE 39.144. TRACE-RAF reduces MAE by 0.021 relative to its base
 ensemble, but this nominal effect does not survive Holm correction. Validation
@@ -1630,7 +1630,7 @@ Code availability & \url{https://github.com/shasabbir/event-time-raf} \\
 \end{table}
 
 The main interpretation is that supervised context models are unusually strong
-for this Los Angeles County task. TRACE-RAF improves on context XGBoost and is
+for this Los Angeles County task. TRACE-RAF records lower errors than context XGBoost and is
 nominally better than the LightGBM comparator in both MSE and MAE, but Ridge remains
 best overall and no favorable TRACE contrast survives family-wise adjustment.
 The mechanism ladder further shows that validation rejects raw and globally
@@ -1720,7 +1720,7 @@ weather, calendar, and Storm Events records; LSER enforces a strict historical
 embargo; TRACE retrieves out-of-fold residual analogues and applies a learned
 reliability gate; and DFEH retains prediction-level evidence and drift
 diagnostics. On the final 2025 holdout of 2,460 origins, TRACE-RAF obtains MSE
-40.062, MAE 4.134, RMSE 6.329, and $R^2=0.444$. This improves context XGBoost
+40.062, MAE 4.134, RMSE 6.329, and $R^2=0.444$. This records lower error than context XGBoost
 and is nominally better than the LightGBM comparator, while Ridge remains strongest at
 MSE 39.144. The mechanism ladder shows that validation rejects both raw-future
 fusion and a global residual scale, while the learned gate conservatively
