@@ -42,14 +42,18 @@ holdout of 2,460 origins. TRACE-RAF obtains MSE 40.062, MAE 4.134, and RMSE
 0.07\% of the stronger LightGBM context model, although Ridge regression
 remains best overall at MSE 39.144. TRACE-RAF reduces MAE relative to its base
 ensemble by 0.021, but this nominal effect does not survive Holm correction.
-Event-conditioned and event-free TRACE-RAF variants are nearly identical,
-whereas event retrieval significantly worsens the Chronos-Bolt MAE after
-multiplicity adjustment. The results support selective residual correction and
-an auditable evaluation protocol, but do not establish an event-conditioned
-gain. Event-conditioned output-space fusion with frozen Chronos-Bolt-small was
-not supported in this holdout; this does not establish a general result for
-retrieval-augmented TSFMs. Because Storm Events lacks machine-readable publication timestamps,
-event-conditioned results remain retrospective sensitivity analyses.
+Event-conditioned and event-free TRACE-RAF variants are nearly identical.
+Validation assigns zero weight to both raw-analogue fusion and a global
+residual correction, while an unscaled residual correction records MSE 44.959;
+the learned gate provides the only nominal retrieval-based improvement, but it
+does not survive Holm adjustment. Event retrieval significantly worsens the
+Chronos-Bolt MAE after multiplicity adjustment. The results demonstrate a
+conservative, auditable residual-retrieval protocol, but do not establish an
+event-conditioned gain. Event-conditioned output-space fusion with frozen
+Chronos-Bolt-small was not supported in this holdout; this does not establish a
+general result for retrieval-augmented TSFMs. Because Storm Events lacks
+machine-readable publication timestamps, event-conditioned results remain
+retrospective sensitivity analyses.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -878,7 +882,7 @@ Implementation scope & Learned retriever and Channel Prompting are implemented.
 \section{Experimental Setup}
 
 This section describes the manifest-backed final experiment identified by
-\texttt{20260821T143600090063Z}. All model, retrieval-density, fusion, gate,
+\texttt{20260827T043457543402Z}. All model, retrieval-density, fusion, gate,
 and threshold choices were fixed from training and validation data before the
 final test partition was evaluated. The archived package contains the source,
 configuration, predictions, tables, evidence records, and figures used here.
@@ -1043,7 +1047,7 @@ P00--P01 & Chronos fused with climatology or persistence placebos \\
 
 \subsection{Implementation and Hyperparameters}
 The experiment was executed in a cloud-hosted Linux 6.12.90 environment using
-Python 3.12.13. The publication pipeline recorded 6,915.3 seconds of internal
+Python 3.12.13. The publication pipeline recorded 7,432.7 seconds of internal
 runtime. Key package versions recorded in the
 run manifest include NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost
 3.2.0, LightGBM 4.6.0, PyTorch 2.10.0+cu128, Transformers 4.57.6, and
@@ -1192,8 +1196,8 @@ M12 validation drift router & 41.466 & 4.190 & 6.439 & 0.425 \\
 The frozen Chronos-Bolt evaluation completed successfully and validation
 selected a TSFM weight of 0.25. Event-retrieval fusion increases MSE from
 47.534 to 48.609 and MAE from 4.202 to 4.574. The MAE increase of 0.372 remains
-significant after Holm adjustment (adjusted bootstrap $p=0.038$; adjusted DM
-$p=0.029$). Moreover, the persistence-fusion placebo reaches MSE 46.964, lower
+significant after Holm adjustment (adjusted bootstrap $p=0.046$; adjusted DM
+$p=0.035$). Moreover, the persistence-fusion placebo reaches MSE 46.964, lower
 than both M10 and M11. Thus this run provides evidence against attributing a
 generic averaging effect to event retrieval. Chronos native quantiles remain
 useful diagnostically: M10 attains approximate CRPS 3.187, mean absolute
@@ -1201,18 +1205,46 @@ calibration error 0.017, and 0.761 empirical coverage for the nominal 0.80
 interval, whereas M11 degrades those values to 4.120, 0.176, and 0.206.
 
 \subsection{Ablation Study}
-Table~\ref{tab:ablation_results} reports the pre-declared paired MSE contrasts;
+Table~\ref{tab:trace_mechanism} isolates the residual-memory hypothesis from
+its integration rule. Every selectable value was chosen on the final 2,624
+origins of the validation partition, beginning on May 3, 2025; the test
+partition was not used for selection. Raw-future fusion (A04) and the global
+residual scale (A06) both select zero and therefore reduce exactly to C06. This
+identity is a validation outcome rather than an implementation failure. The
+fixed, ungated residual update (A05) records MSE 44.959, whereas the learned
+origin-specific gate selects strength 0.25 and yields MSE 40.062. Thus, the
+ablation supports the gate's role as a conservative control mechanism, but not
+a claim that residual retrieval is uniformly beneficial.
+
+\begin{table*}[!t]
+\centering
+\caption{Validation-Selected TRACE-RAF Mechanism Ladder on the Final Holdout}
+\label{tab:trace_mechanism}
+\begin{tabular}{llllrr}
+\toprule
+ID & Forecast integration & Retrieval target & Integration control & MSE & MAE \\
+\midrule
+C06 & Base ensemble & None & None & 40.115 & 4.156 \\
+A04 & Base + raw analogue & Raw future & Weight 0.00 (validation) & 40.115 & 4.156 \\
+A05 & Base + residual analogue & OOF residual & Strength 1.00 (fixed) & 44.959 & 4.250 \\
+A06 & Base + residual analogue & OOF residual & Strength 0.00 (validation) & 40.115 & 4.156 \\
+M13 & Base + gated residual analogue & OOF residual & Gate strength 0.25 (validation) & \textbf{40.062} & \textbf{4.134} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:ablation_results} reports the declared paired MSE contrasts;
 negative differences favor the first model. Cosine retrieval features improve
 M04 nominally, and raw event features outperform the matched feature-count
 placebo nominally. TRACE-RAF has almost identical MSE to both its base ensemble
 and LightGBM. Its MAE differences are $-0.021$ versus C06 (unadjusted 95\%
 block-bootstrap CI $[-0.038,-0.005]$) and $-0.017$ versus C05 (unadjusted 95\%
-block-bootstrap CI
-$[-0.031,-0.001]$), but their Holm-adjusted bootstrap $p$-values are 0.281 and
-0.394. The M13--A03 contrast is effectively zero, directly showing that event
-conditioning does not explain TRACE-RAF's aggregate result. Across the complete
-25-comparison family for each metric, only the adverse M11--M10 MAE contrast
-remains significant after Holm correction.
+block-bootstrap CI $[-0.031,-0.001]$). Their Holm-adjusted bootstrap $p$-values
+are 0.355 and 0.490, respectively; the corresponding Holm-adjusted DM
+$p$-values are 0.381 and 0.516. The M13--A03 contrast is effectively zero,
+directly showing that event conditioning does not explain TRACE-RAF's aggregate
+result. Across the complete 29-comparison family for each metric, only the
+adverse M11--M10 MAE contrast remains significant after Holm correction.
 
 \begin{table*}[!t]
 \centering
@@ -1369,7 +1401,7 @@ Fig.~\ref{fig:drift_scores} places the DFEH score and its fixed threshold on the
 test timeline. Figures~\ref{fig:forecast_case} and
 \ref{fig:forecast_event_case} provide ordinary and event-context examples; they
 are qualitative checks and are not used to select models. All plots are
-regenerated from run \texttt{20260821T143600090063Z}.
+regenerated from run \texttt{20260827T043457543402Z}.
 
 \begin{figure}[!t]
 \centering
@@ -1436,6 +1468,33 @@ Event and retrieval permutations increase MSE, but their median-deletion
 effects are negative. These mixed signs prohibit a stronger claim that every
 stored evidence type is a stable causal explanation.
 
+The lossless prediction archive also permits direct reconstruction of the
+final TRACE update, $\hat{Y}^{\mathrm{TRACE}}=\hat{Y}^{B}+g\Delta$. Here, $g$
+is the effective origin-level coefficient after applying the
+validation-selected strength of 0.25. Table~\ref{tab:trace_decomposition}
+quantifies each component. Across all test origins, the learned gate reduces a
+mean absolute raw residual analogue of 1.708 to an applied correction of only
+0.149~$\mu$g/m$^3$. Event-context origins receive a still smaller mean applied
+correction of 0.060~$\mu$g/m$^3$. These values expose how the final forecast was
+formed; they do not assign a causal contribution to the event records.
+
+\begin{table}[!t]
+\centering
+\caption{Lossless TRACE Forecast-Contribution Decomposition}
+\label{tab:trace_decomposition}
+\begin{tabular}{lrrrr}
+\toprule
+Subset & Origins & Mean $g$ & Mean $|\Delta|$ & Mean $|g\Delta|$ \\
+\midrule
+All & 2,460 & 0.090 & 1.708 & 0.149 \\
+Event context & 70 & 0.082 & 0.736 & 0.060 \\
+Non-event context & 2,390 & 0.090 & 1.736 & 0.152 \\
+Distribution shift & 407 & 0.076 & 2.386 & 0.175 \\
+No distribution shift & 2,053 & 0.093 & 1.573 & 0.144 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \begin{table}[!t]
 \centering
 \caption{Forecast Evidence Stored by TRACE-RAF}
@@ -1473,12 +1532,12 @@ Drift & 0.268 & 0.125 \\
 
 \subsection{Computational Cost and Reproducibility}
 
-The publication pipeline recorded 6,915.3 seconds of internal runtime in a
+The publication pipeline recorded 7,432.7 seconds of internal runtime in a
 Linux environment using Python 3.12.13. All three notebooks completed without
 cell errors. The recorded
 versions include NumPy 2.0.2, pandas 2.3.3, scikit-learn 1.6.1, XGBoost 3.2.0,
 LightGBM 4.6.0, PyTorch 2.10.0+cu128, Transformers 4.57.6, and
-\texttt{chronos-forecasting} 2.3.1. The archive contains 42 result tables with
+\texttt{chronos-forecasting} 2.3.1. The archive contains 43 result tables with
 a single run identifier, configuration and artifact hashes, prediction-level
 outputs, evidence records, and an independent claim-verification notebook.
 The TRACE subset-inference reconstruction agrees with stored predictions to a
@@ -1494,8 +1553,8 @@ is not interpreted as a hardware-normalized efficiency result.
 \toprule
 Item & Recorded value \\
 \midrule
-Run identifier & \texttt{20260821T143600090063Z} \\
-Pipeline runtime & 6,915.3 seconds \\
+Run identifier & \texttt{20260827T043457543402Z} \\
+Pipeline runtime & 7,432.7 seconds \\
 Platform & Linux 6.12.90 \\
 Python & 3.12.13 \\
 Forecast horizon & 24 hours \\
@@ -1512,9 +1571,11 @@ The main interpretation is that supervised context models are unusually strong
 for this Los Angeles County task. TRACE-RAF improves on context XGBoost and is
 nominally better than the LightGBM comparator in both MSE and MAE, but Ridge remains
 best overall and no favorable TRACE contrast survives family-wise adjustment.
-The nearly identical event-free ablation further shows that the aggregate TRACE
-result comes from conservative residual correction, not measurable event
-conditioning. By contrast, adding event retrieval to frozen Chronos-Bolt
+The mechanism ladder further shows that validation rejects raw and globally
+scaled analogue fusion, while the learned gate applies only a small fraction of
+the retrieved residual. The nearly identical event-free ablation shows that the
+aggregate TRACE result comes from conservative residual correction, not
+measurable event conditioning. By contrast, adding event retrieval to frozen Chronos-Bolt
 significantly worsens MAE after Holm correction. The result is thus a
 reproducible negative and positive boundary: trust-gated residual analogues are
 competitive, whereas event-conditioned output-space fusion with frozen
@@ -1549,9 +1610,12 @@ establish transfer to another county, climate, or emissions regime.
 
 The third limitation is the composition of the holdout. Only 33 target-event
 origins and 37 threshold exceedances are observed, and no test origin exceeds
-55.4 $\mu$g/m$^3$. The January 2025 high-error period is validation evidence,
-not external confirmation. Claims about severe smoke episodes or operational
-alerts would therefore exceed the observed test support.
+55.4 $\mu$g/m$^3$. Among the broader 70-origin event-context subset, the
+qualifying category analysis contains flood, heavy-rain, and other-weather
+contexts but no wildfire, smoke, or high-wind query. The January 2025
+high-error period is validation evidence, not external confirmation. Claims
+about severe smoke episodes or operational alerts would therefore exceed the
+observed test support.
 
 The fourth limitation is target construction. A county median reduces monitor
 missingness but smooths local peaks and depends on the active monitor roster.
@@ -1596,10 +1660,13 @@ reliability gate; and DFEH retains prediction-level evidence and drift
 diagnostics. On the final 2025 holdout of 2,460 origins, TRACE-RAF obtains MSE
 40.062, MAE 4.134, RMSE 6.329, and $R^2=0.444$. This improves context XGBoost
 and is nominally better than the LightGBM comparator, while Ridge remains strongest at
-MSE 39.144. No favorable TRACE comparison survives Holm adjustment, and the
-event-free TRACE ablation is effectively unchanged. The supported contribution
-is therefore a reproducible, trust-gated residual-retrieval architecture and an
-auditable evaluation of event-conditioned residual retrieval and one frozen
+MSE 39.144. The mechanism ladder shows that validation rejects both raw-future
+fusion and a global residual scale, while the learned gate conservatively
+reduces the residual update and provides a nominal MAE improvement. No
+favorable TRACE comparison survives Holm adjustment, and the event-free TRACE
+ablation is effectively unchanged. The supported contribution is therefore a
+reproducible, trust-gated residual-retrieval architecture and an auditable
+evaluation of event-conditioned residual retrieval and one frozen
 Chronos-Bolt-small output-fusion configuration; it is not a claim about
 retrieval-augmented TSFMs generally or universal baseline superiority. Strict event issue times,
 external geographic testing, and smoke-specific validation remain necessary
