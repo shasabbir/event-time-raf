@@ -31,8 +31,8 @@ class Svg:
             f'viewBox="0 0 {WIDTH} {HEIGHT}" role="img" aria-label="{html.escape(title)}">',
             "<defs>",
             '<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" '
-            'markerWidth="8.5" markerHeight="8.5" markerUnits="userSpaceOnUse" orient="auto">',
-            f'<path d="M 1 2 L 9 5 L 1 8 Z" fill="{INK}"/></marker>',
+            'markerWidth="8.5" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto">',
+            f'<path d="M 1 0.75 L 9 5 L 1 9.25 Z" fill="{INK}"/></marker>',
             '<style><![CDATA[',
             ".label{font-family:Arial,Helvetica,sans-serif;font-size:18px;fill:#263238}",
             ".small{font-family:Arial,Helvetica,sans-serif;font-size:15px;fill:#5F6B73}",
