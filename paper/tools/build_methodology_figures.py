@@ -26,12 +26,13 @@ WHITE = "#FFFFFF"
 
 class Svg:
     def __init__(self, title: str):
-        self.parts = [
+        self.head = [
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{HEIGHT}" '
             f'viewBox="0 0 {WIDTH} {HEIGHT}" role="img" aria-label="{html.escape(title)}">',
             "<defs>",
-            '<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">',
-            f'<path d="M 0 0 L 10 5 L 0 10 z" fill="{INK}"/></marker>',
+            '<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" '
+            'markerWidth="8.5" markerHeight="8.5" markerUnits="userSpaceOnUse" orient="auto">',
+            f'<path d="M 1 2 L 9 5 L 1 8 Z" fill="{INK}"/></marker>',
             '<style><![CDATA[',
             ".label{font-family:Arial,Helvetica,sans-serif;font-size:18px;fill:#263238}",
             ".small{font-family:Arial,Helvetica,sans-serif;font-size:15px;fill:#5F6B73}",
@@ -42,10 +43,18 @@ class Svg:
             "</defs>",
             f'<rect x="0" y="0" width="{WIDTH}" height="{HEIGHT}" fill="{WHITE}"/>',
         ]
+        # Paint connectors below node bodies and all text.  This keeps routed
+        # lines and arrowheads from showing through boxes/circles or obscuring
+        # labels when a connector must pass behind an element.
+        self.background_parts = []
+        self.edge_parts = []
+        self.shape_parts = []
+        self.label_parts = []
+        self.text_parts = []
 
     def rect(self, x, y, w, h, fill, title, subtitle=None, stroke=INK, radius=10, dashed=False):
         dash = ' stroke-dasharray="8 6"' if dashed else ""
-        self.parts.append(
+        self.shape_parts.append(
             f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{radius}" '
             f'fill="{fill}" stroke="{stroke}" stroke-width="1.7"{dash}/>'
         )
@@ -58,46 +67,67 @@ class Svg:
             self.text(x + w / 2, y + h - 14, subtitle, "mono", anchor="middle")
 
     def group(self, x, y, w, h, title, stroke=MUTED):
-        self.parts.append(
+        self.background_parts.append(
             f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="12" fill="none" '
             f'stroke="{stroke}" stroke-width="1.7" stroke-dasharray="8 6"/>'
         )
-        self.parts.append(f'<rect x="{x + 14}" y="{y - 12}" width="{max(150, len(title) * 10)}" height="24" fill="{WHITE}"/>')
+        self.background_parts.append(f'<rect x="{x + 14}" y="{y - 12}" width="{max(150, len(title) * 10)}" height="24" fill="{WHITE}"/>')
         self.text(x + 22, y + 5, title, "group")
 
     def text(self, x, y, value, css="small", anchor="start"):
-        self.parts.append(
+        self.text_parts.append(
             f'<text x="{x}" y="{y}" class="{css}" text-anchor="{anchor}" '
             f'dominant-baseline="middle">{html.escape(str(value))}</text>'
         )
 
-    def arrow(self, points, label=None, label_xy=None, dashed=False, color=INK):
+    def boxed_text(self, x, y, value, css="mono", anchor="middle", padding=8):
+        width = max(48, len(str(value)) * 8.5 + 2 * padding)
+        self.label_parts.append(
+            f'<rect x="{x - width / 2}" y="{y - 12}" width="{width}" height="24" '
+            f'rx="3" fill="{WHITE}" opacity="0.96"/>'
+        )
+        self.text(x, y, value, css, anchor=anchor)
+
+    def arrow(self, points, label=None, label_xy=None, dashed=False, color=INK, halo=False):
         coords = " ".join(f"{x},{y}" for x, y in points)
         dash = ' stroke-dasharray="7 6"' if dashed else ""
-        self.parts.append(
+        if halo:
+            self.edge_parts.append(
+                f'<polyline points="{coords}" fill="none" stroke="{WHITE}" stroke-width="7" '
+                f'stroke-linejoin="round" stroke-linecap="round"{dash}/>'
+            )
+        self.edge_parts.append(
             f'<polyline points="{coords}" fill="none" stroke="{color}" stroke-width="2.1" '
             f'stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"{dash}/>'
         )
         if label and label_xy:
             x, y = label_xy
             width = max(48, len(label) * 8.5)
-            self.parts.append(f'<rect x="{x - width / 2}" y="{y - 12}" width="{width}" height="24" fill="{WHITE}" opacity="0.94"/>')
+            self.label_parts.append(f'<rect x="{x - width / 2}" y="{y - 12}" width="{width}" height="24" rx="3" fill="{WHITE}" opacity="0.96"/>')
             self.text(x, y, label, "mono", anchor="middle")
 
     def line(self, x1, y1, x2, y2, dashed=False, color=MUTED):
         dash = ' stroke-dasharray="7 6"' if dashed else ""
-        self.parts.append(
+        self.edge_parts.append(
             f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" stroke-width="1.7"{dash}/>'
         )
 
     def circle(self, cx, cy, r, fill=WHITE, stroke=INK, text_value=None):
-        self.parts.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}" stroke="{stroke}" stroke-width="1.7"/>')
+        self.shape_parts.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{fill}" stroke="{stroke}" stroke-width="1.7"/>')
         if text_value:
             self.text(cx, cy, text_value, "label", anchor="middle")
 
     def finish(self, path: Path):
-        self.parts.append("</svg>")
-        path.write_text("\n".join(self.parts), encoding="utf-8")
+        parts = (
+            self.head
+            + self.background_parts
+            + self.edge_parts
+            + self.shape_parts
+            + self.label_parts
+            + self.text_parts
+            + ["</svg>"]
+        )
+        path.write_text("\n".join(parts), encoding="utf-8")
 
 
 def pipeline_figure(path: Path) -> None:
@@ -159,10 +189,13 @@ def context_figure(path: Path) -> None:
     s.rect(346, 222, 170, 74, GRAY, ["Cyclic calendar", "and holidays"], "9 features")
     s.rect(546, 222, 170, 74, GOLD, ["Event counts, active", "states, burst ratio"], "39 features")
     s.circle(531, 390, 30, GREEN, text_value="||")
+    # The lower feature streams join the two side buses at right angles.  Each
+    # bus then uses one horizontal arrow into the circular concatenate node;
+    # this avoids the small V-shaped diagonal stubs around the circle.
     s.arrow([(431, 166), (431, 190), (330, 190), (330, 390), (501, 390)])
     s.arrow([(631, 166), (631, 190), (732, 190), (732, 390), (561, 390)])
-    s.arrow([(431, 296), (431, 350), (501, 350), (501, 390)])
-    s.arrow([(631, 296), (631, 350), (561, 350), (561, 390)])
+    s.arrow([(431, 296), (431, 330), (330, 330)])
+    s.arrow([(631, 296), (631, 330), (732, 330)])
     s.rect(406, 444, 250, 76, GREEN, ["Origin context vector"], "q_t in R^85")
     s.arrow([(531, 420), (531, 444)])
     s.text(531, 548, "Fitted and checked on chronological training history", "small", anchor="middle")
@@ -216,9 +249,9 @@ def retrieval_figure(path: Path) -> None:
     # Top-row channels use the side gutters instead of crossing the lower blocks.
     s.arrow([(523, 170), (523, 190), (414, 190), (414, 350), (599, 350)])
     s.arrow([(743, 170), (743, 190), (852, 190), (852, 350), (667, 350)])
-    s.arrow([(523, 290), (523, 318), (609, 318), (609, 326)])
-    s.arrow([(743, 290), (743, 318), (657, 318), (657, 326)])
-    s.text(633, 402, "0.5 s_ts + 0.2 s_w + 0.1 s_c + 0.2 s_e", "mono", anchor="middle")
+    s.arrow([(523, 290), (523, 302), (585, 302), (609, 326)])
+    s.arrow([(743, 290), (743, 302), (681, 302), (657, 326)])
+    s.boxed_text(633, 402, "0.5 s_ts + 0.2 s_w + 0.1 s_c + 0.2 s_e")
     s.rect(474, 454, 318, 76, GREEN, ["TopK over eligible candidates"], "G_t: B x 8")
     s.arrow([(633, 384), (633, 454)])
 
@@ -244,7 +277,7 @@ def forecast_figure(path: Path) -> None:
     s.rect(372, 92, 206, 80, PINK, ["Context XGBoost", "24 horizon heads"], "Yhat_X: B x 24")
     s.rect(622, 92, 206, 80, PINK, ["Context LightGBM", "24 horizon heads"], "Yhat_L: B x 24")
     s.circle(600, 250, 34, GREEN, text_value="base")
-    s.text(600, 300, "0.3479 Yhat_X + 0.6521 Yhat_L", "mono", anchor="middle")
+    s.boxed_text(600, 300, "0.3479 Yhat_X + 0.6521 Yhat_L")
     s.rect(372, 354, 206, 76, GOLD, ["Robust residual", "alignment"], "r_t: B x 24")
     s.rect(622, 354, 206, 76, GREEN, ["Depth-2 trust gate"], "g_t: B x 1")
     s.circle(600, 504, 34, GREEN, text_value="+")
@@ -253,13 +286,13 @@ def forecast_figure(path: Path) -> None:
     s.arrow([(274, 246), (350, 246), (350, 188), (846, 188), (846, 132), (828, 132)], "C+", (350, 214))
     s.arrow([(350, 188), (350, 152), (372, 152)])
     s.arrow([(338, 126), (338, 76), (846, 76), (846, 112), (828, 112)])
-    s.arrow([(475, 172), (475, 224), (566, 224), (566, 238)])
-    s.arrow([(725, 172), (725, 224), (634, 224), (634, 238)])
+    s.arrow([(475, 172), (475, 204), (554, 204), (576, 226)])
+    s.arrow([(725, 172), (725, 204), (646, 204), (624, 226)])
     s.arrow([(274, 366), (372, 366)])
-    s.arrow([(274, 486), (606, 486), (606, 392), (622, 392)])
     s.arrow([(600, 284), (600, 470)])
-    s.arrow([(475, 430), (475, 456), (575, 456), (575, 480)])
-    s.arrow([(725, 430), (725, 456), (625, 456), (625, 480)])
+    s.arrow([(274, 486), (330, 486), (330, 322), (610, 322), (610, 392), (622, 392)], halo=True)
+    s.arrow([(475, 430), (475, 450), (546, 450), (576, 480)])
+    s.arrow([(725, 430), (725, 450), (654, 450), (624, 480)])
 
     s.group(900, 48, 276, 538, "DFEH evidence output", stroke=GREEN_DARK)
     s.rect(930, 92, 216, 66, GRAY, ["Base feature effects"], "top fields")
@@ -285,6 +318,11 @@ def convert_to_pdf(svg_path: Path) -> None:
         raise RuntimeError("Chrome or Edge is required to convert SVG figures to vector PDF")
     html_path = svg_path.with_suffix(".print.html")
     pdf_path = svg_path.with_suffix(".pdf")
+    # Chromium's print-to-PDF mode may return success without replacing an
+    # existing destination.  Remove only this generated figure first so every
+    # rebuild reflects the current SVG geometry.
+    if pdf_path.exists():
+        pdf_path.unlink()
     html_path.write_text(
         "<!doctype html><html><head><style>"
         "@page{size:12in 6.4in;margin:0}html,body{margin:0;width:12in;height:6.4in;overflow:hidden}"

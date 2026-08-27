@@ -1308,133 +1308,126 @@ fulness perturbation on evidence records, they are auditable,      the system an
 but the faithfulness perturbations for the event and retrieval     prior to operational deployment.
 families are mixed and are not useful for causal interpretation.
    The 6th limitation is model integration. LSER is an open        REFERENCES
-                                                                   [1] World Health Organization, ‘‘WHO global air quality guidelines:
-similarity retriever, not a learned dual encoder and Chronos-          Particulate matter (PM2.5 and PM10), ozone, nitrogen dioxide,
-Bolt is an external benchmark, not an internal backbone for            sulfur dioxide and carbon monoxide,’’ 2021. [Online]. Available:
-prompting. It should not be marketed as an alternate of the            https://www.who.int/publications/i/item/9789240034228
-                                                                   [2] A. Das, W. Kong, R. Sen, and Y. Zhou, ‘‘A decoder-only foundation
-TimeRAF Channel Prompting mechanism.                                   model for time-series forecasting,’’ in Proceedings of the 41st International
-   Lastly, there were no hardware identifiers, peak mem-               Conference on Machine Learning, ser. Proceedings of Machine Learning
-ory or a Git commit inside the extracted run environment.              Research, vol. 235, 2024, pp. 10 148–10 167.
-                                                                   [3] G. Woo, C. Liu, A. Kumar, C. Xiong, S. Savarese, and D. Sahoo, ‘‘Unified
-Package versions, configuration hashes, archive hashes and             training of universal time series forecasting transformers,’’ in Proceedings
-prediction-level verification allow for more reproducible              of the 41st International Conference on Machine Learning, ser. Proceed-
-runs, but the reported runtimes are not hardware-normalized            ings of Machine Learning Research, vol. 235, 2024, pp. 53 140–53 164.
+similarity retriever, not a learned dual encoder and Chronos-      [1] World Health Organization, WHO Global Air Quality Guidelines:
+Bolt is an external benchmark, not an internal backbone for            Particulate Matter (PM2.5 and PM10), Ozone, Nitrogen Dioxide,
+                                                                       Sulfur Dioxide and Carbon Monoxide. Geneva, Switzerland: World
+prompting. It should not be marketed as an alternate of the            Health Organization, 2021. [Online]. Available: https://www.who.int/
+TimeRAF Channel Prompting mechanism.                                   publications/i/item/9789240034228
+   Lastly, there were no hardware identifiers, peak mem-           [2] A. Das, W. Kong, R. Sen, and Y. Zhou, ‘‘A decoder-only foundation
+                                                                       model for time-series forecasting,’’ in Proceedings of the 41st International
+ory or a Git commit inside the extracted run environment.              Conference on Machine Learning, ser. Proceedings of Machine Learning
+Package versions, configuration hashes, archive hashes and             Research, vol. 235, 2024, pp. 10 148–10 167.
+prediction-level verification allow for more reproducible          [3] G. Woo, C. Liu, A. Kumar, C. Xiong, S. Savarese, and D. Sahoo, ‘‘Unified
+                                                                       training of universal time series forecasting transformers,’’ in Proceedings
+runs, but the reported runtimes are not hardware-normalized            of the 41st International Conference on Machine Learning, ser. Proceed-
+efficiency figures.                                                    ings of Machine Learning Research, vol. 235, 2024, pp. 53 140–53 164.
                                                                    [4] M. Goswami, K. Szafer, A. Choudhry, Y. Cai, S. Li, and A. Dubrawski,
-efficiency figures.                                                    ‘‘MOMENT: A family of open time-series foundation models,’’ in Pro-
-                                                                       ceedings of the 41st International Conference on Machine Learning, ser.
-                                                                       Proceedings of Machine Learning Research, vol. 235, 2024, pp. 16 115–
-X. FUTURE WORK                                                         16 152.
-Operational event studies should use archives that provide         [5] A. F. Ansari, L. Stella, C. Turkmen, X. Zhang, P. Mercado, H. Shen,
-real time of publication/issue of the event and, if the event          O. Shchur, S. S. Rangapuram, S. P. Arango, S. Kapoor, J. Zschiegner, D. C.
-                                                                       Maddix, H. Wang, M. W. Mahoney, K. Torkkola, A. G. Wilson, M. Bohlke-
-transport mechanism is a wildfire, should add smoke-specific           Schneider, and Y. Wang, ‘‘Chronos: Learning the language of time series,’’
-sources to replace the event-start proxies. External validation        Transactions on Machine Learning Research, 2024.
-should be: application of the frozen protocol to a second          [6] V. Ekambaram, A. Jati, P. Dayama, S. Mukherjee, N. H. Nguyen, W. M.
+                                                                       ‘‘MOMENT: A family of open time-series foundation models,’’ in Pro-
+X. FUTURE WORK                                                         ceedings of the 41st International Conference on Machine Learning, ser.
+Operational event studies should use archives that provide             Proceedings of Machine Learning Research, vol. 235, 2024, pp. 16 115–
+                                                                       16 152.
+real time of publication/issue of the event and, if the event      [5] A. F. Ansari, L. Stella, C. Turkmen, X. Zhang, P. Mercado, H. Shen,
+transport mechanism is a wildfire, should add smoke-specific           O. Shchur, S. S. Rangapuram, S. P. Arango, S. Kapoor, J. Zschiegner,
+sources to replace the event-start proxies. External validation        D. C. Maddix, H. Wang, M. W. Mahoney, K. Torkkola, A. G. Wilson,
+                                                                       M. Bohlke-Schneider, and Y. Wang, ‘‘Chronos: Learning the language of
+should be: application of the frozen protocol to a second              time series,’’ Transactions on Machine Learning Research, 2024. [Online].
+US county with different meteorology and emissions and                 Available: https://openreview.net/forum?id=gerNCVqqtR
+monitor density. Then, spatial or site-aware forecasting can       [6] V. Ekambaram, A. Jati, P. Dayama, S. Mukherjee, N. H. Nguyen, W. M.
                                                                        Gifford, C. Reddy, and J. Kalagnanam, ‘‘Tiny time mixers (TTMs): Fast
-US county with different meteorology and emissions and                 pre-trained models for enhanced zero/few-shot forecasting of multivari-
-monitor density. Then, spatial or site-aware forecasting can           ate time series,’’ in Advances in Neural Information Processing Systems,
-be used to investigate whether event effects are hidden in             vol. 37, 2024, pp. 74 147–74 181.
-                                                                   [7] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Kuttler,
-the aggregation over counties. Future research could assess a          M. Lewis, W. tau Yih, T. Rocktaschel, S. Riedel, and D. Kiela, ‘‘Retrieval-
-learned residual retriever, more expressive event embedding,           augmented generation for knowledge-intensive NLP tasks,’’ in Advances
-an internally conditioned TSFM and calibrated exceedance               in Neural Information Processing Systems, vol. 33, 2020, pp. 9459–9474.
-                                                                   [8] V. Karpukhin, B. Oguz, S. Min, P. Lewis, L. Wu, S. Edunov, D. Chen,
-probabilities. The extension needs to be pre-registered with a         and W. tau Yih, ‘‘Dense passage retrieval for open-domain question an-
-third party holdout, and components need to be ablated under           swering,’’ in Proceedings of the 2020 Conference on Empirical Methods in
-the same time embargo.                                                 Natural Language Processing, 2020, pp. 6769–6781.
-                                                                   [9] H. Zhang, C. Xu, Y.-F. Zhang, Z. Zhang, L. Wang, and J. Bian, ‘‘TimeRAF:
-                                                                       Retrieval-augmented foundation model for zero-shot time series forecast-
+be used to investigate whether event effects are hidden in
+                                                                       pre-trained models for enhanced zero/few-shot forecasting of multivari-
+the aggregation over counties. Future research could assess a          ate time series,’’ in Advances in Neural Information Processing Systems,
+learned residual retriever, more expressive event embedding,           vol. 37, 2024, pp. 74 147–74 181.
+an internally conditioned TSFM and calibrated exceedance           [7] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Küttler,
+                                                                       M. Lewis, W.-t. Yih, T. Rocktäschel, S. Riedel, and D. Kiela, ‘‘Retrieval-
+probabilities. The extension needs to be pre-registered with a         augmented generation for knowledge-intensive NLP tasks,’’ in Advances
+third party holdout, and components need to be ablated under           in Neural Information Processing Systems, vol. 33, 2020, pp. 9459–9474.
+the same time embargo.                                             [8] V. Karpukhin, B. Oğuz, S. Min, P. Lewis, L. Wu, S. Edunov, D. Chen, and
+                                                                       W.-t. Yih, ‘‘Dense passage retrieval for open-domain question answering,’’
+                                                                       in Proceedings of the 2020 Conference on Empirical Methods in Natural
 
 18                                                                                                                                  VOLUME XX, 2026
 S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
 
 
 
-     ing,’’ IEEE Transactions on Knowledge and Data Engineering, vol. 37,             [30] X. Liu, J. Hu, Y. Li, S. Diao, Y. Liang, B. Hooi, and R. Zimmermann,
-     no. 9, pp. 5654–5665, 2025.                                                           ‘‘UniTime: A language-empowered unified model for cross-domain time
-[10] T. Chen and C. Guestrin, ‘‘XGBoost: A scalable tree boosting system,’’                series forecasting,’’ in Proceedings of the ACM Web Conference, 2024, pp.
-     in Proceedings of the 22nd ACM SIGKDD International Conference on                     4095–4106.
-     Knowledge Discovery and Data Mining, 2016, pp. 785–794.                          [31] M. Jin, S. Wang, L. Ma, Z. Chu, J. Y. Zhang, X. Shi, P.-Y. Chen, Y. Liang,
-[11] G. Ke, Q. Meng, T. Finley, T. Wang, W. Chen, W. Ma, Q. Ye, and T.-Y.                  Y.-F. Li, S. Pan, and Q. Wen, ‘‘Time-LLM: Time series forecasting by
-     Liu, ‘‘LightGBM: A highly efficient gradient boosting decision tree,’’ in             reprogramming large language models,’’ in Proceedings of the 12th Inter-
-     Advances in Neural Information Processing Systems, vol. 30, 2017.                     national Conference on Learning Representations, 2024.
-[12] S. Hochreiter and J. Schmidhuber, ‘‘Long short-term memory,’’ Neural             [32] T. Zhou, P. Niu, X. Wang, L. Sun, and R. Jin, ‘‘One fits all: Power general
-     Computation, vol. 9, no. 8, pp. 1735–1780, 1997.                                      time series analysis by pretrained LM,’’ in Advances in Neural Information
-[13] K. Cho, B. van Merrienboer, C. Gulcehre, D. Bahdanau, F. Bougares,                    Processing Systems, vol. 36, 2023.
-     H. Schwenk, and Y. Bengio, ‘‘Learning phrase representations using RNN           [33] J. Liu, L. Yang, H. Li, and S. Hong, ‘‘Retrieval-augmented diffusion models
-     encoder–decoder for statistical machine translation,’’ in Proceedings of the          for time series forecasting,’’ in Advances in Neural Information Processing
-     2014 Conference on Empirical Methods in Natural Language Processing,                  Systems, vol. 37, 2024, pp. 2766–2786.
-     2014, pp. 1724–1734.                                                             [34] Y. Ang, Y. Bao, Q. Huang, A. K. H. Tung, and Z. Huang, ‘‘TSGAssist: An
-[14] H. Hewamalage, C. Bergmeir, and K. Bandara, ‘‘Recurrent neural networks               interactive assistant harnessing LLMs and RAG for time series generation
-     for time series forecasting: Current status and future directions,’’ Interna-         recommendations and benchmarking,’’ Proceedings of the VLDB Endow-
-     tional Journal of Forecasting, vol. 37, no. 1, pp. 388–427, 2021.                     ment, vol. 17, no. 12, pp. 4309–4312, 2024.
-[15] D. Salinas, V. Flunkert, J. Gasthaus, and T. Januschowski, ‘‘DeepAR: Prob-       [35] S. Zhou, W. Wang, L. Zhu, Q. Qiao, and Y. Kang, ‘‘Deep-learning architec-
-     abilistic forecasting with autoregressive recurrent networks,’’ International         ture for PM2.5 concentration prediction: A review,’’ Environmental Science
-     Journal of Forecasting, vol. 36, no. 3, pp. 1181–1191, 2020.                          and Ecotechnology, vol. 21, p. 100400, 2024.
-                                                                                      [36] Z. Zhang and S. Zhang, ‘‘Modeling air quality PM2.5 forecasting using
-[16] R. Godahewa, C. Bergmeir, G. I. Webb, R. J. Hyndman, and P. Montero-
-                                                                                           deep sparse attention-based transformer networks,’’ International Journal
-     Manso, ‘‘Monash time series forecasting archive,’’ in Proceedings of the
-                                                                                           of Environmental Science and Technology, vol. 20, pp. 13 535–13 550,
-     Neural Information Processing Systems Track on Datasets and Bench-
-                                                                                           2023.
-     marks, 2021.
-                                                                                      [37] Y. Liang, Y. Xia, S. Ke, Y. Wang, Q. Wen, J. Zhang, Y. Zheng, and
-[17] H. Zhou, S. Zhang, J. Peng, S. Zhang, J. Li, H. Xiong, and W. Zhang,
-                                                                                           R. Zimmermann, ‘‘AirFormer: Predicting nationwide air quality in china
-     ‘‘Informer: Beyond efficient transformer for long sequence time-series
-                                                                                           with transformers,’’ in Proceedings of the AAAI Conference on Artificial
-     forecasting,’’ in Proceedings of the AAAI Conference on Artificial Intel-
-                                                                                           Intelligence, vol. 37, no. 12, 2023, pp. 14 329–14 337.
-     ligence, vol. 35, no. 12, 2021, pp. 11 106–11 115.
-                                                                                      [38] US Environmental Protection Agency, ‘‘AirData: Pre-generated air quality
-[18] H. Wu, J. Xu, J. Wang, and M. Long, ‘‘Autoformer: Decomposition                       data files,’’ https://aqs.epa.gov/aqsweb/airdata/download_files.html, 2026,
-     transformers with auto-correlation for long-term series forecasting,’’ in             accessed: 2026-07-17.
-     Advances in Neural Information Processing Systems, vol. 34, 2021.                [39] M. Menne, S. Noone, N. Casey, R. Dunn, S. McNeill, D. Kantor, P. W.
-[19] T. Zhou, Z. Ma, Q. Wen, X. Wang, L. Sun, and R. Jin, ‘‘FEDformer:                     Thorne, K. Orcutt, S. Cunningham, and N. Risavi, ‘‘Global historical cli-
-     Frequency enhanced decomposed transformer for long-term series fore-                  matology network-hourly (GHCNh), version 1,’’ https://doi.org/10.25921/
-     casting,’’ in Proceedings of the 39th International Conference on Machine             jp3d-3v19, 2024, NOAA National Centers for Environmental Information.
-     Learning, ser. Proceedings of Machine Learning Research, vol. 162, 2022,              Accessed: 2026-08-23.
-     pp. 27 268–27 286.                                                               [40] NOAA National Centers for Environmental Information, ‘‘Storm events
-[20] Y. Zhang and J. Yan, ‘‘Crossformer: Transformer utilizing cross-dimension             database: Bulk data download,’’ https://www.ncei.noaa.gov/stormevents/
-     dependency for multivariate time series forecasting,’’ in Proceedings of the          ftp.jsp, 2026, accessed: 2026-07-17.
-     11th International Conference on Learning Representations, 2023.                 [41] NOAA Office of Satellite and Product Operations, ‘‘Hazard mapping
-[21] Y. Liu, T. Hu, H. Zhang, H. Wu, S. Wang, L. Ma, and M. Long, ‘‘iTrans-                system fire and smoke product,’’ https://ospo.noaa.gov/products/land/hms.
-     former: Inverted transformers are effective for time series forecasting,’’ in         html, 2026, accessed: 2026-07-17.
-     Proceedings of the 12th International Conference on Learning Represen-           [42] Z. Liu, M. Cheng, Z. Li, Z. Huang, Q. Liu, Y. Xie, and E. Chen, ‘‘Adap-
-     tations, 2024.                                                                        tive normalization for non-stationary time series forecasting: A temporal
-[22] H. Wu, T. Hu, Y. Liu, H. Zhou, J. Wang, and M. Long, ‘‘TimesNet: Tempo-               slice perspective,’’ in Advances in Neural Information Processing Systems,
-     ral 2d-variation modeling for general time series analysis,’’ in Proceedings          vol. 36, 2023, pp. 14 273–14 292.
-     of the 11th International Conference on Learning Representations, 2023.          [43] S. M. Lundberg and S.-I. Lee, ‘‘A unified approach to interpreting model
-[23] A. Zeng, M. Chen, L. Zhang, and Q. Xu, ‘‘Are transformers effective                   predictions,’’ in Advances in Neural Information Processing Systems,
-     for time series forecasting?’’ in Proceedings of the AAAI Conference on               vol. 30, 2017.
-     Artificial Intelligence, vol. 37, no. 9, 2023, pp. 11 121–11 128.                [44] C. Raman, A. Nonnemaker, A. Villegas-Morcillo, H. Hung, and M. Loog,
-[24] Y. Nie, N. H. Nguyen, P. Sinthong, and J. Kalagnanam, ‘‘A time series is              ‘‘Why did this model forecast this future? information-theoretic saliency
-     worth 64 words: Long-term forecasting with transformers,’’ in Proceedings             for counterfactual explanations of probabilistic regression models,’’ in
-     of the 11th International Conference on Learning Representations, 2023.               Advances in Neural Information Processing Systems, vol. 36, 2023.
-[25] S. Wang, H. Wu, X. Shi, T. Hu, H. Luo, L. Ma, J. Y. Zhang, and J. Zhou,
+     Language Processing (EMNLP). Online: Association for Computational                   Proceedings of Machine Learning Research, vol. 235, 2024, pp. 32 369–
+     Linguistics, 2020, pp. 6769–6781.                                                    32 399.
+ [9] H. Zhang, C. Xu, Y.-F. Zhang, Z. Zhang, L. Wang, and J. Bian, ‘‘TimeRAF:        [29] Y. Liu, G. Qin, X. Huang, J. Wang, and M. Long, ‘‘Timer-XL: Long-context
+     Retrieval-augmented foundation model for zero-shot time series forecast-             transformers for unified time series forecasting,’’ in Proceedings of the 13th
+     ing,’’ IEEE Transactions on Knowledge and Data Engineering, vol. 37,                 International Conference on Learning Representations, 2025.
+     no. 9, pp. 5654–5665, 2025.                                                     [30] X. Liu, J. Hu, Y. Li, S. Diao, Y. Liang, B. Hooi, and R. Zimmermann,
+[10] T. Chen and C. Guestrin, ‘‘XGBoost: A scalable tree boosting system,’’               ‘‘UniTime: A language-empowered unified model for cross-domain time
+     in Proceedings of the 22nd ACM SIGKDD International Conference on                    series forecasting,’’ in Proceedings of the ACM Web Conference 2024,
+     Knowledge Discovery and Data Mining, 2016, pp. 785–794.                              2024, pp. 4095–4106.
+[11] G. Ke, Q. Meng, T. Finley, T. Wang, W. Chen, W. Ma, Q. Ye, and T.-Y.            [31] M. Jin, S. Wang, L. Ma, Z. Chu, J. Y. Zhang, X. Shi, P.-Y. Chen, Y. Liang,
+     Liu, ‘‘LightGBM: A highly efficient gradient boosting decision tree,’’ in            Y.-F. Li, S. Pan, and Q. Wen, ‘‘Time-LLM: Time series forecasting by
+     Advances in Neural Information Processing Systems, vol. 30, 2017, pp.                reprogramming large language models,’’ in Proceedings of the 12th Inter-
+     3146–3154.                                                                           national Conference on Learning Representations, 2024.
+[12] S. Hochreiter and J. Schmidhuber, ‘‘Long short-term memory,’’ Neural            [32] T. Zhou, P. Niu, X. Wang, L. Sun, and R. Jin, ‘‘One fits all: Power general
+     Computation, vol. 9, no. 8, pp. 1735–1780, 1997.                                     time series analysis by pretrained LM,’’ in Advances in Neural Information
+[13] K. Cho, B. van Merriënboer, Ç. Gülçehre, D. Bahdanau, F. Bougares,                   Processing Systems, vol. 36, 2023, pp. 43 322–43 355.
+     H. Schwenk, and Y. Bengio, ‘‘Learning phrase representations using RNN          [33] J. Liu, L. Yang, H. Li, and S. Hong, ‘‘Retrieval-augmented diffusion models
+     encoder–decoder for statistical machine translation,’’ in Proceedings of the         for time series forecasting,’’ in Advances in Neural Information Processing
+     2014 Conference on Empirical Methods in Natural Language Processing,                 Systems, vol. 37, 2024, pp. 2766–2786.
+     2014, pp. 1724–1734.                                                            [34] Y. Ang, Y. Bao, Q. Huang, A. K. H. Tung, and Z. Huang, ‘‘TSGAssist: An
+[14] H. Hewamalage, C. Bergmeir, and K. Bandara, ‘‘Recurrent neural networks              interactive assistant harnessing LLMs and RAG for time series generation
+     for time series forecasting: Current status and future directions,’’ Interna-        recommendations and benchmarking,’’ Proceedings of the VLDB Endow-
+     tional Journal of Forecasting, vol. 37, no. 1, pp. 388–427, 2021.                    ment, vol. 17, no. 12, pp. 4309–4312, 2024.
+[15] D. Salinas, V. Flunkert, J. Gasthaus, and T. Januschowski, ‘‘DeepAR: Prob-      [35] S. Zhou, W. Wang, L. Zhu, Q. Qiao, and Y. Kang, ‘‘Deep-learning architec-
+     abilistic forecasting with autoregressive recurrent networks,’’ International        ture for PM2.5 concentration prediction: A review,’’ Environmental Science
+     Journal of Forecasting, vol. 36, no. 3, pp. 1181–1191, 2020.                         and Ecotechnology, vol. 21, p. 100400, 2024.
+[16] R. Godahewa, C. Bergmeir, G. I. Webb, R. J. Hyndman, and P. Montero-            [36] Z. Zhang and S. Zhang, ‘‘Modeling air quality PM2.5 forecasting using
+     Manso, ‘‘Monash time series forecasting archive,’’ in Proceedings of the             deep sparse attention-based transformer networks,’’ International Journal
+     Neural Information Processing Systems Track on Datasets and Bench-                   of Environmental Science and Technology, vol. 20, no. 12, pp. 13 535–
+     marks, 2021.                                                                         13 550, 2023.
+[17] H. Zhou, S. Zhang, J. Peng, S. Zhang, J. Li, H. Xiong, and W. Zhang,            [37] Y. Liang, Y. Xia, S. Ke, Y. Wang, Q. Wen, J. Zhang, Y. Zheng, and
+     ‘‘Informer: Beyond efficient transformer for long sequence time-series               R. Zimmermann, ‘‘AirFormer: Predicting nationwide air quality in China
+     forecasting,’’ in Proceedings of the AAAI Conference on Artificial Intel-            with transformers,’’ in Proceedings of the AAAI Conference on Artificial
+     ligence, vol. 35, no. 12, 2021, pp. 11 106–11 115.                                   Intelligence, vol. 37, no. 12, 2023, pp. 14 329–14 337.
+[18] H. Wu, J. Xu, J. Wang, and M. Long, ‘‘Autoformer: Decomposition                 [38] US Environmental Protection Agency, ‘‘AirData: Pre-generated air qual-
+     transformers with auto-correlation for long-term series forecasting,’’ in            ity data files,’’ [Online]. Available: https://aqs.epa.gov/aqsweb/airdata/
+     Advances in Neural Information Processing Systems, vol. 34, 2021, pp.                download_files.html, 2026, accessed: 2026-07-17.
+     22 419–22 430.                                                                  [39] M. Menne, S. Noone, N. Casey, R. Dunn, S. McNeill, D. Kantor, P. W.
+[19] T. Zhou, Z. Ma, Q. Wen, X. Wang, L. Sun, and R. Jin, ‘‘FEDformer:                    Thorne, K. Orcutt, S. Cunningham, and N. Risavi, ‘‘Global historical
+     Frequency enhanced decomposed transformer for long-term series fore-                 climatology network-hourly (GHCNh), version 1,’’ NOAA National Cen-
+     casting,’’ in Proceedings of the 39th International Conference on Machine            ters for Environmental Information. [Online]. Available: https://doi.org/10.
+     Learning, ser. Proceedings of Machine Learning Research, vol. 162, 2022,             25921/jp3d-3v19, 2023, accessed: 2026-08-23.
+     pp. 27 268–27 286.                                                              [40] NOAA National Centers for Environmental Information, ‘‘Storm events
+[20] Y. Zhang and J. Yan, ‘‘Crossformer: Transformer utilizing cross-dimension            database: Bulk data download,’’ [Online]. Available: https://www.ncei.
+     dependency for multivariate time series forecasting,’’ in Proceedings of the         noaa.gov/stormevents/ftp.jsp, 2026, accessed: 2026-07-17.
+     11th International Conference on Learning Representations, 2023.                [41] NOAA Office of Satellite and Product Operations, ‘‘Hazard mapping
+[21] Y. Liu, T. Hu, H. Zhang, H. Wu, S. Wang, L. Ma, and M. Long, ‘‘iTrans-               system fire and smoke product,’’ [Online]. Available: https://ospo.noaa.
+     former: Inverted transformers are effective for time series forecasting,’’ in        gov/products/land/hms.html, 2026, accessed: 2026-07-17.
+     Proceedings of the 12th International Conference on Learning Represen-          [42] Z. Liu, M. Cheng, Z. Li, Z. Huang, Q. Liu, Y. Xie, and E. Chen, ‘‘Adap-
+     tations, 2024.                                                                       tive normalization for non-stationary time series forecasting: A temporal
+[22] H. Wu, T. Hu, Y. Liu, H. Zhou, J. Wang, and M. Long, ‘‘TimesNet: Tempo-              slice perspective,’’ in Advances in Neural Information Processing Systems,
+     ral 2D-variation modeling for general time series analysis,’’ in Proceedings         vol. 36, 2023, pp. 14 273–14 292.
+     of the 11th International Conference on Learning Representations, 2023.         [43] S. M. Lundberg and S.-I. Lee, ‘‘A unified approach to interpreting model
+[23] A. Zeng, M. Chen, L. Zhang, and Q. Xu, ‘‘Are transformers effective                  predictions,’’ in Advances in Neural Information Processing Systems,
+     for time series forecasting?’’ in Proceedings of the AAAI Conference on              vol. 30, 2017, pp. 4765–4774.
+     Artificial Intelligence, vol. 37, no. 9, 2023, pp. 11 121–11 128.               [44] C. Raman, A. Nonnemaker, A. Villegas-Morcillo, H. Hung, and M. Loog,
+[24] Y. Nie, N. H. Nguyen, P. Sinthong, and J. Kalagnanam, ‘‘A time series is             ‘‘Why did this model forecast this future? Information-Theoretic saliency
+     worth 64 words: Long-term forecasting with transformers,’’ in Proceedings            for counterfactual explanations of probabilistic regression models,’’ in
+     of the 11th International Conference on Learning Representations, 2023.              Advances in Neural Information Processing Systems, vol. 36, 2023, pp.
+[25] S. Wang, H. Wu, X. Shi, T. Hu, H. Luo, L. Ma, J. Y. Zhang, and J. Zhou,              33 222–33 240.
      ‘‘TimeMixer: Decomposable multiscale mixing for time series forecast-
      ing,’’ in Proceedings of the 12th International Conference on Learning
      Representations, 2024.
 [26] B. Lim and S. Zohren, ‘‘Time-series forecasting with deep learning: A
      survey,’’ Philosophical Transactions of the Royal Society A: Mathematical,
      Physical and Engineering Sciences, vol. 379, no. 2194, p. 20200209, 2021.
+                                                                                     SABBIR HOSSAIN received the B.Sc. degree in computer science and engi-
 [27] K. Benidis, S. S. Rangapuram, V. Flunkert, Y. Wang, D. Maddix, C. Turk-
-     men, J. Gasthaus, M. Bohlke-Schneider, D. Salinas, L. Stella, F.-X. Aubet,
-     L. Callot, and T. Januschowski, ‘‘Deep learning for time series forecasting:
-     Tutorial and literature survey,’’ ACM Computing Surveys, vol. 55, no. 6, pp.
-     1–36, 2023.
-[28] Y. Liu, H. Zhang, C. Li, X. Huang, J. Wang, and M. Long, ‘‘Timer:                SABBIR HOSSAIN received the B.Sc. degree in computer science and engi-
-     Generative pre-trained transformers are large time series models,’’ in Pro-      neering, with a major in software engineering, from American International
-     ceedings of the 41st International Conference on Machine Learning, ser.          University-Bangladesh, Dhaka, Bangladesh, in 2023, where he is currently
-     Proceedings of Machine Learning Research, vol. 235, 2024, pp. 32 369–            pursuing a master’s degree. In 2023, he joined the Dr. Anwarul Abedin Insti-
-     32 399.                                                                          tute of Innovation as a research assistant and has since continued academic
-[29] Y. Liu, G. Qin, X. Huang, J. Wang, and M. Long, ‘‘Timer-XL: Long-context         research and applied software-development work. His current research inter-
-     transformers for unified time series forecasting,’’ in Proceedings of the 13th   ests include time-series forecasting, retrieval-augmented learning, machine
-     International Conference on Learning Representations, 2025.                      learning, and data-driven environmental intelligence.
+     men, J. Gasthaus, M. Bohlke-Schneider, D. Salinas, L. Stella, F.-X. Aubet,      neering, with a major in software engineering, from American International
+     L. Callot, and T. Januschowski, ‘‘Deep learning for time series forecasting:    University-Bangladesh, Dhaka, Bangladesh, in 2023, where he is currently
+     Tutorial and literature survey,’’ ACM Computing Surveys, vol. 55, no. 6, pp.    pursuing a master’s degree. In 2023, he joined the Dr. Anwarul Abedin Insti-
+     1–36, 2022, art. no. 121.                                                       tute of Innovation as a research assistant and has since continued academic
+[28] Y. Liu, H. Zhang, C. Li, X. Huang, J. Wang, and M. Long, ‘‘Timer:               research and applied software-development work. His current research inter-
+     Generative pre-trained transformers are large time series models,’’ in Pro-     ests include time-series forecasting, retrieval-augmented learning, machine
+     ceedings of the 41st International Conference on Machine Learning, ser.         learning, and data-driven environmental intelligence.
 
-VOLUME XX, 2026                                                                                                                                                    19
+VOLUME XX, 2026                                                                                                                                                      19
                                                                            S. Hossain et al.: TRACE-RAF for Auditable PM2.5 Forecasting
 
 
