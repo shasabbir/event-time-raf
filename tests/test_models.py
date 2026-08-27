@@ -3,6 +3,10 @@ from __future__ import annotations
 import numpy as np
 
 from event_timeraf.models import (
+    apply_residual_correction,
+    blend_base_with_analogue,
+    choose_analogue_weight,
+    choose_residual_strength,
     ConvexForecastEnsemble,
     DirectRidgeForecaster,
     NeuralWindowForecaster,
@@ -68,6 +72,36 @@ def test_trace_raf_gate_has_validation_no_correction_fallback(cfg):
     )
     assert gate.selected_strength == 0.0
     assert np.allclose(gate.predict(base, harmful_correction, features), base)
+
+
+def test_trace_mechanism_ablation_selectors_use_validation_error():
+    actual = np.arange(48, dtype=np.float32).reshape(2, 24)
+    base = actual + 2.0
+    correction = np.full_like(actual, -2.0)
+    analogue = actual.copy()
+    grid = (0.0, 0.25, 0.5, 0.75, 1.0)
+
+    residual_strength, residual_scores = choose_residual_strength(
+        actual, base, correction, grid
+    )
+    analogue_weight, analogue_scores = choose_analogue_weight(
+        actual, base, analogue, grid
+    )
+
+    assert residual_strength == 1.0
+    assert analogue_weight == 1.0
+    assert residual_scores[1.0] == 0.0
+    assert analogue_scores[1.0] == 0.0
+    assert np.allclose(apply_residual_correction(base, correction, 1.0), actual)
+    assert np.allclose(blend_base_with_analogue(base, analogue, 1.0), actual)
+
+
+def test_trace_mechanism_ablation_helpers_reject_invalid_weights():
+    values = np.zeros((2, 24), dtype=np.float32)
+    with np.testing.assert_raises(ValueError):
+        apply_residual_correction(values, values, 1.1)
+    with np.testing.assert_raises(ValueError):
+        blend_base_with_analogue(values, values, -0.1)
 
 
 def test_residual_gate_features_are_finite_and_origin_level():
