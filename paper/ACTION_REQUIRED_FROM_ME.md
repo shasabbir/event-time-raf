@@ -2,10 +2,11 @@
 
 ## Required Before Submission
 
-1. Confirm the final author affiliation, institutional email, and corresponding
-   author details. `main.tex` currently identifies Sabbir Hossain and
-   American International University-Bangladesh but does not include email or
-   correspondence metadata.
+1. Supply Md. Iftekharul Mobin's exact institutional email. `main.tex`
+   designates him as corresponding author, but the linked AIUB profile does not
+   publish an email address, so none has been inferred. Confirm the final
+   three-author order, shared affiliation, ORCID records, and authorship
+   contributions before submission.
 2. Confirm the intended IEEE Access manuscript type (the present study fits
    either Research Article or Methods) before submission. The manuscript now
    uses the official May 13, 2026 `ieeeaccess` LaTeX class and bundled assets.

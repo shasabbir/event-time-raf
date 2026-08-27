@@ -3,6 +3,8 @@
 ## Authoritative Evidence
 
 - Run ID: `20260827T043457543402Z`
+- Authors: Sabbir Hossain; Md. Iftekharul Mobin (corresponding author);
+  Mahamodul Hasan Mahadi
 - Immutable evidence archive:
   `event_timeraf_publication_candidate_20260827T043457543402Z.zip`
 - Repository: <https://github.com/shasabbir/event-time-raf>
@@ -13,6 +15,8 @@
 - Overleaf package: `event_timeraf_verified_overleaf.zip`
 
 `paper/main_humanized.tex` is not part of this synchronized submission.
+Md. Iftekharul Mobin's exact institutional email must be added before journal
+submission; it is not published on the linked AIUB faculty profile.
 
 ## Reproducible Notebook Order
 

@@ -6,6 +6,7 @@ Evidence run: `20260827T043457543402Z`
 | Requirement | Status | Where it is | Verification / action taken |
 |---|---|---|---|
 | Title | Present | `main.tex` | Identifies TRACE-RAF, residual analogue correction, and PM2.5 forecasting. |
+| Authors and biographies | Present | `main.tex` | Lists Sabbir Hossain, corresponding author Md. Iftekharul Mobin, and last author Mahamodul Hasan Mahadi; includes a biography for each author. The corresponding email remains author-supplied metadata. |
 | Abstract | Present | `main.tex` | States scope, mechanism, current headline metrics, adjusted inference, and limitations without superiority language. |
 | Keywords | Present | `main.tex` | Uses domain, forecasting, retrieval, and auditability terms. |
 | Introduction | Present | `main.tex` | Motivates the task and separates methodological novelty from empirical ranking. |
