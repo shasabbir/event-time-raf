@@ -75,15 +75,15 @@
 <text x="631.0" y="282" class="mono" text-anchor="middle" dominant-baseline="middle">39 features</text>
 <text x="531" y="390" class="label" text-anchor="middle" dominant-baseline="middle">||</text>
 <text x="531.0" y="472.0" class="label" text-anchor="middle" dominant-baseline="middle">Origin context vector</text>
-<text x="531.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle">q_t in R^85</text>
+<text x="531.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">q</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline"> ∈ ℝ</tspan><tspan font-size="10px" baseline-shift="super">85</tspan></text>
 <text x="531" y="548" class="small" text-anchor="middle" dominant-baseline="middle">Fitted and checked on chronological training history</text>
 <text x="800" y="53" class="group" text-anchor="start" dominant-baseline="middle">Window and split contract</text>
 <text x="977.0" y="122.0" class="label" text-anchor="middle" dominant-baseline="middle">Aligned hourly panel</text>
-<text x="977.0" y="156" class="mono" text-anchor="middle" dominant-baseline="middle">T x (1 + 85)</text>
+<text x="977.0" y="156" class="mono" text-anchor="middle" dominant-baseline="middle">T × (1 + 85)</text>
 <text x="885.0" y="257.0" class="label" text-anchor="middle" dominant-baseline="middle">Lookback</text>
-<text x="885.0" y="294" class="mono" text-anchor="middle" dominant-baseline="middle">X_t: 168 x 1</text>
+<text x="885.0" y="294" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">X</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline">: 168 × 1</tspan></text>
 <text x="1069.0" y="257.0" class="label" text-anchor="middle" dominant-baseline="middle">Future target</text>
-<text x="1069.0" y="294" class="mono" text-anchor="middle" dominant-baseline="middle">Y_t: 24 x 1</text>
+<text x="1069.0" y="294" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">Y</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline">: 24 × 1</tspan></text>
 <text x="977.0" y="407.0" class="label" text-anchor="middle" dominant-baseline="middle">Chronological partitions</text>
 <text x="977.0" y="448" class="mono" text-anchor="middle" dominant-baseline="middle">45,784 train | 7,950 val | 2,460 test</text>
 <text x="977" y="510" class="mono" text-anchor="middle" dominant-baseline="middle">56,194 valid input-target windows</text>

@@ -48,36 +48,36 @@
 <rect x="930" y="198" width="216" height="66" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
 <rect x="930" y="304" width="216" height="66" rx="10" fill="#F7E8B2" stroke="#263238" stroke-width="1.7"/>
 <rect x="930" y="410" width="216" height="66" rx="10" fill="#F6DDE5" stroke="#263238" stroke-width="1.7"/>
-<rect x="468.75" y="288" width="262.5" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
+<rect x="505.13" y="288" width="189.74" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
 <rect x="314.0" y="82" width="48" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
 <rect x="326.0" y="202" width="48" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
 <rect x="850.0" y="532" width="68.0" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
 <text x="46" y="53" class="group" text-anchor="start" dominant-baseline="middle">Conditioning tensors</text>
 <text x="163.0" y="116.0" class="label" text-anchor="middle" dominant-baseline="middle">Base origin context</text>
-<text x="163.0" y="146" class="mono" text-anchor="middle" dominant-baseline="middle">q_B: B x 46</text>
+<text x="163.0" y="146" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">q</tspan><tspan font-size="10px" baseline-shift="sub">B</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 46</tspan></text>
 <text x="163.0" y="236.0" class="label" text-anchor="middle" dominant-baseline="middle">Future calendar</text>
-<text x="163.0" y="266" class="mono" text-anchor="middle" dominant-baseline="middle">C+: B x 24 x 9</text>
+<text x="163.0" y="266" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">C</tspan><tspan font-size="10px" baseline-shift="super">+</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 24 × 9</tspan></text>
 <text x="163.0" y="356.0" class="label" text-anchor="middle" dominant-baseline="middle">Residual neighbours</text>
-<text x="163.0" y="386" class="mono" text-anchor="middle" dominant-baseline="middle">Delta_G: B x 8 x 24</text>
+<text x="163.0" y="386" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">Δ</tspan><tspan font-size="10px" baseline-shift="sub">G</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 8 × 24</tspan></text>
 <text x="163.0" y="476.0" class="label" text-anchor="middle" dominant-baseline="middle">Reliability inputs</text>
-<text x="163.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle">z_t: B x 18</text>
+<text x="163.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">z</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 18</tspan></text>
 <text x="352" y="53" class="group" text-anchor="start" dominant-baseline="middle">Trust-gated residual correction</text>
 <text x="475.0" y="111.0" class="label" text-anchor="middle" dominant-baseline="middle">Context XGBoost</text>
 <text x="475.0" y="133.0" class="label" text-anchor="middle" dominant-baseline="middle">24 horizon heads</text>
-<text x="475.0" y="158" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat_X: B x 24</text>
+<text x="475.0" y="158" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">Ŷ</tspan><tspan font-size="10px" baseline-shift="sub">X</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 24</tspan></text>
 <text x="725.0" y="111.0" class="label" text-anchor="middle" dominant-baseline="middle">Context LightGBM</text>
 <text x="725.0" y="133.0" class="label" text-anchor="middle" dominant-baseline="middle">24 horizon heads</text>
-<text x="725.0" y="158" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat_L: B x 24</text>
+<text x="725.0" y="158" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">Ŷ</tspan><tspan font-size="10px" baseline-shift="sub">L</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 24</tspan></text>
 <text x="600" y="250" class="label" text-anchor="middle" dominant-baseline="middle">base</text>
-<text x="600" y="300" class="mono" text-anchor="middle" dominant-baseline="middle">0.3479 Yhat_X + 0.6521 Yhat_L</text>
+<text x="600" y="300" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">0.3479 Ŷ</tspan><tspan font-size="10px" baseline-shift="sub">X</tspan><tspan font-size="14px" baseline-shift="baseline"> + 0.6521 Ŷ</tspan><tspan font-size="10px" baseline-shift="sub">L</tspan></text>
 <text x="475.0" y="371.0" class="label" text-anchor="middle" dominant-baseline="middle">Robust residual</text>
 <text x="475.0" y="393.0" class="label" text-anchor="middle" dominant-baseline="middle">alignment</text>
-<text x="475.0" y="416" class="mono" text-anchor="middle" dominant-baseline="middle">r_t: B x 24</text>
+<text x="475.0" y="416" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">r</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 24</tspan></text>
 <text x="725.0" y="382.0" class="label" text-anchor="middle" dominant-baseline="middle">Depth-2 trust gate</text>
-<text x="725.0" y="416" class="mono" text-anchor="middle" dominant-baseline="middle">g_t: B x 1</text>
+<text x="725.0" y="416" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">g</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 1</tspan></text>
 <text x="600" y="504" class="label" text-anchor="middle" dominant-baseline="middle">+</text>
-<text x="600" y="554" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat_TRACE = Yhat_B + g_t r_t</text>
-<text x="338" y="94" class="mono" text-anchor="middle" dominant-baseline="middle">q_B</text>
+<text x="600" y="554" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">Ŷ</tspan><tspan font-size="10px" baseline-shift="sub">TRACE</tspan><tspan font-size="14px" baseline-shift="baseline"> = Ŷ</tspan><tspan font-size="10px" baseline-shift="sub">B</tspan><tspan font-size="14px" baseline-shift="baseline"> + g</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline"> r</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan></text>
+<text x="338" y="94" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">q</tspan><tspan font-size="10px" baseline-shift="sub">B</tspan></text>
 <text x="350" y="214" class="mono" text-anchor="middle" dominant-baseline="middle">C+</text>
 <text x="922" y="53" class="group" text-anchor="start" dominant-baseline="middle">DFEH evidence output</text>
 <text x="1038.0" y="115.0" class="label" text-anchor="middle" dominant-baseline="middle">Base feature effects</text>

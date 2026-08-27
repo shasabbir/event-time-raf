@@ -58,13 +58,26 @@ class Svg:
             f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{radius}" '
             f'fill="{fill}" stroke="{stroke}" stroke-width="1.7"{dash}/>'
         )
-        lines = title if isinstance(title, list) else [title]
+        scripted_title = (
+            isinstance(title, tuple)
+            and title
+            and all(isinstance(part, tuple) and len(part) == 2 for part in title)
+        )
+        lines = [title] if scripted_title else (title if isinstance(title, list) else [title])
         line_height = 22
         title_y = y + h / 2 - ((len(lines) - 1) * line_height) / 2 - (10 if subtitle else 0)
-        for index, line in enumerate(lines):
-            self.text(x + w / 2, title_y + index * line_height, line, "label", anchor="middle")
+        if scripted_title:
+            self.scripted_text(x + w / 2, title_y, title, "label", anchor="middle")
+        else:
+            for index, line in enumerate(lines):
+                self.text(x + w / 2, title_y + index * line_height, line, "label", anchor="middle")
         if subtitle:
-            self.text(x + w / 2, y + h - 14, subtitle, "mono", anchor="middle")
+            if isinstance(subtitle, (list, tuple)) and subtitle and all(
+                isinstance(part, tuple) and len(part) == 2 for part in subtitle
+            ):
+                self.scripted_text(x + w / 2, y + h - 14, subtitle, "mono", anchor="middle")
+            else:
+                self.text(x + w / 2, y + h - 14, subtitle, "mono", anchor="middle")
 
     def group(self, x, y, w, h, title, stroke=MUTED):
         self.background_parts.append(
@@ -80,6 +93,36 @@ class Svg:
             f'dominant-baseline="middle">{html.escape(str(value))}</text>'
         )
 
+    def scripted_text(self, x, y, parts, css="mono", anchor="middle"):
+        """Render baseline, subscript, and superscript fragments as real SVG text."""
+        base_sizes = {"label": 18, "small": 15, "mono": 14, "group": 17, "title": 21}
+        base_size = base_sizes.get(css, 14)
+        script_size = max(9, round(base_size * 0.72))
+        fragments = []
+        for value, position in parts:
+            escaped = html.escape(str(value))
+            if position == "sub":
+                fragments.append(
+                    f'<tspan font-size="{script_size}px" baseline-shift="sub">{escaped}</tspan>'
+                )
+            elif position == "sup":
+                fragments.append(
+                    f'<tspan font-size="{script_size}px" baseline-shift="super">{escaped}</tspan>'
+                )
+            else:
+                fragments.append(
+                    f'<tspan font-size="{base_size}px" baseline-shift="baseline">{escaped}</tspan>'
+                )
+        self.text_parts.append(
+            f'<text x="{x}" y="{y}" class="{css}" text-anchor="{anchor}" '
+            f'dominant-baseline="middle">{"".join(fragments)}</text>'
+        )
+
+    def subscripted_text(self, x, y, parts, css="mono", anchor="middle"):
+        """Compatibility wrapper for baseline/subscript fragment pairs."""
+        normalized = [(value, "sub" if is_subscript else "base") for value, is_subscript in parts]
+        self.scripted_text(x, y, normalized, css=css, anchor=anchor)
+
     def boxed_text(self, x, y, value, css="mono", anchor="middle", padding=8):
         width = max(48, len(str(value)) * 8.5 + 2 * padding)
         self.label_parts.append(
@@ -87,6 +130,15 @@ class Svg:
             f'rx="3" fill="{WHITE}" opacity="0.96"/>'
         )
         self.text(x, y, value, css, anchor=anchor)
+
+    def boxed_scripted_text(self, x, y, parts, css="mono", anchor="middle", padding=8):
+        weighted_length = sum(len(str(value)) * (0.72 if position in {"sub", "sup"} else 1.0) for value, position in parts)
+        width = max(48, weighted_length * 8.5 + 2 * padding)
+        self.label_parts.append(
+            f'<rect x="{x - width / 2}" y="{y - 12}" width="{width}" height="24" '
+            f'rx="3" fill="{WHITE}" opacity="0.96"/>'
+        )
+        self.scripted_text(x, y, parts, css=css, anchor=anchor)
 
     def arrow(self, points, label=None, label_xy=None, dashed=False, color=INK, halo=False):
         coords = " ".join(f"{x},{y}" for x, y in points)
@@ -133,15 +185,15 @@ class Svg:
 def pipeline_figure(path: Path) -> None:
     s = Svg("TRACE-RAF end-to-end pipeline")
     s.group(24, 52, 240, 520, "Official source records")
-    s.rect(52, 100, 184, 76, BLUE, ["EPA AirData", "PM2.5 records"], "T x 1")
-    s.rect(52, 220, 184, 76, BLUE, ["NOAA GHCNh", "weather"], "T x 6")
+    s.rect(52, 100, 184, 76, BLUE, ["EPA AirData", "PM2.5 records"], "T × 1")
+    s.rect(52, 220, 184, 76, BLUE, ["NOAA GHCNh", "weather"], "T × 6")
     s.rect(52, 340, 184, 76, BLUE, ["NOAA Storm Events", "verified cache"], "127 event days")
-    s.rect(52, 460, 184, 70, GRAY, ["Calendar rules"], "T x 9")
+    s.rect(52, 460, 184, 70, GRAY, ["Calendar rules"], "T × 9")
 
     s.group(292, 52, 250, 520, "SACB: context construction", stroke=BLUE_DARK)
     s.rect(320, 118, 194, 78, BLUE, ["Audit and align", "hourly records"], "UTC + local time")
-    s.rect(320, 254, 194, 88, BLUE, ["Causal feature", "construction"], "q_t in R^85")
-    s.rect(320, 404, 194, 92, BLUE, ["Chronological", "windowing"], "X: Bx168; Y: Bx24")
+    s.rect(320, 254, 194, 88, BLUE, ["Causal feature", "construction"], (("q", "base"), ("t", "sub"), (" ∈ ℝ", "base"), ("85", "sup")))
+    s.rect(320, 404, 194, 92, BLUE, ["Chronological", "windowing"], "X: B×168; Y: B×24")
     s.arrow([(236, 138), (280, 138), (280, 157), (320, 157)])
     s.arrow([(236, 258), (280, 258), (280, 157), (320, 157)])
     s.arrow([(236, 378), (280, 378), (280, 293), (320, 293)])
@@ -150,21 +202,22 @@ def pipeline_figure(path: Path) -> None:
     s.arrow([(417, 342), (417, 404)])
 
     s.group(570, 52, 270, 520, "LSER: historical retrieval", stroke=GOLD_DARK)
-    s.rect(600, 112, 210, 82, GOLD, ["Training-history", "knowledge base"], "N_K=1,824")
-    s.rect(600, 254, 210, 96, GOLD, ["Embargo filter +", "hybrid ranking"], "k=8; alpha,beta,gamma,delta")
-    s.rect(600, 414, 210, 82, GOLD, ["Retrieved futures", "and summaries"], "Bx8x24 -> Bx53")
+    s.rect(600, 112, 210, 82, GOLD, ["Training-history", "knowledge base"], (("N", "base"), ("K", "sub"), (" = 1,824", "base")))
+    s.rect(600, 254, 210, 96, GOLD, ["Embargo filter +", "hybrid ranking"], "k=8; α,β,γ,δ")
+    s.rect(600, 414, 210, 82, GOLD, ["Retrieved futures", "and summaries"], "B×8×24 -> B×53")
     s.arrow([(514, 450), (564, 450), (564, 153), (600, 153)], "train only", (563, 224))
     s.arrow([(514, 293), (600, 293)], "query", (557, 278))
     s.arrow([(705, 194), (705, 254)])
     s.arrow([(705, 350), (705, 414)])
 
     s.group(868, 52, 308, 520, "TRACE + DFEH", stroke=PINK_DARK)
-    s.rect(898, 92, 248, 76, PINK, ["Context base ensemble"], "B x 55 -> B x 24")
-    s.rect(898, 210, 248, 76, GOLD, ["Residual analogue", "alignment"], "B x 8 x 24")
-    s.rect(898, 328, 248, 76, GREEN, ["Reliability gate", "and correction"], "z: B x 18; g: B x 1")
-    s.rect(898, 462, 248, 76, GREEN, ["Forecast + evidence"], "Yhat_TRACE: B x 24")
+    s.rect(898, 92, 248, 76, PINK, ["Context base ensemble"], "B × 55 -> B × 24")
+    s.rect(898, 210, 248, 76, GOLD, ["Residual analogue", "alignment"], "B × 8 × 24")
+    s.rect(898, 328, 248, 76, GREEN, ["Reliability gate", "and correction"], "z: B × 18; g: B × 1")
+    s.rect(898, 462, 248, 76, GREEN, ["Forecast + evidence"], (("Ŷ", "base"), ("TRACE", "sub"), (": B × 24", "base")))
     s.arrow([(810, 440), (850, 440), (850, 248), (898, 248)], "residual IDs", (850, 309))
-    s.arrow([(514, 293), (560, 293), (560, 592), (884, 592), (884, 130), (898, 130)], "q_B, C+", (724, 592))
+    s.arrow([(514, 293), (560, 293), (560, 592), (884, 592), (884, 130), (898, 130)])
+    s.boxed_scripted_text(724, 592, (("q", "base"), ("B", "sub"), (", C", "base"), ("+", "sup")))
     s.arrow([(1022, 168), (1022, 210)])
     s.arrow([(1022, 286), (1022, 328)])
     s.arrow([(1022, 404), (1022, 462)])
@@ -196,14 +249,14 @@ def context_figure(path: Path) -> None:
     s.arrow([(631, 166), (631, 190), (732, 190), (732, 390), (561, 390)])
     s.arrow([(431, 296), (431, 330), (330, 330)])
     s.arrow([(631, 296), (631, 330), (732, 330)])
-    s.rect(406, 444, 250, 76, GREEN, ["Origin context vector"], "q_t in R^85")
+    s.rect(406, 444, 250, 76, GREEN, ["Origin context vector"], (("q", "base"), ("t", "sub"), (" ∈ ℝ", "base"), ("85", "sup")))
     s.arrow([(531, 420), (531, 444)])
     s.text(531, 548, "Fitted and checked on chronological training history", "small", anchor="middle")
 
     s.group(778, 48, 398, 538, "Window and split contract", stroke=GREEN_DARK)
-    s.rect(812, 94, 330, 76, GREEN, ["Aligned hourly panel"], "T x (1 + 85)")
-    s.rect(812, 226, 146, 82, GREEN, ["Lookback"], "X_t: 168 x 1")
-    s.rect(996, 226, 146, 82, PINK, ["Future target"], "Y_t: 24 x 1")
+    s.rect(812, 94, 330, 76, GREEN, ["Aligned hourly panel"], "T × (1 + 85)")
+    s.rect(812, 226, 146, 82, GREEN, ["Lookback"], (("X", "base"), ("t", "sub"), (": 168 × 1", "base")))
+    s.rect(996, 226, 146, 82, PINK, ["Future target"], (("Y", "base"), ("t", "sub"), (": 24 × 1", "base")))
     s.line(977, 170, 977, 206, color=INK)
     s.line(885, 206, 1069, 206, color=INK)
     s.arrow([(885, 206), (885, 226)])
@@ -231,34 +284,42 @@ def retrieval_figure(path: Path) -> None:
     s.line(244, 132, 244, 232, dashed=True)
     s.line(274, 132, 274, 232, dashed=True)
     s.text(259, 250, "strict gap", "mono", anchor="middle")
-    s.rect(58, 316, 284, 94, GOLD, ["Eligibility set A_t"], "candidate_end < query_start")
+    s.rect(58, 316, 284, 94, GOLD, (("Eligibility set A", "base"), ("t", "sub")), "candidate_end < query_start")
     s.arrow([(200, 214), (200, 316)])
     s.rect(58, 466, 284, 72, GRAY, ["Training-history restriction"], "validation/test queries")
     s.arrow([(200, 410), (200, 466)])
 
     s.group(398, 48, 470, 538, "Hybrid similarity and top-k", stroke=GOLD_DARK)
     labels = [
-        (430, 98, "PM2.5 shape", "s_ts", BLUE),
-        (650, 98, "Weather context", "s_w", BLUE),
-        (430, 218, "Calendar context", "s_c", GRAY),
-        (650, 218, "Event context", "s_e", GOLD),
+        (430, 98, "PM2.5 shape", "ts", BLUE),
+        (650, 98, "Weather context", "w", BLUE),
+        (430, 218, "Calendar context", "c", GRAY),
+        (650, 218, "Event context", "e", GOLD),
     ]
     for x, y, title, sub, fill in labels:
-        s.rect(x, y, 186, 72, fill, [title], sub)
+        s.rect(x, y, 186, 72, fill, [title])
+        s.subscripted_text(x + 93, y + 58, [("s", False), (sub, True)])
     s.circle(633, 350, 34, GREEN, text_value="sum")
     # Top-row channels use the side gutters instead of crossing the lower blocks.
     s.arrow([(523, 170), (523, 190), (414, 190), (414, 350), (599, 350)])
     s.arrow([(743, 170), (743, 190), (852, 190), (852, 350), (667, 350)])
     s.arrow([(523, 290), (523, 302), (585, 302), (609, 326)])
     s.arrow([(743, 290), (743, 302), (681, 302), (657, 326)])
-    s.boxed_text(633, 402, "0.5 s_ts + 0.2 s_w + 0.1 s_c + 0.2 s_e")
-    s.rect(474, 454, 318, 76, GREEN, ["TopK over eligible candidates"], "G_t: B x 8")
+    equation = [
+        ("0.5 s", False), ("ts", True),
+        (" + 0.2 s", False), ("w", True),
+        (" + 0.1 s", False), ("c", True),
+        (" + 0.2 s", False), ("e", True),
+    ]
+    s.label_parts.append('<rect x="465" y="390" width="336" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>')
+    s.subscripted_text(633, 402, equation)
+    s.rect(474, 454, 318, 76, GREEN, ["TopK over eligible candidates"], (("G", "base"), ("t", "sub"), (": B × 8", "base")))
     s.arrow([(633, 384), (633, 454)])
 
     s.group(898, 48, 278, 538, "Retrieved evidence", stroke=GREEN_DARK)
-    s.rect(928, 104, 218, 82, GREEN, ["Aligned candidate", "future trajectories"], "B x 8 x 24")
-    s.rect(928, 252, 218, 94, GREEN, ["Uniform / score-weighted", "forecast"], "Yhat_R: B x 24")
-    s.rect(928, 412, 218, 98, GRAY, ["Trajectory, spread,", "similarity, count"], "rho(G_t): B x 53")
+    s.rect(928, 104, 218, 82, GREEN, ["Aligned candidate", "future trajectories"], "B × 8 × 24")
+    s.rect(928, 252, 218, 94, GREEN, ["Uniform / score-weighted", "forecast"], (("Ŷ", "base"), ("R", "sub"), (": B × 24", "base")))
+    s.rect(928, 412, 218, 98, GRAY, ["Trajectory, spread,", "similarity, count"], (("ρ(G", "base"), ("t", "sub"), ("): B × 53", "base")))
     s.arrow([(792, 492), (884, 492), (884, 145), (928, 145)], "candidate IDs", (884, 380))
     s.arrow([(1037, 186), (1037, 252)])
     s.arrow([(1037, 346), (1037, 412)])
@@ -268,21 +329,22 @@ def retrieval_figure(path: Path) -> None:
 def forecast_figure(path: Path) -> None:
     s = Svg("TRACE residual correction and evidence head internals")
     s.group(24, 48, 278, 538, "Conditioning tensors")
-    s.rect(52, 92, 222, 68, BLUE, ["Base origin context"], "q_B: B x 46")
-    s.rect(52, 212, 222, 68, BLUE, ["Future calendar"], "C+: B x 24 x 9")
-    s.rect(52, 332, 222, 68, GOLD, ["Residual neighbours"], "Delta_G: B x 8 x 24")
-    s.rect(52, 452, 222, 68, PINK, ["Reliability inputs"], "z_t: B x 18")
+    s.rect(52, 92, 222, 68, BLUE, ["Base origin context"], (("q", "base"), ("B", "sub"), (": B × 46", "base")))
+    s.rect(52, 212, 222, 68, BLUE, ["Future calendar"], (("C", "base"), ("+", "sup"), (": B × 24 × 9", "base")))
+    s.rect(52, 332, 222, 68, GOLD, ["Residual neighbours"], (("Δ", "base"), ("G", "sub"), (": B × 8 × 24", "base")))
+    s.rect(52, 452, 222, 68, PINK, ["Reliability inputs"], (("z", "base"), ("t", "sub"), (": B × 18", "base")))
 
     s.group(330, 48, 540, 538, "Trust-gated residual correction", stroke=PINK_DARK)
-    s.rect(372, 92, 206, 80, PINK, ["Context XGBoost", "24 horizon heads"], "Yhat_X: B x 24")
-    s.rect(622, 92, 206, 80, PINK, ["Context LightGBM", "24 horizon heads"], "Yhat_L: B x 24")
+    s.rect(372, 92, 206, 80, PINK, ["Context XGBoost", "24 horizon heads"], (("Ŷ", "base"), ("X", "sub"), (": B × 24", "base")))
+    s.rect(622, 92, 206, 80, PINK, ["Context LightGBM", "24 horizon heads"], (("Ŷ", "base"), ("L", "sub"), (": B × 24", "base")))
     s.circle(600, 250, 34, GREEN, text_value="base")
-    s.boxed_text(600, 300, "0.3479 Yhat_X + 0.6521 Yhat_L")
-    s.rect(372, 354, 206, 76, GOLD, ["Robust residual", "alignment"], "r_t: B x 24")
-    s.rect(622, 354, 206, 76, GREEN, ["Depth-2 trust gate"], "g_t: B x 1")
+    s.boxed_scripted_text(600, 300, (("0.3479 Ŷ", "base"), ("X", "sub"), (" + 0.6521 Ŷ", "base"), ("L", "sub")))
+    s.rect(372, 354, 206, 76, GOLD, ["Robust residual", "alignment"], (("r", "base"), ("t", "sub"), (": B × 24", "base")))
+    s.rect(622, 354, 206, 76, GREEN, ["Depth-2 trust gate"], (("g", "base"), ("t", "sub"), (": B × 1", "base")))
     s.circle(600, 504, 34, GREEN, text_value="+")
-    s.text(600, 554, "Yhat_TRACE = Yhat_B + g_t r_t", "mono", anchor="middle")
-    s.arrow([(274, 126), (338, 126), (338, 132), (372, 132)], "q_B", (338, 94))
+    s.scripted_text(600, 554, (("Ŷ", "base"), ("TRACE", "sub"), (" = Ŷ", "base"), ("B", "sub"), (" + g", "base"), ("t", "sub"), (" r", "base"), ("t", "sub")), "mono", anchor="middle")
+    s.arrow([(274, 126), (338, 126), (338, 132), (372, 132)])
+    s.boxed_scripted_text(338, 94, (("q", "base"), ("B", "sub")))
     s.arrow([(274, 246), (350, 246), (350, 188), (846, 188), (846, 132), (828, 132)], "C+", (350, 214))
     s.arrow([(350, 188), (350, 152), (372, 152)])
     s.arrow([(338, 126), (338, 76), (846, 76), (846, 112), (828, 112)])

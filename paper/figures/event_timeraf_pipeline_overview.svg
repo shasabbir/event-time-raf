@@ -51,53 +51,53 @@
 <rect x="520.5" y="212" width="85.0" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
 <rect x="533.0" y="266" width="48" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
 <rect x="799.0" y="297" width="102.0" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
-<rect x="694.25" y="580" width="59.5" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
+<rect x="692.88" y="580" width="62.239999999999995" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
 <text x="46" y="57" class="group" text-anchor="start" dominant-baseline="middle">Official source records</text>
 <text x="144.0" y="117.0" class="label" text-anchor="middle" dominant-baseline="middle">EPA AirData</text>
 <text x="144.0" y="139.0" class="label" text-anchor="middle" dominant-baseline="middle">PM2.5 records</text>
-<text x="144.0" y="162" class="mono" text-anchor="middle" dominant-baseline="middle">T x 1</text>
+<text x="144.0" y="162" class="mono" text-anchor="middle" dominant-baseline="middle">T × 1</text>
 <text x="144.0" y="237.0" class="label" text-anchor="middle" dominant-baseline="middle">NOAA GHCNh</text>
 <text x="144.0" y="259.0" class="label" text-anchor="middle" dominant-baseline="middle">weather</text>
-<text x="144.0" y="282" class="mono" text-anchor="middle" dominant-baseline="middle">T x 6</text>
+<text x="144.0" y="282" class="mono" text-anchor="middle" dominant-baseline="middle">T × 6</text>
 <text x="144.0" y="357.0" class="label" text-anchor="middle" dominant-baseline="middle">NOAA Storm Events</text>
 <text x="144.0" y="379.0" class="label" text-anchor="middle" dominant-baseline="middle">verified cache</text>
 <text x="144.0" y="402" class="mono" text-anchor="middle" dominant-baseline="middle">127 event days</text>
 <text x="144.0" y="485.0" class="label" text-anchor="middle" dominant-baseline="middle">Calendar rules</text>
-<text x="144.0" y="516" class="mono" text-anchor="middle" dominant-baseline="middle">T x 9</text>
+<text x="144.0" y="516" class="mono" text-anchor="middle" dominant-baseline="middle">T × 9</text>
 <text x="314" y="57" class="group" text-anchor="start" dominant-baseline="middle">SACB: context construction</text>
 <text x="417.0" y="136.0" class="label" text-anchor="middle" dominant-baseline="middle">Audit and align</text>
 <text x="417.0" y="158.0" class="label" text-anchor="middle" dominant-baseline="middle">hourly records</text>
 <text x="417.0" y="182" class="mono" text-anchor="middle" dominant-baseline="middle">UTC + local time</text>
 <text x="417.0" y="277.0" class="label" text-anchor="middle" dominant-baseline="middle">Causal feature</text>
 <text x="417.0" y="299.0" class="label" text-anchor="middle" dominant-baseline="middle">construction</text>
-<text x="417.0" y="328" class="mono" text-anchor="middle" dominant-baseline="middle">q_t in R^85</text>
+<text x="417.0" y="328" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">q</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline"> ∈ ℝ</tspan><tspan font-size="10px" baseline-shift="super">85</tspan></text>
 <text x="417.0" y="429.0" class="label" text-anchor="middle" dominant-baseline="middle">Chronological</text>
 <text x="417.0" y="451.0" class="label" text-anchor="middle" dominant-baseline="middle">windowing</text>
-<text x="417.0" y="482" class="mono" text-anchor="middle" dominant-baseline="middle">X: Bx168; Y: Bx24</text>
+<text x="417.0" y="482" class="mono" text-anchor="middle" dominant-baseline="middle">X: B×168; Y: B×24</text>
 <text x="592" y="57" class="group" text-anchor="start" dominant-baseline="middle">LSER: historical retrieval</text>
 <text x="705.0" y="132.0" class="label" text-anchor="middle" dominant-baseline="middle">Training-history</text>
 <text x="705.0" y="154.0" class="label" text-anchor="middle" dominant-baseline="middle">knowledge base</text>
-<text x="705.0" y="180" class="mono" text-anchor="middle" dominant-baseline="middle">N_K=1,824</text>
+<text x="705.0" y="180" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">N</tspan><tspan font-size="10px" baseline-shift="sub">K</tspan><tspan font-size="14px" baseline-shift="baseline"> = 1,824</tspan></text>
 <text x="705.0" y="281.0" class="label" text-anchor="middle" dominant-baseline="middle">Embargo filter +</text>
 <text x="705.0" y="303.0" class="label" text-anchor="middle" dominant-baseline="middle">hybrid ranking</text>
-<text x="705.0" y="336" class="mono" text-anchor="middle" dominant-baseline="middle">k=8; alpha,beta,gamma,delta</text>
+<text x="705.0" y="336" class="mono" text-anchor="middle" dominant-baseline="middle">k=8; α,β,γ,δ</text>
 <text x="705.0" y="434.0" class="label" text-anchor="middle" dominant-baseline="middle">Retrieved futures</text>
 <text x="705.0" y="456.0" class="label" text-anchor="middle" dominant-baseline="middle">and summaries</text>
-<text x="705.0" y="482" class="mono" text-anchor="middle" dominant-baseline="middle">Bx8x24 -&gt; Bx53</text>
+<text x="705.0" y="482" class="mono" text-anchor="middle" dominant-baseline="middle">B×8×24 -&gt; B×53</text>
 <text x="563" y="224" class="mono" text-anchor="middle" dominant-baseline="middle">train only</text>
 <text x="557" y="278" class="mono" text-anchor="middle" dominant-baseline="middle">query</text>
 <text x="890" y="57" class="group" text-anchor="start" dominant-baseline="middle">TRACE + DFEH</text>
 <text x="1022.0" y="120.0" class="label" text-anchor="middle" dominant-baseline="middle">Context base ensemble</text>
-<text x="1022.0" y="154" class="mono" text-anchor="middle" dominant-baseline="middle">B x 55 -&gt; B x 24</text>
+<text x="1022.0" y="154" class="mono" text-anchor="middle" dominant-baseline="middle">B × 55 -&gt; B × 24</text>
 <text x="1022.0" y="227.0" class="label" text-anchor="middle" dominant-baseline="middle">Residual analogue</text>
 <text x="1022.0" y="249.0" class="label" text-anchor="middle" dominant-baseline="middle">alignment</text>
-<text x="1022.0" y="272" class="mono" text-anchor="middle" dominant-baseline="middle">B x 8 x 24</text>
+<text x="1022.0" y="272" class="mono" text-anchor="middle" dominant-baseline="middle">B × 8 × 24</text>
 <text x="1022.0" y="345.0" class="label" text-anchor="middle" dominant-baseline="middle">Reliability gate</text>
 <text x="1022.0" y="367.0" class="label" text-anchor="middle" dominant-baseline="middle">and correction</text>
-<text x="1022.0" y="390" class="mono" text-anchor="middle" dominant-baseline="middle">z: B x 18; g: B x 1</text>
+<text x="1022.0" y="390" class="mono" text-anchor="middle" dominant-baseline="middle">z: B × 18; g: B × 1</text>
 <text x="1022.0" y="490.0" class="label" text-anchor="middle" dominant-baseline="middle">Forecast + evidence</text>
-<text x="1022.0" y="524" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat_TRACE: B x 24</text>
+<text x="1022.0" y="524" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">Ŷ</tspan><tspan font-size="10px" baseline-shift="sub">TRACE</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 24</tspan></text>
 <text x="850" y="309" class="mono" text-anchor="middle" dominant-baseline="middle">residual IDs</text>
-<text x="724" y="592" class="mono" text-anchor="middle" dominant-baseline="middle">q_B, C+</text>
+<text x="724" y="592" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">q</tspan><tspan font-size="10px" baseline-shift="sub">B</tspan><tspan font-size="14px" baseline-shift="baseline">, C</tspan><tspan font-size="10px" baseline-shift="super">+</tspan></text>
 <text x="600" y="618" class="small" text-anchor="middle" dominant-baseline="middle">Every candidate target precedes its query; event inputs obey the declared retrospective availability assumption.</text>
 </svg>

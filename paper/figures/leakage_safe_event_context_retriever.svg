@@ -45,7 +45,7 @@
 <rect x="928" y="104" width="218" height="82" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <rect x="928" y="252" width="218" height="94" rx="10" fill="#DDEEDC" stroke="#263238" stroke-width="1.7"/>
 <rect x="928" y="412" width="218" height="98" rx="10" fill="#EEF1F3" stroke="#263238" stroke-width="1.7"/>
-<rect x="463.5" y="390" width="339.0" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
+<rect x="465" y="390" width="336" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
 <rect x="828.75" y="368" width="110.5" height="24" rx="3" fill="#FFFFFF" opacity="0.96"/>
 <text x="46" y="53" class="group" text-anchor="start" dominant-baseline="middle">Temporal eligibility</text>
 <text x="48" y="92" class="small" text-anchor="start" dominant-baseline="middle">past</text>
@@ -58,32 +58,32 @@
 <text x="308.0" y="174.0" class="label" text-anchor="middle" dominant-baseline="middle">query</text>
 <text x="308.0" y="200" class="mono" text-anchor="middle" dominant-baseline="middle">168 h</text>
 <text x="259" y="250" class="mono" text-anchor="middle" dominant-baseline="middle">strict gap</text>
-<text x="200.0" y="353.0" class="label" text-anchor="middle" dominant-baseline="middle">Eligibility set A_t</text>
+<text x="200.0" y="353.0" class="label" text-anchor="middle" dominant-baseline="middle"><tspan font-size="18px" baseline-shift="baseline">Eligibility set A</tspan><tspan font-size="13px" baseline-shift="sub">t</tspan></text>
 <text x="200.0" y="396" class="mono" text-anchor="middle" dominant-baseline="middle">candidate_end &lt; query_start</text>
 <text x="200.0" y="492.0" class="label" text-anchor="middle" dominant-baseline="middle">Training-history restriction</text>
 <text x="200.0" y="524" class="mono" text-anchor="middle" dominant-baseline="middle">validation/test queries</text>
 <text x="420" y="53" class="group" text-anchor="start" dominant-baseline="middle">Hybrid similarity and top-k</text>
-<text x="523.0" y="124.0" class="label" text-anchor="middle" dominant-baseline="middle">PM2.5 shape</text>
-<text x="523.0" y="156" class="mono" text-anchor="middle" dominant-baseline="middle">s_ts</text>
-<text x="743.0" y="124.0" class="label" text-anchor="middle" dominant-baseline="middle">Weather context</text>
-<text x="743.0" y="156" class="mono" text-anchor="middle" dominant-baseline="middle">s_w</text>
-<text x="523.0" y="244.0" class="label" text-anchor="middle" dominant-baseline="middle">Calendar context</text>
-<text x="523.0" y="276" class="mono" text-anchor="middle" dominant-baseline="middle">s_c</text>
-<text x="743.0" y="244.0" class="label" text-anchor="middle" dominant-baseline="middle">Event context</text>
-<text x="743.0" y="276" class="mono" text-anchor="middle" dominant-baseline="middle">s_e</text>
+<text x="523.0" y="134.0" class="label" text-anchor="middle" dominant-baseline="middle">PM2.5 shape</text>
+<text x="523" y="156" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">s</tspan><tspan font-size="10px" baseline-shift="sub">ts</tspan></text>
+<text x="743.0" y="134.0" class="label" text-anchor="middle" dominant-baseline="middle">Weather context</text>
+<text x="743" y="156" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">s</tspan><tspan font-size="10px" baseline-shift="sub">w</tspan></text>
+<text x="523.0" y="254.0" class="label" text-anchor="middle" dominant-baseline="middle">Calendar context</text>
+<text x="523" y="276" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">s</tspan><tspan font-size="10px" baseline-shift="sub">c</tspan></text>
+<text x="743.0" y="254.0" class="label" text-anchor="middle" dominant-baseline="middle">Event context</text>
+<text x="743" y="276" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">s</tspan><tspan font-size="10px" baseline-shift="sub">e</tspan></text>
 <text x="633" y="350" class="label" text-anchor="middle" dominant-baseline="middle">sum</text>
-<text x="633" y="402" class="mono" text-anchor="middle" dominant-baseline="middle">0.5 s_ts + 0.2 s_w + 0.1 s_c + 0.2 s_e</text>
+<text x="633" y="402" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">0.5 s</tspan><tspan font-size="10px" baseline-shift="sub">ts</tspan><tspan font-size="14px" baseline-shift="baseline"> + 0.2 s</tspan><tspan font-size="10px" baseline-shift="sub">w</tspan><tspan font-size="14px" baseline-shift="baseline"> + 0.1 s</tspan><tspan font-size="10px" baseline-shift="sub">c</tspan><tspan font-size="14px" baseline-shift="baseline"> + 0.2 s</tspan><tspan font-size="10px" baseline-shift="sub">e</tspan></text>
 <text x="633.0" y="482.0" class="label" text-anchor="middle" dominant-baseline="middle">TopK over eligible candidates</text>
-<text x="633.0" y="516" class="mono" text-anchor="middle" dominant-baseline="middle">G_t: B x 8</text>
+<text x="633.0" y="516" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">G</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 8</tspan></text>
 <text x="920" y="53" class="group" text-anchor="start" dominant-baseline="middle">Retrieved evidence</text>
 <text x="1037.0" y="124.0" class="label" text-anchor="middle" dominant-baseline="middle">Aligned candidate</text>
 <text x="1037.0" y="146.0" class="label" text-anchor="middle" dominant-baseline="middle">future trajectories</text>
-<text x="1037.0" y="172" class="mono" text-anchor="middle" dominant-baseline="middle">B x 8 x 24</text>
+<text x="1037.0" y="172" class="mono" text-anchor="middle" dominant-baseline="middle">B × 8 × 24</text>
 <text x="1037.0" y="278.0" class="label" text-anchor="middle" dominant-baseline="middle">Uniform / score-weighted</text>
 <text x="1037.0" y="300.0" class="label" text-anchor="middle" dominant-baseline="middle">forecast</text>
-<text x="1037.0" y="332" class="mono" text-anchor="middle" dominant-baseline="middle">Yhat_R: B x 24</text>
+<text x="1037.0" y="332" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">Ŷ</tspan><tspan font-size="10px" baseline-shift="sub">R</tspan><tspan font-size="14px" baseline-shift="baseline">: B × 24</tspan></text>
 <text x="1037.0" y="440.0" class="label" text-anchor="middle" dominant-baseline="middle">Trajectory, spread,</text>
 <text x="1037.0" y="462.0" class="label" text-anchor="middle" dominant-baseline="middle">similarity, count</text>
-<text x="1037.0" y="496" class="mono" text-anchor="middle" dominant-baseline="middle">rho(G_t): B x 53</text>
+<text x="1037.0" y="496" class="mono" text-anchor="middle" dominant-baseline="middle"><tspan font-size="14px" baseline-shift="baseline">ρ(G</tspan><tspan font-size="10px" baseline-shift="sub">t</tspan><tspan font-size="14px" baseline-shift="baseline">): B × 53</tspan></text>
 <text x="884" y="380" class="mono" text-anchor="middle" dominant-baseline="middle">candidate IDs</text>
 </svg>

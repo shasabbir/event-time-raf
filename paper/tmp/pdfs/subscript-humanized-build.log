@@ -1,0 +1,500 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+(main_humanized.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2025-12-24>
+(ieeeaccess.cls
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/ieeetran\IEEEtran.cl
+s
+Document Class: IEEEtran 2015/08/26 V1.8b by Michael Shell
+-- See the "IEEEtran_HOWTO" manual for usage information.
+-- http://www.michaelshell.org/tex/ieeetran/
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ot1ptm.fd)
+-- Using 8.5in x 11in (letter) paper.
+-- Using PDF output.
+-- This is a 10 point document.
+) (C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/iftex\ifpdf.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/iftex\iftex.sty))
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/xkeyval\xkeyval.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/xkeyval\xkeyval.te
+x
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/xkeyval\xkvutils.t
+ex
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/xkeyval\keyval.tex
+)))){C:/Users/Software/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{./t1-t
+imes.map}{./t1-formata.map}{./t1-giovannistd.map}
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/graphics\color.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\color.c
+fg)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/graphics-def\pdftex.
+def)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/graphics\mathcolor.l
+tx)) (spotcolor.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/graphics\graphics.st
+y (C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/graphics\trig.sty)
+
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/graphics-cfg\graphic
+s.cfg))))
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+ (C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+ (C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty)
+)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.st
+y)) (C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/tools\array.sty)
+
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/booktabs\booktabs.st
+y) (C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/cite\cite.sty)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/graphics\graphicx.st
+y)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/multirow\multirow.st
+y)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hyperref.st
+y
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/kvsetkeys\kvsetkeys.
+sty)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/kvdefinekeys\kvdef
+inekeys.sty)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/pdfescape\pdfescap
+e.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/ltxcmds\ltxcmds.st
+y)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/pdftexcmds\pdftexc
+mds.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/infwarerr\infwarer
+r.sty)))
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/hycolor\hycolor.sty)
+
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\nameref.sty
+
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/refcount\refcount.st
+y)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/gettitlestring\get
+titlestring.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/kvoptions\kvoptions.
+sty)))
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/etoolbox\etoolbox.st
+y)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/stringenc\stringen
+c.sty)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\pd1enc.def)
+
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/intcalc\intcalc.st
+y)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\puenc.def)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/url\url.sty)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/bitset\bitset.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/bigintcalc\bigintc
+alc.sty)))
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/hyperref\hpdftex.def
+
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/rerunfilecheck\rerun
+filecheck.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/generic/uniquecounter\uniq
+uecounter.sty)))
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/base\textcomp.sty)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/tools\bm.sty)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/l3backend\l3backend-
+pdftex.def) (main_humanized.aux)
+-- Lines per column: 56 (exact).
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\t1ptm.fd)
+(t1times.fd)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf
+.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/epstopdf-pkg\epstopd
+f-base.sty
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/00miktex\epstopdf-sy
+s.cfg)) (main_humanized.out) (main_humanized.out)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd)
+(C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd)
+Overfull \hbox (9.2679pt too wide) in paragraph at lines 61--61
+[]  
+
+Overfull \hbox (9.2679pt too wide) in paragraph at lines 61--61
+[]  
+
+Underfull \vbox (badness 2707) has occurred while \output is active
+Underfull \vbox (badness 2707) has occurred while \output is active
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[1 <./logo.png> <./bullet.png>]
+Underfull \hbox (badness 1867) in paragraph at lines 70--71
+\T1/times/n/n/10 Safe Event-Context Re-triever (LSER), TRACE residual-
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 89.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[2 <./notaglinelogo.png>]
+Underfull \hbox (badness 1796) in paragraph at lines 117--118
+[]\T1/times/n/n/10 Source-Audited Con-text Builder (SACB): builds an
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 118.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[3]
+Underfull \hbox (badness 4479) in paragraph at lines 118--119
+[]\T1/times/n/n/10 Leakage-Safe Event-Context Re-triever (LSER): re-
+
+Underfull \hbox (badness 3536) in paragraph at lines 118--119
+\T1/times/n/n/10 trieves training-history ana-logues af-ter en-forc-ing a
+
+Underfull \hbox (badness 2600) in paragraph at lines 120--121
+\T1/times/n/n/10 bines di-rect hori-zon mod-els, TRACE-RAF, frozen-
+
+Underfull \hbox (badness 4899) in paragraph at lines 123--124
+[]\T1/times/n/n/10 The em-pir-i-cal con-tri-bu-tion is in-ten-tion-ally qual-i-
+fied.
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 194.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[4] (C:\Users\Software\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\t1pcr.fd)
+
+
+LaTeX Font Warning: Font shape `T1/pcr/n/n' undefined
+(Font)              using `T1/pcr/m/n' instead on input line 249.
+
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 280.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[5{C:/Users/Software/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/base/8r.enc}
+]
+Underfull \vbox (badness 10000) has occurred while \output is active
+Underfull \vbox (badness 10000) has occurred while \output is active
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 280.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[6 <./figures/event_timeraf_pipeline_overview.pdf> <./figures/source_audited_co
+ntext_builder.pdf>]
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 308.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[7 <./figures/leakage_safe_event_context_retriever.pdf>]
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 381.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[8]
+Underfull \hbox (badness 2698) in paragraph at lines 459--460
+[]|\T1/times/m/n/8 Improve zero-shot fore-cast-ing by aug-ment-ing a frozen
+
+Underfull \hbox (badness 10000) in paragraph at lines 472--474
+[]|\T1/times/m/n/8 Convex LightGBM--XGBoost con-text en-sem-ble; frozen
+
+Underfull \hbox (badness 3482) in paragraph at lines 474--475
+[]|\T1/times/m/n/8 Non-overlapping knowl-edge win-dows and cross-dataset
+
+Overfull \hbox (69.0829pt too wide) in paragraph at lines 490--491
+\T1/times/n/n/10 This sec-tion de-scribes the fi-nal ex-per-i-ment named 202608
+27T043457543402Z,
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 494.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[9]
+Underfull \vbox (badness 2205) has occurred while \output is active
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 497.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[10 <./figures/drift_aware_forecast_evidence_head.pdf>]
+Underfull \hbox (badness 3049) in paragraph at lines 528--529
+[]|\T1/times/m/n/8 2019--2025; 0.9923 us-able
+
+Underfull \hbox (badness 1436) in paragraph at lines 562--563
+\T1/times/n/n/10 from EPA Air-Data, NOAA GHCNh, and NOAA Storm
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 653.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[11]
+Underfull \hbox (badness 5681) in paragraph at lines 665--665
+[]|\T1/times/m/n/8 PatchTST-style Trans-form-
+
+Underfull \hbox (badness 3108) in paragraph at lines 667--669
+[]|\T1/times/m/n/8 Frozen zero-shot base-line used in this
+
+Underfull \hbox (badness 10000) in paragraph at lines 669--671
+\T1/times/m/n/8 does not tar-get of-fi-cial event-context
+
+Underfull \hbox (badness 4366) in paragraph at lines 671--671
+[]|\T1/times/m/n/8 XGBoost con-text base-line
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 739.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[12]
+Underfull \vbox (badness 10000) has occurred while \output is active
+Underfull \vbox (badness 10000) has occurred while \output is active
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 783.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[13]
+Underfull \vbox (badness 8170) has occurred while \output is active
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 822.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[14]
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 912.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[15 <./figures/mse_by_horizon.pdf>]
+Underfull \hbox (badness 1810) in paragraph at lines 941--942
+[]|\T1/times/m/n/8 Mean, vari-ance, weather, sim-i-lar-ity, and
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 965.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[16 <./figures/mae_by_horizon.pdf> <./figures/drift_scores.png> <./figures/fore
+cast_case.png> <./figures/forecast_event_case.png>]
+Underfull \hbox (badness 2635) in paragraph at lines 970--971
+\T1/times/n/n/10 the three note-books done cor-rectly with-out cell er-rors.
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 1005.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[17]
+Underfull \hbox (badness 1867) in paragraph at lines 1014--1015
+\T1/times/n/n/10 prediction-level ver-i-fi-ca-tion al-low for more re-pro-ducib
+le
+(main_humanized.bbl
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 84.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[18])
+
+Package hyperref Warning: The anchor of a bookmark and its parent's must not
+(hyperref)                be the same. Added a new anchor on input line 1027.
+
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 1044.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[19]
+
+LaTeX Font Warning: Font shape `T1/formata/m/sl' undefined
+(Font)              using `T1/formata/m/it' instead on input line 1055.
+
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Overfull \hbox (505.12177pt too wide) has occurred while \output is active
+[]
+
+Underfull \hbox (badness 10000) has occurred while \output is active
+[]
+[20] (main_humanized.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ )
+(see the transcript file for additional information)
+pdfTeX warning (dest): name{section*.1} has been referenced but does not exist,
+ replaced by a fixed one
+
+<C:/Users/Software/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm
+/cmex10.pfb><C:/Users/Software/AppData/Local/Programs/MiKTeX/fonts/type1/public
+/amsfonts/cm/cmmi10.pfb><C:/Users/Software/AppData/Local/Programs/MiKTeX/fonts/
+type1/public/amsfonts/cm/cmmi7.pfb><C:/Users/Software/AppData/Local/Programs/Mi
+KTeX/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/Software/AppData/Local/
+Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/Software/App
+Data/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/So
+ftware/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr7.pfb><C
+:/Users/Software/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/c
+mr8.pfb><C:/Users/Software/AppData/Local/Programs/MiKTeX/fonts/type1/public/ams
+fonts/cm/cmsy10.pfb><C:/Users/Software/AppData/Local/Programs/MiKTeX/fonts/type
+1/public/amsfonts/cm/cmsy7.pfb><C:/Users/Software/AppData/Local/Programs/MiKTeX
+/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/Software/AppData/Local/Prog
+rams/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm10.pfb><./t1-formata-bold.p
+fb><./t1-formata-condmedium.pfb><./t1-formata-medium.pfb><./t1-formata-mediumit
+alic.pfb><./t1-formata-regular.pfb><./t1-giovannistd-bookitalic.pfb><./t1-times
+-bold.pfb><./t1-times-italic.pfb><./t1-times.pfb><C:/Users/Software/AppData/Loc
+al/Programs/MiKTeX/fonts/type1/urw/courier/ucrr8a.pfb>
+Output written on main_humanized.pdf (20 pages, 1586455 bytes).
+Transcript written on main_humanized.log.
