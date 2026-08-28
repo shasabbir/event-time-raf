@@ -22,8 +22,8 @@
 <polyline points="154,392 154,432" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <polyline points="431,166 431,190 330,190 330,390 501,390" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <polyline points="631,166 631,190 732,190 732,390 561,390" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="431,296 431,330 330,330" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<polyline points="631,296 631,330 732,330" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="431,296 431,335 476,335 510,369" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<polyline points="631,296 631,335 586,335 552,369" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <polyline points="531,420 531,444" fill="none" stroke="#263238" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
 <line x1="977" y1="170" x2="977" y2="206" stroke="#263238" stroke-width="1.7"/>
 <line x1="885" y1="206" x2="1069" y2="206" stroke="#263238" stroke-width="1.7"/>

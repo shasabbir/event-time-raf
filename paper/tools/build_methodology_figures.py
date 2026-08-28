@@ -242,13 +242,12 @@ def context_figure(path: Path) -> None:
     s.rect(346, 222, 170, 74, GRAY, ["Cyclic calendar", "and holidays"], "9 features")
     s.rect(546, 222, 170, 74, GOLD, ["Event counts, active", "states, burst ratio"], "39 features")
     s.circle(531, 390, 30, GREEN, text_value="||")
-    # The lower feature streams join the two side buses at right angles.  Each
-    # bus then uses one horizontal arrow into the circular concatenate node;
-    # this avoids the small V-shaped diagonal stubs around the circle.
+    # Top-row feature streams route around via side gutters into the circle equator.
+    # Bottom-row feature streams route inward and connect diagonally into the circle shoulders.
     s.arrow([(431, 166), (431, 190), (330, 190), (330, 390), (501, 390)])
     s.arrow([(631, 166), (631, 190), (732, 190), (732, 390), (561, 390)])
-    s.arrow([(431, 296), (431, 330), (330, 330)])
-    s.arrow([(631, 296), (631, 330), (732, 330)])
+    s.arrow([(431, 296), (431, 335), (476, 335), (510, 369)])
+    s.arrow([(631, 296), (631, 335), (586, 335), (552, 369)])
     s.rect(406, 444, 250, 76, GREEN, ["Origin context vector"], (("q", "base"), ("t", "sub"), (" ∈ ℝ", "base"), ("85", "sup")))
     s.arrow([(531, 420), (531, 444)])
     s.text(531, 548, "Fitted and checked on chronological training history", "small", anchor="middle")
