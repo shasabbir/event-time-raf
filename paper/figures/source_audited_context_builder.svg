@@ -55,11 +55,11 @@
 <text x="154.0" y="245.0" class="label" text-anchor="middle" dominant-baseline="middle">station 72297023129</text>
 <text x="154.0" y="266" class="mono" text-anchor="middle" dominant-baseline="middle">coverage=0.9923</text>
 <text x="154.0" y="335.0" class="label" text-anchor="middle" dominant-baseline="middle">NOAA events</text>
-<text x="154.0" y="357.0" class="label" text-anchor="middle" dominant-baseline="middle">hash + manifest</text>
+<text x="154.0" y="357.0" class="label" text-anchor="middle" dominant-baseline="middle">verified records</text>
 <text x="154.0" y="378" class="mono" text-anchor="middle" dominant-baseline="middle">127 event days</text>
 <text x="154.0" y="455.0" class="label" text-anchor="middle" dominant-baseline="middle">Availability and</text>
 <text x="154.0" y="477.0" class="label" text-anchor="middle" dominant-baseline="middle">duplicate checks</text>
-<text x="154.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle">event-start caveat</text>
+<text x="154.0" y="506" class="mono" text-anchor="middle" dominant-baseline="middle">retrospective timing</text>
 <text x="338" y="53" class="group" text-anchor="start" dominant-baseline="middle">Hourly context construction</text>
 <text x="431.0" y="108.0" class="label" text-anchor="middle" dominant-baseline="middle">PM2.5 lags, rolling</text>
 <text x="431.0" y="130.0" class="label" text-anchor="middle" dominant-baseline="middle">and differences</text>
