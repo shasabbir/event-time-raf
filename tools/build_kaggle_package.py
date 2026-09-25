@@ -17,8 +17,6 @@ ROOT_FILES = (
     "README.md",
     "requirements.txt",
     "requirements-optional.txt",
-    
-    
 )
 
 

@@ -394,7 +394,6 @@ event-time-raf/
 ├── notebooks/                # Training, verification, and claim-audit notebooks
 ├── outputs/                  # Generated artifacts; large outputs are ignored
 ├── docs/assets/              # Public README figures
-├── presentation/             # Verified presentation materials
 ├── src/event_timeraf/        # Data, features, retrieval, models, and evaluation
 ├── tests/                    # Unit and leakage-safety tests
 ├── tools/                    # Packaging and notebook-build utilities
